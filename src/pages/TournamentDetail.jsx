@@ -12,7 +12,8 @@ export default function TournamentDetail(){
   const { tournaments, regsFor, myRegs, registerTournament, user } = useAuth()
   const { t } = useLang()
   const tr = tournaments.find(x=> x.id===id)
-  const [form, setForm] = useState({ team:'', captain:'', phone:'', gameId:'' })
+  const [form, setForm] = useState({ team:'', captain:'', phone:'', gameId:'', logo:'' })
+  const [logoErr, setLogoErr] = useState('')
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
@@ -27,7 +28,7 @@ export default function TournamentDetail(){
     e.preventDefault(); setError('')
     if(!user) return nav('/login', { state: { from: `/tournaments/${tr.id}` } })
     try{
-      await registerTournament({ tournamentId: tr.id, team: form.team, captain: form.captain, phone: form.phone, gameId: form.gameId })
+      await registerTournament({ tournamentId: tr.id, team: form.team, captain: form.captain, phone: form.phone, gameId: form.gameId, logo: form.logo })
       setDone(true)
     }catch(err){
       const m = err.message||''
@@ -38,6 +39,28 @@ export default function TournamentDetail(){
         : m
       )
     }
+  }
+
+  const onLogoFile = (f)=>{
+    setLogoErr('')
+    if(!f) return
+    if(!f.type.startsWith('image/')){ setLogoErr(t('team_logo_bad')); return }
+    if(f.size > 5*1024*1024){ setLogoErr(t('team_logo_big')); return }
+    const rd = new FileReader()
+    rd.onload = ()=>{
+      const img = new Image()
+      img.onload = ()=>{
+        const max = 256
+        const s = Math.min(1, max / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        setForm(prev=> ({...prev, logo: c.toDataURL('image/jpeg', 0.82)}))
+      }
+      img.onerror = ()=> setLogoErr(t('team_logo_bad'))
+      img.src = rd.result
+    }
+    rd.readAsDataURL(f)
   }
 
   return (
@@ -67,7 +90,7 @@ export default function TournamentDetail(){
           <h2 className="font-black mt-6 mb-2">{t('tr_participants')} ({regs.length})</h2>
           <div className="flex flex-wrap gap-2">
             {regs.length===0 && <span className="text-sm text-white/40">—</span>}
-            {regs.map(r=> <span key={r.id} className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10">🛡️ {r.team}</span>)}
+            {regs.map(r=> <Link key={r.id} to={`/teams/${encodeURIComponent(r.team)}`} className="text-xs px-2 py-1.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 hover:border-amber-500">{r.logo ? <img src={r.logo} alt="" className="w-5 h-5 rounded-full object-cover bg-white"/> : '🛡️'} {r.team}</Link>)}
           </div>
         </div>
 
@@ -112,6 +135,14 @@ export default function TournamentDetail(){
               <input placeholder={t('captain_ph')} value={form.captain} onChange={e=>setForm({...form,captain:e.target.value})} className="w-full px-3 py-3 rounded-xl bg-black/30 border border-white/10 focus:outline-none focus:border-amber-500"/>
               <input placeholder={t('phone_ph')} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="w-full px-3 py-3 rounded-xl bg-black/30 border border-white/10 focus:outline-none focus:border-amber-500"/>
               <input placeholder={t('gameid_ph')} value={form.gameId} onChange={e=>setForm({...form,gameId:e.target.value})} className="w-full px-3 py-3 rounded-xl bg-black/30 border border-white/10 focus:outline-none focus:border-amber-500"/>
+              <label className="flex items-center gap-3 cursor-pointer rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 hover:border-amber-500">
+                {form.logo
+                  ? <img src={form.logo} alt="" className="w-10 h-10 rounded-xl object-cover bg-white"/>
+                  : <span className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg">🛡️</span>}
+                <span className="text-xs text-white/60">{form.logo ? t('team_logo_ok') : t('team_logo_ph')}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={e=>onLogoFile(e.target.files?.[0])}/>
+              </label>
+              {logoErr && <div className="text-xs text-red-400">{logoErr}</div>}
               {error && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{error}</div>}
               <button className="btn-shine w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black">{t('tr_register')}</button>
               {!user && <p className="text-[11px] text-white/40 text-center">{t('tr_login_needed')}</p>}

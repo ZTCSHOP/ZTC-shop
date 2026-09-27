@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Shield, Trophy, Users, Send, Check, Swords, Target } from 'lucide-react'
+import { Shield, Trophy, Users, Send, Check, Swords, Target, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -8,13 +8,17 @@ import { computeStandings, getChampion } from '../lib/bracket'
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, tournaments, user, myJoinReqs, requestJoinTeam } = useAuth()
+  const { regs, tournaments, user, myJoinReqs, requestJoinTeam, updateTeamLogo } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
+  const [logoErr, setLogoErr] = useState('')
 
   const teamRegs = regs.filter(r=> (r.team||'').toLowerCase()===name.toLowerCase())
+  const teamLogo = (teamRegs.find(r=> r.logo)||{}).logo || ''
+  const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
+  const canEditLogo = user && (user.isAdmin || !!myReg)
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
   const myReqs = myJoinReqs()
 
@@ -64,6 +68,35 @@ export default function TeamDetail(){
     }
   }
 
+  const onLogoFile = (f)=>{
+    setLogoErr(''); setInfo('')
+    const target = myReg || (user?.isAdmin ? teamRegs[0] : null)
+    if(!target) return
+    if(!f) return
+    if(!f.type.startsWith('image/')){ setLogoErr(t('team_logo_bad')); return }
+    if(f.size > 5*1024*1024){ setLogoErr(t('team_logo_big')); return }
+    const rd = new FileReader()
+    rd.onload = ()=>{
+      const img = new Image()
+      img.onload = async ()=>{
+        const max = 256
+        const s = Math.min(1, max / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        try{
+          await updateTeamLogo(target.id, c.toDataURL('image/jpeg', 0.82))
+          setInfo(t('team_logo_ok'))
+        }catch(e){
+          setLogoErr(e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err'))
+        }
+      }
+      img.onerror = ()=> setLogoErr(t('team_logo_bad'))
+      img.src = rd.result
+    }
+    rd.readAsDataURL(f)
+  }
+
   const stat = (label, value, gold)=>{
     return <div className="rounded-2xl bg-black/30 border border-white/10 p-4 text-center">
       <div className={`text-3xl font-black ${gold?'text-amber-300':''}`}>{value}</div>
@@ -77,10 +110,19 @@ export default function TeamDetail(){
 
       <div className="mt-4 rounded-3xl overflow-hidden bg-white/5 border border-white/10 p-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl">🛡️</div>
+          <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
+            {teamLogo
+              ? <img src={teamLogo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl">🛡️</div>}
+            {canEditLogo && <>
+              <span className="mt-1 flex items-center gap-1 text-[11px] text-amber-300 group-hover/logo:text-amber-200"><Pencil size={11}/> {t('team_logo_change')}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
+            </>}
+          </label>
           <div>
             <h1 className="text-2xl md:text-4xl font-black">{name}</h1>
             <div className="text-xs text-white/50 flex items-center gap-1 mt-1"><Users size={12}/> {t('teams_sub')}</div>
+            {logoErr && <div className="text-xs text-red-400 mt-1">{logoErr}</div>}
           </div>
           {titles>0 && <div className="ml-auto text-xs px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-black flex items-center gap-1"><Trophy size={12}/> {titles}x {t('champion')}</div>}
         </div>

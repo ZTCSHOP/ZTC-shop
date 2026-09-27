@@ -56,7 +56,9 @@ export default function Teams(){
           return (
             <div key={r.id} className="rounded-2xl bg-white/5 border border-white/10 p-4">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🛡️</span>
+                {r.logo
+                  ? <img src={r.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
+                  : <span className="text-lg w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
                 <Link to={`/teams/${encodeURIComponent(r.team)}`} className="font-black truncate hover:text-amber-300">{r.team}</Link>
                 {mine && <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold">{t('teams_mine')}</span>}
               </div>
