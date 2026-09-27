@@ -147,11 +147,16 @@ export function AuthProvider({ children }){
   const [regs, setRegs] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem('ztc_regs')||'[]')}catch{return []}
   })
+  const [joinReqs, setJoinReqs] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem('ztc_join_reqs')||'[]')}catch{return []}
+  })
   useEffect(()=> localStorage.setItem('ztc_tournaments', JSON.stringify(tournaments.filter(x=>!x.cloud))), [tournaments])
   useEffect(()=> localStorage.setItem('ztc_regs', JSON.stringify(regs.filter(x=>!x.cloud))), [regs])
+  useEffect(()=> localStorage.setItem('ztc_join_reqs', JSON.stringify(joinReqs.filter(x=>!x.cloud))), [joinReqs])
 
   const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
   const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', userId: r.user_id, date: r.created_at, cloud: true })
+  const mapCloudJoin = (r)=> ({ id: r.id, tournament_id: r.tournament_id, regId: r.reg_id, userId: r.user_id, message: r.message||'', status: r.status||'pending', date: r.created_at, cloud: true })
 
   const refreshTournaments = useCallback(async ()=>{
     if(!cloud) return
@@ -183,6 +188,20 @@ export function AuthProvider({ children }){
       })
     }catch(e){ console.warn('cloud regs:', e.message) }
   }, [])
+  const refreshJoinReqs = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(500)
+      if(error) throw error
+      const mapped = (data||[]).map(mapCloudJoin)
+      setJoinReqs(prev=>{
+        const map = new Map()
+        prev.forEach(x=> map.set(x.id, x))
+        mapped.forEach(x=> map.set(x.id, x))
+        return [...map.values()]
+      })
+    }catch(e){ console.warn('cloud join reqs:', e.message) }
+  }, [])
 
   const refreshCloudMessages = useCallback(async ()=>{
     if(!cloud) return
@@ -200,8 +219,8 @@ export function AuthProvider({ children }){
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -223,6 +242,7 @@ export function AuthProvider({ children }){
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ()=> refreshCloudMessages())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, ()=> refreshTournaments())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_regs' }, ()=> refreshRegs())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .subscribe()
     const onFocus = ()=> refreshAll()
     window.addEventListener('focus', onFocus)
@@ -563,6 +583,46 @@ export function AuthProvider({ children }){
     if(!u) return []
     return regs.filter(x=> x.userId===u.id)
   }
+  // ---- Demandes pour rejoindre une équipe (player avec compte) ----
+  const joinReqsFor = (regId)=> joinReqs.filter(x=> x.regId===regId)
+  const myJoinReqs = (u=user)=>{
+    if(!u) return []
+    return joinReqs.filter(x=> x.userId===u.id)
+  }
+  const requestJoinTeam = async ({ regId, tournamentId, message })=>{
+    if(!user) throw new Error('login')
+    if(joinReqs.some(x=> x.regId===regId && x.userId===user.id)) throw new Error('already')
+    if(regs.some(x=> x.id===regId && x.userId===user.id)) throw new Error('ownteam')
+    const req = {
+      id: genId('join'), tournament_id: tournamentId, regId,
+      userId: user.id, userName: user.name||user.email||'Joueur',
+      message: (message||'').slice(0, 300), status: 'pending',
+      date: new Date().toISOString(), cloud: !!(cloud && user.cloud),
+    }
+    if(req.cloud){
+      try{
+        const { data, error } = await supabase.from('tournament_join_requests').insert({
+          tournament_id: tournamentId, reg_id: regId,
+          user_id: sbUserId.current || user.id,
+          message: req.message, status: 'pending',
+        }).select()
+        if(error) throw error
+        if(data?.[0]) { const m = mapCloudJoin(data[0]); setJoinReqs(prev=> [m, ...prev]); refreshJoinReqs(); return m }
+      }catch(e){
+        if(String(e.message||'').includes('tournament_join_requests')) throw new Error('need_sql')
+        throw e
+      }
+    }
+    setJoinReqs(prev=> [req, ...prev])
+    return req
+  }
+  const updateJoinReq = async (id, status)=>{
+    setJoinReqs(prev=> prev.map(x=> x.id===id ? {...x, status} : x))
+    if(cloud){
+      try{ await supabase.from('tournament_join_requests').update({ status }).eq('id', id) }catch{}
+      refreshJoinReqs()
+    }
+  }
 
   // ---- Produits : écriture cloud (remplacement table, admin) ou locale ----
   const setProducts = (next)=>{
@@ -672,6 +732,6 @@ export function AuthProvider({ children }){
   // L'admin a-t-il la vue globale cloud ? (false tant que le SQL is_admin n'est pas exécuté)
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
-  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament, deleteReg, regsFor, myRegs, addTeamManual, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament, deleteReg, regsFor, myRegs, addTeamManual, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

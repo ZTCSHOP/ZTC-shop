@@ -30,7 +30,13 @@ export default function TournamentDetail(){
       await registerTournament({ tournamentId: tr.id, team: form.team, captain: form.captain, phone: form.phone, gameId: form.gameId })
       setDone(true)
     }catch(err){
-      setError(err.message==='phone' ? 'Téléphone invalide (8-15 chiffres)' : err.message==='team' ? t('team_ph') : err.message)
+      const m = err.message||''
+      setError(
+        m==='phone' ? 'Téléphone invalide (8-15 chiffres)'
+        : m==='team' ? t('team_ph')
+        : m.includes('foreign key') ? t('tr_need_sync')
+        : m
+      )
     }
   }
 
