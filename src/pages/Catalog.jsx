@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { categories, initialProducts, MENUS } from '../data/products'
@@ -10,6 +10,7 @@ export default function Catalog(){
   const catParam = params.get('cat') || 'all'
   const menuParam = params.get('menu') || ''
   const [q, setQ] = useState(params.get('q')||'')
+  useEffect(()=>{ setQ(params.get('q')||'') }, [params])
   const [sort, setSort] = useState('popular')
   const [category, setCategory] = useState(catParam)
   const { products: dbProducts } = useAuth()
@@ -21,7 +22,7 @@ export default function Catalog(){
     let arr = [...products]
     if(menu) arr = arr.filter(p=> menu.products.includes(p.id))
     else if(category!=='all') arr = arr.filter(p=> p.category===category)
-    if(q) arr = arr.filter(p=> (p.name+' '+p.subtitle+' '+p.category).toLowerCase().includes(q.toLowerCase()))
+    if(q) arr = arr.filter(p=> (p.name+' '+p.subtitle+' '+p.category+' '+p.variants.map(v=>v.label).join(' ')).toLowerCase().includes(q.toLowerCase()))
     if(sort==='price-asc') arr.sort((a,b)=> Math.min(...a.variants.map(v=>v.price)) - Math.min(...b.variants.map(v=>v.price)))
     if(sort==='price-desc') arr.sort((a,b)=> Math.min(...b.variants.map(v=>v.price)) - Math.min(...a.variants.map(v=>v.price)))
     if(sort==='name') arr.sort((a,b)=> a.name.localeCompare(b.name))

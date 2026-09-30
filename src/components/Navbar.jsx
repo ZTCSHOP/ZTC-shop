@@ -1,23 +1,21 @@
-import { Link } from 'react-router-dom'
-import { ShoppingCart, User, Shield, LogOut, MessageCircle, Info, Trophy, Home, Gamepad2, KeyRound, Gift, Crown, Sparkles, Monitor, ChevronDown } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang, LANGS } from '../context/LanguageContext'
-import { MENUS, initialProducts, categories } from '../data/products'
+import { useState } from 'react'
 
 const providerLabel = { email:'Email', discord:'Discord', facebook:'Facebook', 'Internet Identity':'Internet Identity' }
 const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
-const MENU_ICONS = { Gamepad2, KeyRound, User, Gift, Crown, Sparkles, Monitor }
 
-export default function Navbar(){
+export default function Navbar({ onBurger }){
   const { count } = useCart()
-  const { user, logout, products: dbProducts } = useAuth()
+  const { user, logout } = useAuth()
   const { lang, setLang, t } = useLang()
+  const nav = useNavigate()
+  const [q, setQ] = useState('')
   const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`
-  const allProds = dbProducts || initialProducts
-  const prodById = Object.fromEntries(allProds.map(p=> [p.id, p]))
-  const visibleMenus = MENUS.filter(m=> m.products.length>0 || (m.children||[]).length>0)
-  const catName = (id)=> categories.find(c=>c.id===id)?.label||id
+  const goSearch = (e)=>{ e.preventDefault(); nav(`/catalog?q=${encodeURIComponent(q.trim())}`) }
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-[#0a0a0c]/90 border-b border-white/10">
       <div className="max-w-[1536px] mx-auto px-4 h-16 flex items-center gap-3">
@@ -25,40 +23,14 @@ export default function Navbar(){
           <img src={logoUrl} alt="ZTC Shop" className="w-10 h-10 rounded-xl object-cover bg-white p-0.5 border border-white/20"/>
           <span className="hidden sm:inline font-display text-2xl tracking-wide">ZTC<span className="text-lime-400"> SHOP</span></span>
         </Link>
-        <nav className="hidden md:flex items-center gap-5 ml-4 text-sm text-white/70">
-          <Link to="/" className="hover:text-white flex items-center gap-1"><Home size={15}/></Link>
-          {visibleMenus.map(m=>{
-            const Icon = MENU_ICONS[m.icon] || Gift
-            const mainLink = m.products.length>0 ? `/catalog?menu=${m.id}` : `/catalog?cat=${(m.children||[])[0]||''}`
-            return (
-              <div key={m.id} className="relative group">
-                <Link to={mainLink} className="flex items-center gap-1.5 py-4 text-white font-semibold hover:text-lime-400 transition">
-                  <Icon size={15}/>{m.label[lang]||m.label.en}<ChevronDown size={12} className="opacity-60"/>
-                </Link>
-                <div className="absolute top-full left-0 min-w-[220px] pt-2 hidden group-hover:block">
-                <div className="rounded-2xl bg-[#141417] border border-white/10 shadow-2xl p-2">
-                  {(m.children||[]).map(cid=>(
-                    <Link key={cid} to={`/catalog?cat=${cid}`} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 text-white/80 hover:text-white text-[13px] font-bold">
-                      <span className="w-8 h-8 rounded-lg bg-lime-400/20 text-lime-300 flex items-center justify-center text-xs font-black">{catName(cid)[0]}</span>
-                      <span className="truncate">{catName(cid)}</span>
-                    </Link>
-                  ))}
-                  {m.products.map(pid=> prodById[pid] && (
-                    <Link key={pid} to={`/product/${pid}`} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 text-white/80 hover:text-white text-[13px]">
-                      {prodById[pid].image
-                        ? <img src={prodById[pid].image} alt="" className="w-8 h-8 rounded-lg object-cover"/>
-                        : <span className="w-8 h-8 rounded-lg bg-lime-400 text-black/30 flex items-center justify-center text-xs font-black">{prodById[pid].name[0]}</span>}
-                      <span className="truncate">{prodById[pid].name}</span>
-                    </Link>
-                  ))}
-                  <Link to={`/catalog?menu=${m.id}`} className="block text-center mt-1 px-3 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-[13px] font-bold">Tout voir →</Link>
-                </div>
-                </div>
-              </div>
-            )
-          })}
-        </nav>
-        <div className="flex-1" />
+        <button onClick={onBurger} className="lg:hidden p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10" aria-label="Menu">
+          <Menu size={18}/>
+        </button>
+        <form onSubmit={goSearch} className="hidden md:flex flex-1 max-w-xl mx-2 relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40"/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher jeux, gift cards, consola…" className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-lime-400/60 text-sm"/>
+        </form>
+        <div className="flex-1 md:hidden" />
         {/* Tournois + Équipes + Support */}
         <Link to="/teams" title={t('teams')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 text-sm font-bold">
           <Shield size={16}/> {t('teams')}
@@ -109,12 +81,10 @@ export default function Navbar(){
         )}
       </div>
       <div className="md:hidden border-t border-white/10">
-        <div className="max-w-[1536px] mx-auto px-4 py-2 flex gap-2 overflow-x-auto text-[13px] text-white/70">
-          <Link to="/" className="flex items-center gap-1 whitespace-nowrap px-2 py-1"><Home size={14}/></Link>
-          {visibleMenus.map(m=>{ const Icon = MENU_ICONS[m.icon] || Gift; const ml = m.products.length>0 ? `/catalog?menu=${m.id}` : `/catalog?cat=${(m.children||[])[0]||''}`; return (
-            <Link key={m.id} to={ml} className="flex items-center gap-1 whitespace-nowrap px-2 py-1 text-white font-semibold"><Icon size={14}/>{m.label[lang]||m.label.en}</Link>
-          )})}
-        </div>
+        <form onSubmit={goSearch} className="px-4 py-2 relative">
+          <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-white/40"/>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher…" className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-lime-400/60 text-sm"/>
+        </form>
       </div>
     </header>
   )

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
@@ -21,10 +22,12 @@ import TeamDetail from './pages/TeamDetail'
 import AnimatedBackground from './components/AnimatedBackground'
 import VideoBackground from './components/VideoBackground'
 import ChatWidget from './components/ChatWidget'
+import Sidebar from './components/Sidebar'
 
 const basename = (()=>{ const b = import.meta.env.BASE_URL || '/'; return b === '/' ? '/' : b.replace(/\/$/, '') })()
 
 export default function App(){
+  const [sideOpen, setSideOpen] = useState(false)
   return (
     <LanguageProvider>
     <AuthProvider>
@@ -33,7 +36,10 @@ export default function App(){
           <VideoBackground/>
           <AnimatedBackground/>
           <div className="relative z-[1] min-h-screen">
-            <Navbar/>
+            <Navbar onBurger={()=>setSideOpen(true)}/>
+            <div className="max-w-[1600px] mx-auto lg:flex lg:gap-6 lg:px-4">
+              <Sidebar mobileOpen={sideOpen} onClose={()=>setSideOpen(false)}/>
+              <div className="flex-1 min-w-0">
             <Routes>
               <Route path="/" element={<Home/>}/>
               <Route path="/catalog" element={<Catalog/>}/>
@@ -60,6 +66,8 @@ export default function App(){
               </div>
               © 2026 ZTC SHOP • FR / EN / AR • TND
             </footer>
+              </div>
+            </div>
           </div>
           <ChatWidget/>
         </BrowserRouter>
