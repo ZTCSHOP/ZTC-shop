@@ -57,7 +57,7 @@ export default function Tournaments(){
   }
 
   return (
-    <div className="max-w-[1536px] mx-auto px-4 py-8">
+    <div className="max-w-[1760px] mx-auto px-4 py-8">
       <div className="text-center reveal">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm font-black">
           <Trophy size={16}/> {t('tournaments')}

@@ -17,7 +17,7 @@ export default function ProductDetail(){
   const [selected, setSelected] = useState(product?.variants[0]?.id)
   const [qty, setQty] = useState(1)
 
-  if(!product) return <div className="max-w-[1536px] mx-auto px-4 py-16">Produit introuvable.</div>
+  if(!product) return <div className="max-w-[1760px] mx-auto px-4 py-16">Produit introuvable.</div>
   const variant = product.variants.find(v=> v.id===selected)
 
   const handleAdd = ()=>{
@@ -26,7 +26,7 @@ export default function ProductDetail(){
   }
 
   return (
-    <div className="max-w-[1536px] mx-auto px-4 py-8 grid lg:grid-cols-2 gap-8">
+    <div className="max-w-[1760px] mx-auto px-4 py-8 grid lg:grid-cols-2 gap-8">
       <div className="rounded-3xl overflow-hidden bg-white/5 border border-white/10">
         <img src={product.image || `${import.meta.env.BASE_URL}favicon.svg`} alt={product.name} className="w-full h-[420px] object-cover"/>
         <div className="p-4 flex gap-2 overflow-auto">

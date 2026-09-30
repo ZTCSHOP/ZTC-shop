@@ -37,7 +37,7 @@ export default function App(){
           <AnimatedBackground/>
           <div className="relative z-[1] min-h-screen">
             <Navbar onBurger={()=>setSideOpen(true)}/>
-            <div className="max-w-[1600px] mx-auto lg:flex lg:gap-6 lg:px-4">
+            <div className="max-w-[1800px] mx-auto lg:flex lg:gap-6 lg:px-4">
               <Sidebar mobileOpen={sideOpen} onClose={()=>setSideOpen(false)}/>
               <div className="flex-1 min-w-0">
             <Routes>

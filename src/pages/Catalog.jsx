@@ -37,7 +37,7 @@ export default function Catalog(){
   const catLabel = (id)=> id==='all' ? t('all') : (categories.find(c=>c.id===id)?.label||id)
 
   return (
-    <div className="max-w-[1536px] mx-auto px-4 py-8">
+    <div className="max-w-[1760px] mx-auto px-4 py-8">
       <h1 className="text-3xl font-black">{menu ? (menu.label[lang]||menu.label.en) : t('catalog')}</h1>
       {menu && <span className={`inline-block mt-2 text-xs px-3 py-1.5 rounded-full border ${menu.chip||''}`}>{menu.products.length} articles</span>}
       <p className="text-white/60 text-sm mt-1">{menu ? <Link to="/catalog" className="underline">← {t('catalog')}</Link> : 'Valorant, LoL, FC 26, PUBG, Roblox, Free Fire, Netflix…'}</p>

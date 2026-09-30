@@ -18,7 +18,7 @@ export default function Navbar({ onBurger }){
   const goSearch = (e)=>{ e.preventDefault(); nav(`/catalog?q=${encodeURIComponent(q.trim())}`) }
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-[#0a0a0c]/90 border-b border-white/10">
-      <div className="max-w-[1536px] mx-auto px-4 h-16 flex items-center gap-3">
+      <div className="max-w-[1760px] mx-auto px-4 h-16 flex items-center gap-3">
         <Link to="/" className="flex items-center gap-2 font-black text-xl tracking-tight">
           <img src={logoUrl} alt="ZTC Shop" className="w-10 h-10 rounded-xl object-cover bg-white p-0.5 border border-white/20"/>
           <span className="hidden sm:inline font-display text-2xl tracking-wide">ZTC<span className="text-lime-400"> SHOP</span></span>
