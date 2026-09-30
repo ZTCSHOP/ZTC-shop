@@ -17,6 +17,7 @@ import Support from './pages/Support'
 import About from './pages/About'
 import Tournaments from './pages/Tournaments'
 import TournamentDetail from './pages/TournamentDetail'
+import Recrutement from './pages/Recrutement'
 import Teams from './pages/Teams'
 import TeamDetail from './pages/TeamDetail'
 import AnimatedBackground from './components/AnimatedBackground'
@@ -54,6 +55,7 @@ export default function App(){
               <Route path="/about" element={<About/>}/>
               <Route path="/tournaments" element={<Tournaments/>}/>
               <Route path="/tournaments/:id" element={<TournamentDetail/>}/>
+              <Route path="/recrutement" element={<Recrutement/>}/>
               <Route path="/teams" element={<Teams/>}/>
               <Route path="/teams/:teamName" element={<TeamDetail/>}/>
             </Routes>

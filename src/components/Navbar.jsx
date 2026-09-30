@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu } from 'lucide-react'
+import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu, Gamepad2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang, LANGS } from '../context/LanguageContext'
@@ -37,6 +37,9 @@ export default function Navbar({ onBurger }){
         </Link>
         <Link to="/tournaments" title={t('tournaments')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 text-sm font-bold">
           <Trophy size={16}/> {t('tournaments')}
+        </Link>
+        <Link to="/recrutement" title={t('recrutement')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 hover:bg-red-600/25 text-red-300 text-sm font-bold">
+          <Gamepad2 size={16}/> {t('recrutement')}
         </Link>
         <Link to="/support" title={t('support')}
           className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:brightness-110 text-white text-sm font-black animate-support-ring">
