@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase, isCloudEnabled } from '../lib/supabase'
 
 const WEBHOOK = import.meta.env.VITE_DISCORD_RECRUTEMENT_WEBHOOK ||
-  'https://discord.com/api/webhooks/1554670920638013441/mGCYQkHYKDgr5XDj3GH2Wl4kAuLjR2emScgwVHJni2x2JYIiLjwCka4TmuH4J6jpMjML'
+  'https://discord.com/api/webhooks/1555575933853896855/FrBhS6dX93fbP30VPXdlyD1An_WYAu8j5rSV1it2YfHkhnMEStOfffIRc32dA0Sw3X3Q'
 
 const GAMES = [
   { id: 'VALORANT', icon: '🎯', ranks: ['Silver-Gold', 'Platinum-Diamond', 'Immortal', 'Radiant'],
