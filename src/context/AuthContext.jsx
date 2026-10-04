@@ -147,16 +147,22 @@ export function AuthProvider({ children }){
   const [regs, setRegs] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem('ztc_regs')||'[]')}catch{return []}
   })
+  // ---- Équipes créées directement par les clients (standalone) ----
+  const [teams, setTeams] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem('ztc_teams')||'[]')}catch{return []}
+  })
   const [joinReqs, setJoinReqs] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem('ztc_join_reqs')||'[]')}catch{return []}
   })
   useEffect(()=> localStorage.setItem('ztc_tournaments', JSON.stringify(tournaments.filter(x=>!x.cloud))), [tournaments])
   useEffect(()=> localStorage.setItem('ztc_regs', JSON.stringify(regs.filter(x=>!x.cloud))), [regs])
+useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>!x.cloud))), [teams])
   useEffect(()=> localStorage.setItem('ztc_join_reqs', JSON.stringify(joinReqs.filter(x=>!x.cloud))), [joinReqs])
 
   const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
   const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', logo: r.logo||'', userId: r.user_id, date: r.created_at, cloud: true })
   const mapCloudJoin = (r)=> ({ id: r.id, tournament_id: r.tournament_id, regId: r.reg_id, userId: r.user_id, message: r.message||'', status: r.status||'pending', date: r.created_at, cloud: true })
+  const mapCloudTeam = (r)=> ({ id: r.id, name: r.name, game: r.game||'valorant', logo: r.logo||'', captain: r.captain||'', phone: r.phone||'', description: r.description||'', userId: r.user_id, date: r.created_at, cloud: true })
 
   const refreshTournaments = useCallback(async ()=>{
     if(!cloud) return
@@ -188,8 +194,21 @@ export function AuthProvider({ children }){
       })
     }catch(e){ console.warn('cloud regs:', e.message) }
   }, [])
-  const refreshJoinReqs = useCallback(async ()=>{
+  const refreshTeams = useCallback(async ()=>{
     if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: false }).limit(500)
+      if(error) throw error
+      const mapped = (data||[]).map(mapCloudTeam)
+      setTeams(prev=>{
+        const map = new Map()
+        prev.forEach(x=> map.set(x.id, x))
+        mapped.forEach(x=> map.set(x.id, x))
+        return [...map.values()]
+      })
+    }catch(e){ console.warn('cloud teams:', e.message) }
+  }, [])
+  const refreshJoinReqs = useCallback(async ()=>{    if(!cloud) return
     try{
       const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(500)
       if(error) throw error
@@ -219,8 +238,8 @@ export function AuthProvider({ children }){
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -242,6 +261,7 @@ export function AuthProvider({ children }){
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ()=> refreshCloudMessages())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, ()=> refreshTournaments())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_regs' }, ()=> refreshRegs())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, ()=> refreshTeams())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .subscribe()
     const onFocus = ()=> refreshAll()
@@ -582,6 +602,47 @@ export function AuthProvider({ children }){
     setRegs(prev=> [reg, ...prev])
     return reg
   }
+  // Création d'équipe directement par le client (standalone, sans tournoi)
+  const createTeam = async ({ name, game, logo, phone, description })=>{
+    if(!user) throw new Error('login')
+    const clean = (name||'').trim()
+    if(clean.length < 2) throw new Error('team')
+    const taken = [...regs.map(r=> r.team), ...teams.map(x=> x.name)]
+      .some(n=> (n||'').toLowerCase()===clean.toLowerCase())
+    if(taken) throw new Error('taken')
+    const team = {
+      id: genId('team'), name: clean, game: game||'valorant',
+      logo: (logo||'').slice(0, 200000),
+      captain: user.name || '', phone: (phone||'').replace(/[\s.-]/g,''),
+      description: (description||'').trim().slice(0, 500),
+      userId: user.id, date: new Date().toISOString(),
+      cloud: !!(cloud && user.cloud),
+    }
+    if(team.cloud){
+      const { data, error } = await supabase.from('teams').insert({
+        id: team.id, name: team.name, game: team.game, logo: team.logo || null,
+        captain: team.captain, phone: team.phone, description: team.description || null,
+        user_id: sbUserId.current || user.id,
+      }).select()
+      if(error){
+        if(String(error.message||'').includes('duplicate') || error.code==='23505') throw new Error('taken')
+        throw error
+      }
+      if(data?.[0]) { const m = mapCloudTeam(data[0]); setTeams(prev=> [m, ...prev]); refreshTeams(); return m }
+    }
+    setTeams(prev=> [team, ...prev])
+    return team
+  }
+  const deleteTeam = async (id)=>{
+    const target = teams.find(x=> x.id===id)
+    if(!target) return
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    setTeams(prev=> prev.filter(x=> x.id!==id))
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('teams').delete().eq('id', id)
+      if(error){ refreshTeams(); throw new Error('del_need_policy') }
+    }
+  }
   // Le capitaine change le logo de SON équipe (ou l'admin)
   const updateTeamLogo = async (regId, logo)=>{
     const clean = (logo||'').slice(0, 200000)
@@ -755,6 +816,7 @@ export function AuthProvider({ children }){
   // L'admin a-t-il la vue globale cloud ? (false tant que le SQL is_admin n'est pas exécuté)
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
-  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament, deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
+    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

@@ -8,7 +8,7 @@ import { computeStandings, getChampion } from '../lib/bracket'
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, tournaments, user, myJoinReqs, requestJoinTeam, updateTeamLogo } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, requestJoinTeam, updateTeamLogo, deleteTeam } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
@@ -16,15 +16,47 @@ export default function TeamDetail(){
   const [logoErr, setLogoErr] = useState('')
 
   const teamRegs = regs.filter(r=> (r.team||'').toLowerCase()===name.toLowerCase())
+  const solo = teamRegs.length===0
+    ? teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
+    : null
+
+  if(teamRegs.length===0 && !solo){
+    return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-amber-300">← {t('teams')}</Link></div>
+  }
+
+  // ---- Équipe standalone (créée directement, sans tournoi pour l'instant) ----
+  if(solo){
+    const mine = user && solo.userId===user.id
+    const canDel = user && (user.isAdmin || mine)
+    return (
+      <div className="max-w-[1000px] mx-auto px-4 py-8">
+        <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
+        <div className="mt-4 rounded-3xl overflow-hidden bg-emerald-500/[0.06] border border-emerald-500/25 p-6">
+          <div className="flex items-center gap-4">
+            {solo.logo
+              ? <img src={solo.logo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
+            <div>
+              <h1 className="text-2xl md:text-4xl font-black">{solo.name}</h1>
+              <div className="text-xs text-white/50 mt-1">🎮 {solo.game}{solo.captain && <> • {t('captain_ph')}: <b className="text-white/80">{solo.captain}</b></>}</div>
+              {solo.description && <div className="text-sm text-white/60 mt-1">{solo.description}</div>}
+            </div>
+            <span className="ml-auto text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black shrink-0">{t('tc_new')}</span>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>
+            {canDel && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm">{t('tc_delete')}</button>}
+          </div>
+          <p className="text-xs text-white/40 mt-4">{t('tc_no_tournament')}</p>
+        </div>
+      </div>
+    )
+  }
   const teamLogo = (teamRegs.find(r=> r.logo)||{}).logo || ''
   const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
   const canEditLogo = user && (user.isAdmin || !!myReg)
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
   const myReqs = myJoinReqs()
-
-  if(teamRegs.length===0){
-    return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-amber-300">← {t('teams')}</Link></div>
-  }
 
   // ---- Stats agrégées ----
   let titles = 0, w = 0, l = 0
