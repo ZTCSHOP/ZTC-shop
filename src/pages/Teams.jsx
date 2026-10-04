@@ -134,13 +134,13 @@ export default function Teams(){
 
   return (
     <div className="max-w-[1000px] mx-auto px-4 py-8">
-      <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2"><Shield className="text-amber-400"/> {t('teams')}</h1>
+      <h1 className="text-2xl md:text-3xl font-black flex items-center gap-2"><Shield className="text-emerald-400"/> {t('teams')}</h1>
       <p className="text-sm text-white/60 mt-1">{t('teams_sub')}</p>
 
       {/* Tabs Équipes / Classement / Créer */}
       <div className="mt-4 flex gap-2 flex-wrap">
-        <button onClick={()=>setTab('teams')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='teams'?'bg-amber-500 text-black border-amber-500':'bg-white/5 border-white/10 text-white/70'}`}><Shield size={13}/> {t('teams')}</button>
-        <button onClick={()=>setTab('ranking')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='ranking'?'bg-amber-500 text-black border-amber-500':'bg-white/5 border-white/10 text-white/70'}`}><Trophy size={13}/> {t('ranking')}</button>
+        <button onClick={()=>setTab('teams')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='teams'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Shield size={13}/> {t('teams')}</button>
+        <button onClick={()=>setTab('ranking')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='ranking'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Trophy size={13}/> {t('ranking')}</button>
         <button onClick={()=>setTab('create')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='create'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Plus size={13}/> {t('tab_create')}</button>
       </div>
 
@@ -198,33 +198,33 @@ export default function Teams(){
           <span className="text-center" title={t('team_titles')}>🏆</span>
           <span className="text-center">W-L</span>
           <span className="text-center">%</span>
-          <span className="text-center text-amber-300">{t('pts')}</span>
+          <span className="text-center text-emerald-300">{t('pts')}</span>
         </div>
         {board.length===0 && <div className="p-4 text-sm text-white/40">{t('teams_empty')}</div>}
         {board.map((e,i)=>(
-          <div key={e.team} className={`grid grid-cols-[52px_1fr_52px_52px_52px_56px] sm:grid-cols-[64px_1fr_70px_70px_60px_60px_70px] items-center gap-1 px-3 py-2.5 text-sm border-b border-white/5 last:border-0 ${i<3?'bg-amber-500/[0.06]':''}`}>
+          <div key={e.team} className={`grid grid-cols-[52px_1fr_52px_52px_52px_56px] sm:grid-cols-[64px_1fr_70px_70px_60px_60px_70px] items-center gap-1 px-3 py-2.5 text-sm border-b border-white/5 last:border-0 ${i<3?'bg-emerald-500/[0.06]':''}`}>
             <span className="font-black text-base">{medal(i)}</span>
-            <Link to={`/teams/${encodeURIComponent(e.team)}`} className="flex items-center gap-2 font-bold truncate hover:text-amber-300">
+            <Link to={`/teams/${encodeURIComponent(e.team)}`} className="flex items-center gap-2 font-bold truncate hover:text-emerald-300">
               {e.logo
                 ? <img src={e.logo} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-white/10 shrink-0"/>
                 : <span className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm shrink-0">🛡️</span>}
               <span className="truncate">{e.team}</span>
-              {e.titles>0 && <Medal size={13} className="text-amber-300 shrink-0"/>}
+              {e.titles>0 && <Medal size={13} className="text-emerald-300 shrink-0"/>}
             </Link>
             <span className="text-center text-white/60 hidden sm:block">{e.parts}</span>
-            <span className="text-center font-black text-amber-300">{e.titles}</span>
+            <span className="text-center font-black text-emerald-300">{e.titles}</span>
             <span className="text-center text-white/70">{e.w}-{e.l}</span>
             <span className="text-center text-white/60">{e.winrate}%</span>
-            <span className="text-center font-black text-amber-300">{e.pts}</span>
+            <span className="text-center font-black text-emerald-300">{e.pts}</span>
           </div>
         ))}
       </div>
       ) : (
       <>
       <div className="mt-4 flex gap-2 flex-wrap">
-        <button onClick={()=>setFilter('all')} className={`text-xs px-3 py-1.5 rounded-full border ${filter==='all'?'bg-amber-500 text-black font-black border-amber-500':'bg-white/5 border-white/10 text-white/70'}`}>{t('teams_all')}</button>
+        <button onClick={()=>setFilter('all')} className={`text-xs px-3 py-1.5 rounded-full border ${filter==='all'?'bg-emerald-500 text-black font-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}>{t('teams_all')}</button>
         {tournaments.filter(x=>x.status!=='pending').map(x=>(
-          <button key={x.id} onClick={()=>setFilter(x.id)} className={`text-xs px-3 py-1.5 rounded-full border ${filter===x.id?'bg-amber-500 text-black font-black border-amber-500':'bg-white/5 border-white/10 text-white/70'}`}>{x.title}</button>
+          <button key={x.id} onClick={()=>setFilter(x.id)} className={`text-xs px-3 py-1.5 rounded-full border ${filter===x.id?'bg-emerald-500 text-black font-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}>{x.title}</button>
         ))}
       </div>
 
@@ -242,11 +242,11 @@ export default function Teams(){
                 {r.logo
                   ? <img src={r.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
                   : <span className="text-lg w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
-                <Link to={`/teams/${encodeURIComponent(r.team)}`} className="font-black truncate hover:text-amber-300">{r.team}</Link>
+                <Link to={`/teams/${encodeURIComponent(r.team)}`} className="font-black truncate hover:text-emerald-300">{r.team}</Link>
                 {mine && <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold">{t('teams_mine')}</span>}
               </div>
               <div className="text-xs text-white/50 mt-1">
-                {tr ? <Link to={`/tournaments/${tr.id}`} className="text-amber-300 hover:underline">{tr.title}</Link> : r.tournament_id}
+                {tr ? <Link to={`/tournaments/${tr.id}`} className="text-emerald-300 hover:underline">{tr.title}</Link> : r.tournament_id}
                 {r.captain && <> • {t('captain_ph')}: <b className="text-white/80">{r.captain}</b></>}
               </div>
               <div className="text-xs text-white/40 mt-0.5 flex items-center gap-1"><Users size={12}/> {incoming.length>0 ? `${incoming.length} ${t('teams_requests')}` : t('teams_open_spots')}</div>
@@ -257,9 +257,9 @@ export default function Teams(){
                     value={msg[r.id]||''}
                     onChange={e=>setMsg({...msg, [r.id]: e.target.value})}
                     placeholder={t('teams_msg_ph')}
-                    className="flex-1 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-xs focus:outline-none focus:border-amber-500"
+                    className="flex-1 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-xs focus:outline-none focus:border-emerald-500"
                   />
-                  <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
+                  <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
                 </div>
               )}
               {already && <div className="mt-3 text-xs text-emerald-300 flex items-center gap-1"><Check size={12}/> {t('teams_join_sent')} ({already.status})</div>}

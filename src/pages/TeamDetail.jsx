@@ -21,7 +21,7 @@ export default function TeamDetail(){
     : null
 
   if(teamRegs.length===0 && !solo){
-    return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-amber-300">← {t('teams')}</Link></div>
+    return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-emerald-300">← {t('teams')}</Link></div>
   }
 
   // ---- Équipe standalone (créée directement, sans tournoi pour l'instant) ----
@@ -44,7 +44,7 @@ export default function TeamDetail(){
             <span className="ml-auto text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black shrink-0">{t('tc_new')}</span>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>
+            <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>
             {canDel && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm">{t('tc_delete')}</button>}
           </div>
           <p className="text-xs text-white/40 mt-4">{t('tc_no_tournament')}</p>
@@ -131,7 +131,7 @@ export default function TeamDetail(){
 
   const stat = (label, value, gold)=>{
     return <div className="rounded-2xl bg-black/30 border border-white/10 p-4 text-center">
-      <div className={`text-3xl font-black ${gold?'text-amber-300':''}`}>{value}</div>
+      <div className={`text-3xl font-black ${gold?'text-emerald-300':''}`}>{value}</div>
       <div className="text-xs text-white/50 mt-1">{label}</div>
     </div>
   }
@@ -145,9 +145,9 @@ export default function TeamDetail(){
           <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
             {teamLogo
               ? <img src={teamLogo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
-              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl">🛡️</div>}
+              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
             {canEditLogo && <>
-              <span className="mt-1 flex items-center gap-1 text-[11px] text-amber-300 group-hover/logo:text-amber-200"><Pencil size={11}/> {t('team_logo_change')}</span>
+              <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300 group-hover/logo:text-emerald-200"><Pencil size={11}/> {t('team_logo_change')}</span>
               <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
             </>}
           </label>
@@ -156,7 +156,7 @@ export default function TeamDetail(){
             <div className="text-xs text-white/50 flex items-center gap-1 mt-1"><Users size={12}/> {t('teams_sub')}</div>
             {logoErr && <div className="text-xs text-red-400 mt-1">{logoErr}</div>}
           </div>
-          {titles>0 && <div className="ml-auto text-xs px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-black flex items-center gap-1"><Trophy size={12}/> {titles}x {t('champion')}</div>}
+          {titles>0 && <div className="ml-auto text-xs px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black flex items-center gap-1"><Trophy size={12}/> {titles}x {t('champion')}</div>}
         </div>
 
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -177,15 +177,15 @@ export default function TeamDetail(){
       <div className="grid md:grid-cols-2 gap-3">
         {perTournament.map(({reg, tr, st, isChamp})=>(
           <div key={reg.id} className="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <div className="font-black">{tr ? <Link to={`/tournaments/${tr.id}`} className="hover:text-amber-300">{tr.title}</Link> : reg.tournament_id}</div>
-            <div className="text-xs text-white/50 mt-0.5">{tr?.game} • {tr?.prize} {isChamp && <span className="text-amber-300 font-black">• 🏆 {t('champion')}</span>}</div>
+            <div className="font-black">{tr ? <Link to={`/tournaments/${tr.id}`} className="hover:text-emerald-300">{tr.title}</Link> : reg.tournament_id}</div>
+            <div className="text-xs text-white/50 mt-0.5">{tr?.game} • {tr?.prize} {isChamp && <span className="text-emerald-300 font-black">• 🏆 {t('champion')}</span>}</div>
             <div className="mt-2 flex gap-4 text-xs">
               <span><b className="text-emerald-300">{st.w}</b> {t('wins')}</span>
               <span><b className="text-red-300">{st.l}</b> {t('losses')}</span>
-              <span><b className="text-amber-300">{st.pts}</b> {t('pts')}</span>
+              <span><b className="text-emerald-300">{st.pts}</b> {t('pts')}</span>
             </div>
             {!myReqs.some(x=>x.regId===reg.id) && !(user && reg.userId===user.id) && (
-              <button onClick={()=>ask(reg)} className="mt-3 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
+              <button onClick={()=>ask(reg)} className="mt-3 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
             )}
             {myReqs.some(x=>x.regId===reg.id) && <div className="mt-3 text-xs text-emerald-300 flex items-center gap-1"><Check size={12}/> {t('teams_join_sent')}</div>}
           </div>
@@ -205,7 +205,7 @@ export default function TeamDetail(){
             <div key={i} className="px-4 py-2.5 text-sm flex items-center gap-3">
               <span className={`w-2 h-2 rounded-full ${won?'bg-emerald-400':'bg-red-400'}`}/>
               <span className="font-bold">{name}</span>
-              <span className="font-black text-amber-300">{myScore ?? '–'} : {opScore ?? '–'}</span>
+              <span className="font-black text-emerald-300">{myScore ?? '–'} : {opScore ?? '–'}</span>
               <Link to={`/teams/${encodeURIComponent(opp||'')}`} className="text-white/70 hover:text-white truncate">{opp}</Link>
               <span className="ml-auto text-xs text-white/40 truncate">{h.tr?.title}</span>
             </div>
@@ -222,7 +222,7 @@ export default function TeamDetail(){
       )}
       {user && (
         <div className="mt-4 flex gap-2">
-          <input value={msg} onChange={e=>setMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-amber-500"/>
+          <input value={msg} onChange={e=>setMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
         </div>
       )}
     </div>
