@@ -32,7 +32,7 @@ export default function Navbar({ onBurger }){
         </form>
         <div className="flex-1 md:hidden" />
         {/* Tournois + Équipes + Support */}
-        <Link to="/teams" title={t('teams')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 text-sm font-bold">
+        <Link to="/teams" title={t('teams')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-300 text-sm font-bold">
           <Shield size={16}/> {t('teams')}
         </Link>
         <Link to="/tournaments" title={t('tournaments')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 text-sm font-bold">
