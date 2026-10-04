@@ -619,16 +619,22 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       cloud: !!(cloud && user.cloud),
     }
     if(team.cloud){
-      const { data, error } = await supabase.from('teams').insert({
-        id: team.id, name: team.name, game: team.game, logo: team.logo || null,
-        captain: team.captain, phone: team.phone, description: team.description || null,
-        user_id: sbUserId.current || user.id,
-      }).select()
-      if(error){
-        if(String(error.message||'').includes('duplicate') || error.code==='23505') throw new Error('taken')
-        throw error
+      try{
+        const { data, error } = await supabase.from('teams').insert({
+          id: team.id, name: team.name, game: team.game, logo: team.logo || null,
+          captain: team.captain, phone: team.phone, description: team.description || null,
+          user_id: sbUserId.current || user.id,
+        }).select()
+        if(error) throw error
+        if(data?.[0]) { const m = mapCloudTeam(data[0]); setTeams(prev=> [m, ...prev]); refreshTeams(); return m }
+      }catch(e){
+        if(e.message==='taken') throw e
+        if(e.code==='23505' || /duplicate/i.test(String(e.message || ''))) throw new Error('taken')
+        // Table manquante ou RLS non configurée -> guider vers le SQL (pas d'échec silencieux)
+        const m = String(e.message || '')
+        if(e.code==='42P01' || e.code==='PGRST205' || e.code==='42501' || /teams/i.test(m)) throw new Error('need_sql')
+        throw e
       }
-      if(data?.[0]) { const m = mapCloudTeam(data[0]); setTeams(prev=> [m, ...prev]); refreshTeams(); return m }
     }
     setTeams(prev=> [team, ...prev])
     return team

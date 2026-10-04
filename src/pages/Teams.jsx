@@ -73,7 +73,7 @@ export default function Teams(){
       setInfo(t('tc_ok'))
       setTab('teams')
     }catch(err){
-      setFerr(err.message==='taken' ? t('tc_taken') : err.message==='login' ? t('tc_need_login') : t('teams_join_err'))
+      setFerr(err.message==='taken' ? t('tc_taken') : err.message==='login' ? t('tc_need_login') : err.message==='need_sql' ? t('tc_need_sql') : t('teams_join_err'))
     }finally{
       setCreating(false)
     }
