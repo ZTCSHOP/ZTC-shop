@@ -23,6 +23,7 @@ import TeamDetail from './pages/TeamDetail'
 import AnimatedBackground from './components/AnimatedBackground'
 import VideoBackground from './components/VideoBackground'
 import ChatWidget from './components/ChatWidget'
+import InstallPWA from './components/InstallPWA'
 import Sidebar from './components/Sidebar'
 
 const basename = (()=>{ const b = import.meta.env.BASE_URL || '/'; return b === '/' ? '/' : b.replace(/\/$/, '') })()
@@ -72,6 +73,7 @@ export default function App(){
             </div>
           </div>
           <ChatWidget/>
+          <InstallPWA/>
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
