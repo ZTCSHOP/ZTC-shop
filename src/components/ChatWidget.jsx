@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { MessageCircle, Send, X, Image as ImageIcon } from 'lucide-react'
+import { MessageCircle, Send, X, Image as ImageIcon, Volume2, VolumeX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
+import { useIncomingSound, useSoundToggle } from '../lib/sound'
 
 const isImg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
 
@@ -16,6 +17,8 @@ export default function ChatWidget(){
   const fileRef = useRef(null)
   const thread = myThread()
   const hasNew = thread.length>0 && thread[thread.length-1]?.sender==='admin'
+  const [soundOn, toggleSound] = useSoundToggle()
+  useIncomingSound(thread, 'admin')
 
   useEffect(()=>{ if(open) bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [thread.length, open])
   useEffect(()=>{
@@ -61,7 +64,12 @@ export default function ChatWidget(){
         <div className="w-[320px] max-w-[85vw] rounded-2xl bg-[#141417] border border-white/15 shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600">
             <span className="font-black text-sm">💬 Support ZTC</span>
-            <button onClick={()=>setOpen(false)} className="p-1 hover:bg-white/20 rounded-lg"><X size={16}/></button>
+            <div className="flex items-center gap-1">
+              <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="p-1 hover:bg-white/20 rounded-lg">
+                {soundOn ? <Volume2 size={15}/> : <VolumeX size={15}/>}
+              </button>
+              <button onClick={()=>setOpen(false)} className="p-1 hover:bg-white/20 rounded-lg"><X size={16}/></button>
+            </div>
           </div>
           <div className="p-3">
             {!user ? (

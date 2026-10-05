@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, Clock, ChevronRight, Send, Image as ImageIcon } from 'lucide-react'
+import { MessageCircle, Clock, ChevronRight, Send, Image as ImageIcon, Volume2, VolumeX } from 'lucide-react'
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import { useIncomingSound, useSoundToggle } from '../lib/sound'
 
 export const isImgMsg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
 
@@ -15,6 +16,8 @@ export default function Support(){
   const bottomRef = useRef(null)
   const fileRef = useRef(null)
   const thread = myThread()
+  const [soundOn, toggleSound] = useSoundToggle()
+  useIncomingSound(thread, 'admin')
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [thread.length])
 
@@ -73,6 +76,9 @@ export default function Support(){
           <h1 className="text-2xl font-black">{t('support_title')}</h1>
           <p className="text-xs text-emerald-300 flex items-center gap-1"><Clock size={12}/> {t('sup_hours')}</p>
         </div>
+        <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="ml-auto p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/70">
+          {soundOn ? <Volume2 size={17}/> : <VolumeX size={17}/>}
+        </button>
       </div>
 
       <div className="mt-6 rounded-3xl bg-white/5 border border-white/10 p-5">
