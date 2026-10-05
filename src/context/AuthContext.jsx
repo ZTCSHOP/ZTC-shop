@@ -591,13 +591,20 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       date: new Date().toISOString(), cloud: !!(cloud && user?.cloud),
     }
     if(reg.cloud){
-      const { data, error } = await supabase.from('tournament_regs').insert({
-        tournament_id: tournamentId, team: name, captain: '', phone: '', game_id: '',
-        logo: reg.logo || null,
-        user_id: sbUserId.current || user.id,
-      }).select()
-      if(error) throw error
-      if(data?.[0]) { const m = mapCloudReg(data[0]); setRegs(prev=> [m, ...prev]); refreshRegs(); return m }
+      try{
+        const { data, error } = await supabase.from('tournament_regs').insert({
+          tournament_id: tournamentId, team: name, captain: '', phone: '', game_id: '',
+          logo: reg.logo || null,
+          user_id: sbUserId.current || user.id,
+        }).select()
+        if(error) throw error
+        if(data?.[0]) { const m = mapCloudReg(data[0]); setRegs(prev=> [m, ...prev]); refreshRegs(); return m }
+      }catch(e){
+        // Table/RLS manquantes ou tournoi non synchronisé -> message précis (pas d'échec silencieux)
+        const m = String(e.message || '')
+        if(e.code==='42P01' || e.code==='PGRST205' || e.code==='42501' || e.code==='23503' || /tournament_regs|foreign key/i.test(m)) throw new Error('need_sql')
+        throw e
+      }
     }
     setRegs(prev=> [reg, ...prev])
     return reg

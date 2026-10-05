@@ -19,7 +19,7 @@ export default function TournamentManager({ tr }){
   const addTeam = async (e)=>{
     e.preventDefault(); setMsg('')
     try{ await addTeamManual(tr.id, teamName); setTeamName('') }
-    catch{ setMsg(t('team_ph')) }
+    catch(err){ setMsg(err.message==='need_sql' ? t('tm_db_err') : t('team_ph')) }
   }
 
   const generate = async ()=>{
