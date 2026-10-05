@@ -49,3 +49,30 @@ self.addEventListener('fetch', (e)=>{
     )
   }
 })
+
+// ---- Web Push : notification système (téléphone + PC, même app fermée) ----
+self.addEventListener('push', (e)=>{
+  let d = {}
+  try{ d = e.data ? e.data.json() : {} }catch{}
+  e.waitUntil(
+    self.registration.showNotification(d.title || 'ZTC Shop', {
+      body: d.body || 'Nouveau message',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      data: { url: d.url || './' },
+    })
+  )
+})
+
+self.addEventListener('notificationclick', (e)=>{
+  e.notification.close()
+  const url = new URL(e.notification.data?.url || './', self.registration.scope).href
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list=>{
+      for(const c of list){
+        if(new URL(c.url).origin === new URL(url).origin){ c.navigate(url); return c.focus() }
+      }
+      return self.clients.openWindow(url)
+    })
+  )
+})

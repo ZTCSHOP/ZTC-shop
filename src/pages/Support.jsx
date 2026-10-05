@@ -4,6 +4,7 @@ import { MessageCircle, Clock, ChevronRight, Send, Image as ImageIcon, Volume2, 
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
+import PushBell from '../components/PushBell'
 
 export const isImgMsg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
 
@@ -79,6 +80,7 @@ export default function Support(){
         <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="ml-auto p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/70">
           {soundOn ? <Volume2 size={17}/> : <VolumeX size={17}/>}
         </button>
+        <PushBell />
       </div>
 
       <div className="mt-6 rounded-3xl bg-white/5 border border-white/10 p-5">

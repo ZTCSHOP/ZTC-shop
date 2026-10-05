@@ -6,6 +6,7 @@ import { initialProducts, categories } from '../data/products'
 import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX } from 'lucide-react'
 import TournamentManager from '../components/TournamentManager'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
+import PushBell from '../components/PushBell'
 
 export default function Admin(){
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regsFor, deleteReg } = useAuth()
@@ -139,6 +140,7 @@ export default function Admin(){
         <button onClick={()=>setTab('users')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='users'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Users size={15}/> Comptes ({accounts.length})</button>
         <button onClick={()=>setTab('messages')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='messages'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><MessageCircle size={15}/> {t('messages_tab')} {totalUnread>0 && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs animate-pulse">{totalUnread}</span>}</button>
         <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10">{soundOn ? <Volume2 size={15}/> : <VolumeX size={15}/>}</button>
+        <PushBell className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10" />
         <button onClick={()=>setTab('tournaments')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='tournaments'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Trophy size={15}/> {t('tournaments')} ({tournaments.length})</button>
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>

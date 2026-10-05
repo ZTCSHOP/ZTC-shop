@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
+import PushBell from './PushBell'
 
 const isImg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
 
@@ -65,6 +66,7 @@ export default function ChatWidget(){
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600">
             <span className="font-black text-sm">💬 Support ZTC</span>
             <div className="flex items-center gap-1">
+              <PushBell className="p-1 hover:bg-white/20 rounded-lg" />
               <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="p-1 hover:bg-white/20 rounded-lg">
                 {soundOn ? <Volume2 size={15}/> : <VolumeX size={15}/>}
               </button>

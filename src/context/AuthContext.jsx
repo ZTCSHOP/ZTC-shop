@@ -768,6 +768,15 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         })
         if(error) throw error
         refreshCloudMessages()
+        // Notification push système (best effort : ne bloque jamais l'envoi)
+        try{
+          const preview = clean.startsWith('data:image') ? '📷 Photo' : clean.slice(0, 120)
+          supabase.functions.invoke('push-message', {
+            body: isAdminMsg
+              ? { senderId: user.cloud ? user.id : null, senderName: msg.name, text: preview, targetUserId: threadUserId }
+              : { senderId: user.cloud ? user.id : null, senderName: msg.name, text: preview, toAdmins: true },
+          }).catch(()=>{})
+        }catch{}
       }catch(e){ console.warn('cloud send message:', e.message) }
     }
     return msg
