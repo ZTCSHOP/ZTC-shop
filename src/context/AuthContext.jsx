@@ -563,7 +563,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(reg.cloud){
       const { data, error } = await supabase.from('tournament_regs').insert({
         tournament_id: tournamentId, team: reg.team, captain: reg.captain,
-        phone: reg.phone, game_id: reg.game_id, logo: reg.logo || null,
+        phone: reg.phone, game_id: reg.game_id,
+        ...(reg.logo ? { logo: reg.logo } : {}),
         user_id: sbUserId.current || user.id,
       }).select()
       if(error) throw error
@@ -594,7 +595,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       try{
         const { data, error } = await supabase.from('tournament_regs').insert({
           tournament_id: tournamentId, team: name, captain: '', phone: '', game_id: '',
-          logo: reg.logo || null,
+          ...(reg.logo ? { logo: reg.logo } : {}),
           user_id: sbUserId.current || user.id,
         }).select()
         if(error) throw error
