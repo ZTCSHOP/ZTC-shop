@@ -16,6 +16,7 @@ export const categories = [
   { id: 'battlenet-games', label: 'Battle.net Games' },
   { id: 'xbox-games', label: 'Xbox Games' },
   { id: 'ps5-games', label: 'PS5 Games' },
+  { id: 'ai-tools', label: 'AI Tools' },
   { id: 'other', label: 'Autres' },
 ]
 
@@ -29,6 +30,7 @@ export const MENUS = [
   { id: 'steamfresh', icon: 'Sparkles', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Steam Fresh Account', en: 'Steam Fresh Account', ar: 'حسابات ستيم جديدة' }, products: ['sf-fc27'] },
   { id: 'steam', icon: 'Monitor', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Steam Wallet Euro', en: 'Steam Wallet Euro', ar: 'Steam Wallet Euro' }, products: ['steam-1', 'stm-usd'] },
   { id: 'subs', icon: 'Crown', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Subscriptions', en: 'Subscriptions', ar: 'اشتراكات' }, products: ['netflix-1'] },
+  { id: 'ai-tools', icon: 'Sparkles', chip: 'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-200', label: { fr: 'AI Tools', en: 'AI Tools', ar: 'أدوات الذكاء الاصطناعي' }, products: ['gemini-pro-18m'] },
   { id: 'games', icon: 'Gamepad2', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Games', en: 'Games', ar: 'ألعاب' }, products: [], children: ['steam-games', 'battlenet-games', 'xbox-games', 'ps5-games'] },
 ]
 
@@ -384,5 +386,14 @@ export const initialProducts = [
     image: '', badge: null, description: 'Gran Turismo 7 — PS5 Europe.',
     variants: [{ id: 'ps5g-6-std', label: 'Standard', price: 0.00 }],
     stock: 20, rating: 4.8
+  },
+  {
+    id: 'gemini-pro-18m', category: 'ai-tools', name: 'Google AI Pro Subscription', subtitle: '18 Months • Activation Link (Global)',
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&q=80&auto=format&fit=crop',
+    badge: 'NEW', description: 'Google One Subscription Pro 5TB Activation link (CONTACT US IN CHAT FOR BULK OFFERS). Activate Google One (Gemini Pro) ON YOUR OWN GOOGLE ACCOUNT! Special Offer, DURATION = 1 + 17 MONTHS (total 18 Months offer). Plan Warranty Duration: 1 Month FROM DATE OF PURCHASE.',
+    variants: [
+      { id: 'gai-18m', label: '18 Months – Activation Link', price: 20.00 },
+    ],
+    stock: 50, rating: 5.0
   },
 ]
