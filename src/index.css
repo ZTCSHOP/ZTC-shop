@@ -28,6 +28,11 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
   50% { transform: translateY(-3px); }
 }
 .animate-support-bounce { animation: support-bounce 2s ease-in-out infinite; }
+@keyframes eq {
+  0%,100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.animate-eq { animation: eq 0.9s ease-in-out infinite; transform-origin: bottom; }
 
 /* Halo discret derrière les photos produits (style pro, monochrome lime) */
 .anim-glow { position: relative; border-radius: 14px; }

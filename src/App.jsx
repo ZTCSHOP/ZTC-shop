@@ -24,6 +24,7 @@ import AnimatedBackground from './components/AnimatedBackground'
 import VideoBackground from './components/VideoBackground'
 import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
+import MusicPlayer from './components/MusicPlayer'
 import Sidebar from './components/Sidebar'
 
 const basename = (()=>{ const b = import.meta.env.BASE_URL || '/'; return b === '/' ? '/' : b.replace(/\/$/, '') })()
@@ -74,6 +75,7 @@ export default function App(){
           </div>
           <ChatWidget/>
           <InstallPWA/>
+          <MusicPlayer/>
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
