@@ -4,9 +4,8 @@ import { useLang } from '../context/LanguageContext'
 
 const BASE = import.meta.env.BASE_URL || '/'
 const TRACKS = [
-  { id: 'neon-rush', title: 'Neon Rush' },
-  { id: 'pixel-dreams', title: 'Pixel Dreams' },
-  { id: 'boss-battle', title: 'Boss Battle' },
+  { id: 'edm-mix', title: 'Best Of EDM' },
+  { id: 'sans-titre-4', title: 'Sans Titre 4' },
 ]
 const load = (k, d)=>{ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v) }catch{ return d } }
 const save = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} }
