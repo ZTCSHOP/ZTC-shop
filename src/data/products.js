@@ -30,7 +30,7 @@ export const MENUS = [
   { id: 'steamfresh', icon: 'Sparkles', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Steam Fresh Account', en: 'Steam Fresh Account', ar: 'حسابات ستيم جديدة' }, products: ['sf-fc27'] },
   { id: 'steam', icon: 'Monitor', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Steam Wallet Euro', en: 'Steam Wallet Euro', ar: 'Steam Wallet Euro' }, products: ['steam-1', 'stm-usd'] },
   { id: 'subs', icon: 'Crown', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Subscriptions', en: 'Subscriptions', ar: 'اشتراكات' }, products: ['netflix-1'] },
-  { id: 'ai-tools', icon: 'Sparkles', chip: 'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-200', label: { fr: 'AI Tools', en: 'AI Tools', ar: 'أدوات الذكاء الاصطناعي' }, products: ['gemini-pro-18m'] },
+  { id: 'ai-tools', icon: 'Sparkles', chip: 'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-200', label: { fr: 'AI Tools', en: 'AI Tools', ar: 'أدوات الذكاء الاصطناعي' }, products: ['gemini-pro-18m', 'capcut-pro-1m'] },
   { id: 'games', icon: 'Gamepad2', chip: 'bg-violet-500/10 border-violet-500/20 text-violet-200', label: { fr: 'Games', en: 'Games', ar: 'ألعاب' }, products: [], children: ['steam-games', 'battlenet-games', 'xbox-games', 'ps5-games'] },
 ]
 
@@ -393,6 +393,15 @@ export const initialProducts = [
     badge: 'NEW', description: 'Google One Subscription Pro 5TB Activation link (CONTACT US IN CHAT FOR BULK OFFERS). Activate Google One (Gemini Pro) ON YOUR OWN GOOGLE ACCOUNT! Special Offer, DURATION = 1 + 17 MONTHS (total 18 Months offer). Plan Warranty Duration: 1 Month FROM DATE OF PURCHASE.',
     variants: [
       { id: 'gai-18m', label: '18 Months – Activation Link', price: 40.00 },
+    ],
+    stock: 50, rating: 5.0
+  },
+  {
+    id: 'capcut-pro-1m', category: 'ai-tools', name: 'CapCut Pro Subscription (PC)', subtitle: '1 Month • Private Account (Global)',
+    image: 'https://ztcshop.github.io/ZTC-shop/capcut-pro.jpg',
+    badge: 'NEW', description: 'Edit High-Quality Videos. Hundreds of Special Effects. No Watermark. Unlimited Video Exports. Why Should You Buy Now? Limited Offer - Only for ZTC-shop Purchases. Special Price Just For You. Get Full Access to All Features Immediately. Premium! All Devices.',
+    variants: [
+      { id: 'cc-1m', label: '1 Month – Private Account', price: 25.00 },
     ],
     stock: 50, rating: 5.0
   },
