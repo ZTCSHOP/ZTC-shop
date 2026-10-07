@@ -389,7 +389,7 @@ export const initialProducts = [
   },
   {
     id: 'gemini-pro-18m', category: 'ai-tools', name: 'Google AI Pro Subscription', subtitle: '18 Months • Activation Link (Global)',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&q=80&auto=format&fit=crop',
+    image: 'https://ztcshop.github.io/ZTC-shop/google-ai-pro.jpg',
     badge: 'NEW', description: 'Google One Subscription Pro 5TB Activation link (CONTACT US IN CHAT FOR BULK OFFERS). Activate Google One (Gemini Pro) ON YOUR OWN GOOGLE ACCOUNT! Special Offer, DURATION = 1 + 17 MONTHS (total 18 Months offer). Plan Warranty Duration: 1 Month FROM DATE OF PURCHASE.',
     variants: [
       { id: 'gai-18m', label: '18 Months – Activation Link', price: 20.00 },
