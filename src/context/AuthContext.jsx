@@ -222,6 +222,7 @@ export function AuthProvider({ children }){
 
   // ---- Wallet ZTC (1 TND = 1 coin, recharge D17 validée par l'admin) ----
   const COIN_RATE = 1 // 1 TND = 1 coin
+  const CASHBACK_RATE = 0.03 // +3% en coins quand on paie avec le wallet (crédité à la confirmation)
   const [recharges, setRecharges] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem('ztc_recharges')||'[]')}catch{return []}
   })
@@ -703,8 +704,23 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
   }
   const updateOrderStatus = async (id, status)=>{
-    setOrders(prev=> prev.map(x=> x.id===id? {...x, status}:x)) // optimiste
     const target = orders.find(o=> o.id===id)
+    // Cashback wallet 3% : crédité UNE SEULE FOIS quand les codes sont débloqués.
+    // (Pas à l'achat : sinon achat→annulation = coins gratuits.)
+    if(target?.method==='wallet' && status.includes('Codes disponibles') && !target.customer?.cashback){
+      const cb = Math.round(Number(target.total||0) * CASHBACK_RATE * 100) / 100
+      if(cb > 0){
+        try{ await creditBalance(target.userId, cb, cloud && target.cloud) }catch{}
+        const flagged = {...target, status, customer: {...(target.customer||{}), cashback: cb}}
+        setOrders(prev=> prev.map(x=> x.id===id ? flagged : x))
+        if(cloud && target.cloud){
+          try{ await supabase.from('orders').update({ status, customer: flagged.customer }).eq('id', id); refreshCloudOrders() }
+          catch(e){ console.warn('cloud update order:', e.message) }
+        }
+        return
+      }
+    }
+    setOrders(prev=> prev.map(x=> x.id===id? {...x, status}:x)) // optimiste
     if(cloud && target?.cloud){
       try{ await supabase.from('orders').update({ status }).eq('id', id); refreshCloudOrders() }
       catch(e){ console.warn('cloud update order:', e.message) }
@@ -1041,6 +1057,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

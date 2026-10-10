@@ -101,6 +101,7 @@ export default function Checkout(){
             <div className="flex justify-between border-t border-white/10 pt-1.5"><span className="text-white/60">{t('wal_after')}</span><b className={walletOk ? 'text-emerald-300' : 'text-red-400'}>{(balance - total).toFixed(0)} 🪙</b></div>
           </div>
           {!walletOk && <div className="mt-3 text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{t('wal_insufficient')} <Link to="/orders" className="underline font-bold">{t('wal_recharge')}</Link></div>}
+          {walletOk && <div className="mt-3 text-xs text-emerald-300">🎁 {t('wal_cashback')}</div>}
         </div>
         ) : (
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
