@@ -221,14 +221,15 @@ export function AuthProvider({ children }){
   }
 
   // ---- Tournois ----
+  const REMOVED_TOURNAMENT_IDS = ['val-cup-1'] // tournois supprimés : purgés du cache local aussi
   const seedTournaments = [
     { id:'lol-clash-1', game:'lol', title:'LoL Tunisian Showdown', date: new Date(Date.now()+23*864e5).toISOString(), prize:'2000 TND cash prize', max_teams:32, entry_fee:0, status:'soon', rules:'5v5 Summoners Rift • Tournoi à élimination directe.', image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNztnpwTexsNw2a58jD4GD3VukhzYqPHAouBNgep7nzA&s=10' },
   ]
   const [tournaments, setTournamentsState] = useState(()=>{
-    try{ const s = JSON.parse(localStorage.getItem('ztc_tournaments')||'null'); return Array.isArray(s) && s.length ? s : seedTournaments }catch{ return seedTournaments }
+    try{ const s = JSON.parse(localStorage.getItem('ztc_tournaments')||'null'); const arr = Array.isArray(s) && s.length ? s : seedTournaments; return arr.filter(x=> !REMOVED_TOURNAMENT_IDS.includes(x.id)) }catch{ return seedTournaments }
   })
   const [regs, setRegs] = useState(()=>{
-    try{ return JSON.parse(localStorage.getItem('ztc_regs')||'[]')}catch{return []}
+    try{ const r = JSON.parse(localStorage.getItem('ztc_regs')||'[]'); return (Array.isArray(r) ? r : []).filter(x=> !REMOVED_TOURNAMENT_IDS.includes(x.tournament_id)) }catch{return []}
   })
   // ---- Équipes créées directement par les clients (standalone) ----
   const [teams, setTeams] = useState(()=>{
@@ -258,7 +259,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           const map = new Map()
           prev.forEach(x=> map.set(x.id, x))
           mapped.forEach(x=> map.set(x.id, x))
-          return [...map.values()]
+          return [...map.values()].filter(x=> !REMOVED_TOURNAMENT_IDS.includes(x.id))
         })
       }
     }catch(e){ console.warn('cloud tournaments:', e.message) }
@@ -273,7 +274,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         const map = new Map()
         prev.forEach(x=> map.set(x.id, x))
         mapped.forEach(x=> map.set(x.id, x))
-        return [...map.values()]
+        return [...map.values()].filter(x=> !REMOVED_TOURNAMENT_IDS.includes(x.tournament_id))
       })
     }catch(e){ console.warn('cloud regs:', e.message) }
   }, [])
