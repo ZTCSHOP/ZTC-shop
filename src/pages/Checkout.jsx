@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Smartphone, Copy, Check, Lock } from 'lucide-react'
+import { Smartphone, Copy, Check, Lock, Coins } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -11,11 +11,14 @@ export const D17_NUMBER = '20074821'
 
 export default function Checkout(){
   const { cart, total: rawTotal, clearCart } = useCart()
-  const { user, addOrder, isVipActive, VIP_DISCOUNT } = useAuth()
+  const { user, addOrder, isVipActive, VIP_DISCOUNT, spendBalance } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
   const vip = isVipActive()
   const total = vip ? Math.round(rawTotal * (1 - VIP_DISCOUNT) * 100) / 100 : rawTotal
+  const [method, setMethod] = useState('d17')
+  const balance = Number(user?.balance || 0)
+  const walletOk = balance >= total && total > 0
   const [form, setForm] = useState({ name:'', email:'', phone:'', address:'' })
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -42,14 +45,19 @@ export default function Checkout(){
     if(!/^[0-9+]{8,15}$/.test(phoneClean)) return alert('Numéro de téléphone invalide (8-15 chiffres, ex: 98 123 456)')
     setLoading(true)
     await new Promise(r=> setTimeout(r, 900))
+    // Paiement wallet : débite les coins d'abord (1 coin = 1 TND)
+    if(method==='wallet'){
+      try{ await spendBalance(total) }
+      catch(e){ setLoading(false); return alert(e.message==='insufficient' ? t('wal_insufficient') : t('teams_join_err')) }
+    }
     const order = {
       id: 'ORD-'+Date.now().toString().slice(-8),
       date: new Date().toISOString(),
       items: cart.map(c=> ({...c, code: genCode()})),
-      total, method: 'd17', vip, customer: { name: form.name, email: form.email, phone: (form.phone||'').replace(/[\s.-]/g,''), address: form.address },
+      total, method, vip, customer: { name: form.name, email: form.email, phone: (form.phone||'').replace(/[\s.-]/g,''), address: form.address },
       userId: user.id, principal: user.principal, provider: user.provider,
-      // Tout code reste verrouillé jusqu'à confirmation admin après réception D17
-      status: 'En attente de confirmation (paiement reçu)'
+      // Tout code reste verrouillé jusqu'à confirmation admin (wallet débité d'avance, remboursé si commande supprimée)
+      status: method==='wallet' ? 'En attente de confirmation (payé wallet)' : 'En attente de confirmation (paiement reçu)'
     }
     addOrder(order)
     clearCart()
@@ -73,6 +81,29 @@ export default function Checkout(){
         </div>
 
         <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+          <h3 className="font-bold mb-3">{t('pay_method')}</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button type="button" onClick={()=>setMethod('d17')} className={`p-4 rounded-xl border text-left flex gap-3 ${method==='d17'?'border-emerald-500 bg-emerald-500/10':'border-white/10 bg-black/20'}`}>
+              <Smartphone size={20} className="text-emerald-400 shrink-0"/><div><div className="font-bold text-sm">D17</div><div className="text-xs opacity-70">{t('d17t')}</div></div>
+            </button>
+            <button type="button" onClick={()=>setMethod('wallet')} className={`p-4 rounded-xl border text-left flex gap-3 ${method==='wallet'?'border-amber-500 bg-amber-500/10':'border-white/10 bg-black/20'}`}>
+              <Coins size={20} className="text-amber-300 shrink-0"/><div><div className="font-bold text-sm">{t('wal_method')}</div><div className="text-xs opacity-70">{balance.toFixed(0)} 🪙</div></div>
+            </button>
+          </div>
+        </div>
+
+        {method==='wallet' ? (
+        <div className="rounded-2xl bg-amber-500/[0.07] border border-amber-500/30 p-5">
+          <h3 className="font-bold mb-3 flex items-center gap-2"><Coins size={18} className="text-amber-300"/> {t('wal_method')}</h3>
+          <div className="text-sm space-y-1.5">
+            <div className="flex justify-between"><span className="text-white/60">{t('wal_balance')}</span><b>{balance.toFixed(0)} 🪙</b></div>
+            <div className="flex justify-between"><span className="text-white/60">{t('total')}</span><b className="text-amber-300">{total.toFixed(0)} 🪙</b></div>
+            <div className="flex justify-between border-t border-white/10 pt-1.5"><span className="text-white/60">{t('wal_after')}</span><b className={walletOk ? 'text-emerald-300' : 'text-red-400'}>{(balance - total).toFixed(0)} 🪙</b></div>
+          </div>
+          {!walletOk && <div className="mt-3 text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{t('wal_insufficient')} <Link to="/orders" className="underline font-bold">{t('wal_recharge')}</Link></div>}
+        </div>
+        ) : (
+        <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
           <h3 className="font-bold mb-3 flex items-center gap-2"><Smartphone size={18} className="text-emerald-400"/> {t('d17t')}</h3>
           <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 text-center">
             <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqjUIA-tQu6Cns_hL30KEbbam8v8Fn32EmahoDQDE35Q&s=10" alt="D17" className="mx-auto h-14 w-14 rounded-2xl object-cover"/>
@@ -88,9 +119,10 @@ export default function Checkout(){
             <li>{t('d17s3')} 💬 <Link to="/support" className="text-emerald-300 underline font-bold">Support</Link></li>
           </ul>
         </div>
+        )}
 
-        <button disabled={loading} className="w-full py-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black disabled:opacity-60">
-          {loading? '...' : `${t('d17paybtn')} • ${total.toFixed(2)} TND`}
+        <button disabled={loading || (method==='wallet' && !walletOk)} className="w-full py-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black disabled:opacity-60">
+          {loading? '...' : method==='wallet' ? `${t('wal_pay')} • ${total.toFixed(0)} 🪙` : `${t('d17paybtn')} • ${total.toFixed(2)} TND`}
         </button>
       </form>
 

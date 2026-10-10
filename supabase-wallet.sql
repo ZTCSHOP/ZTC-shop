@@ -40,3 +40,33 @@ create policy "recharges_delete_admin" on public.recharges
   for delete using (public.is_admin());
 
 alter publication supabase_realtime add table public.recharges;
+
+-- ============================================================
+-- DURCISSEMENT (anti-triche) : à exécuter aussi (idempotent)
+-- ============================================================
+
+-- Le solde ne peut jamais passer sous zéro
+alter table public.profiles drop constraint if exists profiles_balance_nonneg;
+alter table public.profiles add constraint profiles_balance_nonneg check (ztc_balance is null or ztc_balance >= 0);
+
+-- Personne ne peut s'octroyer le VIP seul (même logique que l'anti-escalade admin)
+create or replace function public.prevent_vip_escalation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if NEW.is_vip is distinct from OLD.is_vip
+     and not public.is_admin()
+     and current_user not in ('postgres', 'service_role') then
+    raise exception 'Seul un admin peut modifier le statut VIP.';
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_no_self_vip on public.profiles;
+create trigger trg_no_self_vip
+  before update on public.profiles
+  for each row execute function public.prevent_vip_escalation();

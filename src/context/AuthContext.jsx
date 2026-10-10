@@ -275,18 +275,10 @@ export function AuthProvider({ children }){
     if(cloud && target.cloud){
       const { error: e1 } = await supabase.from('recharges').update({ status: 'approved' }).eq('id', id)
       if(e1) throw e1
-      // Crédite le solde (lecture puis écriture pour cumuler)
-      const { data: prof } = await supabase.from('profiles').select('ztc_balance').eq('id', target.userId).single()
-      const cur = Number(prof?.ztc_balance || 0)
-      const { error: e2 } = await supabase.from('profiles').update({ ztc_balance: cur + target.coins }).eq('id', target.userId)
-      if(e2) throw e2
+      await creditBalance(target.userId, target.coins, true)
       refreshRecharges()
     }else{
-      try{
-        const users = readUsers().map(u=> u.id===target.userId ? {...u, balance: Number(u.balance||0) + target.coins} : u)
-        localStorage.setItem('ztc_users', JSON.stringify(users))
-        if(user.id===target.userId){ setUser({...user, balance: Number(user.balance||0) + target.coins}) }
-      }catch{}
+      await creditBalance(target.userId, target.coins, false)
     }
   }
   const rejectRecharge = async (id)=>{
@@ -297,6 +289,34 @@ export function AuthProvider({ children }){
       const { error } = await supabase.from('recharges').delete().eq('id', id)
       if(error){ refreshRecharges(); throw new Error('del_need_policy') }
     }
+  }
+  // Crédite/débite le solde d'un membre.
+  // viaCloud=true => base Supabase (comptes cloud) ; false => localStorage.
+  const creditBalance = async (uid, amount, viaCloud)=>{
+    if(!uid || !amount) return
+    if(viaCloud && cloud){
+      const { data: prof } = await supabase.from('profiles').select('ztc_balance').eq('id', uid).single()
+      const cur = Number(prof?.ztc_balance || 0)
+      const { error } = await supabase.from('profiles').update({ ztc_balance: cur + amount }).eq('id', uid)
+      if(error) throw error
+      if(user?.id===uid) setUser(prev=> prev ? {...prev, balance: cur + amount} : prev)
+    }else{
+      try{
+        const users = readUsers().map(u=> u.id===uid ? {...u, balance: Number(u.balance||0)+amount} : u)
+        localStorage.setItem('ztc_users', JSON.stringify(users))
+      }catch{}
+      if(user?.id===uid) setUser(prev=> prev ? {...prev, balance: Number(prev.balance||0)+amount} : prev)
+    }
+  }
+  // Débite le solde pour un paiement wallet (1 coin = 1 TND)
+  const spendBalance = async (amount)=>{
+    if(!user) throw new Error('login')
+    const need = Math.round(Number(amount||0) * 100) / 100
+    if(need <= 0) throw new Error('amount')
+    const cur = Number(user.balance||0)
+    if(cur < need) throw new Error('insufficient')
+    await creditBalance(user.id, -need, cloud && user.cloud)
+    return Math.round((cur - need) * 100) / 100
   }
   // Recharge solde + statut VIP depuis la base (après validation admin)
   const refreshMyBalance = useCallback(async ()=>{
@@ -624,6 +644,10 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const deleteOrder = async (id)=>{
     const target = orders.find(o=> o.id===id)
     setOrders(prev=> prev.filter(o=> o.id!==id))
+    // Rembourse un paiement wallet annulé avant confirmation
+    if(target?.method==='wallet' && String(target.status||'').startsWith('En attente')){
+      try{ await creditBalance(target.userId, Number(target.total||0), cloud && target.cloud) }catch{}
+    }
     if(cloud && target?.cloud){
       const { error } = await supabase.from('orders').delete().eq('id', id)
       if(error){ refreshCloudOrders(); throw new Error('del_need_policy') }
@@ -1017,6 +1041,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

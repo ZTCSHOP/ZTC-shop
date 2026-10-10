@@ -169,7 +169,7 @@ export default function Orders(){
                 <div className="font-bold">{o.id} • {new Date(o.date).toLocaleString()}</div>
                 <span className={`text-xs px-2 py-1 rounded-full font-bold border ${badge(o.status)}`}>{o.status}</span>
               </div>
-              <div className="text-sm text-white/60 mt-1">{o.items.length} article(s) • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':'À la livraison'}{o.customer?.phone? ` • 📞 ${o.customer.phone}`:''}</div>
+              <div className="text-sm text-white/60 mt-1">{o.items.length} article(s) • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':o.method==='d17'?'D17':o.method==='wallet'?'Wallet 🪙':'À la livraison'}{o.customer?.phone? ` • 📞 ${o.customer.phone}`:''}</div>
             </Link>
             {o.syncError && (
               <div className="mt-2 flex items-center gap-2 text-xs">

@@ -29,7 +29,7 @@ export default function OrderDetail(){
           <h1 className="text-xl font-black">{order.id}</h1>
           <span className={`text-xs px-3 py-1.5 rounded-full font-bold border ${confirmed?'bg-emerald-500/20 text-emerald-300 border-emerald-500/30':'bg-amber-500/20 text-amber-300 border-amber-500/30'}`}>{order.status}</span>
         </div>
-        <div className="text-sm text-white/50 mt-1">{new Date(order.date).toLocaleString('fr-FR')} • {order.method==='card'?'Payée par carte':'Payer à la livraison'} • {order.total.toFixed(2)} TND</div>
+        <div className="text-sm text-white/50 mt-1">{new Date(order.date).toLocaleString('fr-FR')} • {order.method==='card'?'Payée par carte':order.method==='d17'?'Payée via D17':order.method==='wallet'?'Payée en coins (wallet)':'Payer à la livraison'} • {order.total.toFixed(2)} TND</div>
         <div className="text-xs text-white/50 mt-1">Client: {order.customer.name} • {order.customer.email}{order.customer.phone? ` • 📞 ${order.customer.phone}`:''}</div>
       </div>
 

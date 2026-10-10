@@ -226,7 +226,7 @@ export default function Admin(){
             {filtered.map(o=>(
               <div key={o.id} className={`p-4 rounded-2xl border ${isPending(o)?'bg-amber-500/5 border-amber-500/30':'bg-white/5 border-white/10'}`}>
                 <div className="flex flex-wrap justify-between gap-2">
-                  <div className="font-bold text-sm">{o.id} • {o.customer?.name} • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':'À la livraison'}</div>
+                  <div className="font-bold text-sm">{o.id} • {o.customer?.name} • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':o.method==='d17'?'D17':o.method==='wallet'?'Wallet 🪙':'À la livraison'}</div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2 py-1 rounded-full font-bold ${isPending(o)?'bg-amber-500/20 text-amber-300 border border-amber-500/30': o.status.includes('Annulée')?'bg-red-500/20 text-red-300 border border-red-500/30':'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>{o.status}</span>
                     <button onClick={()=>handleDeleteOrder(o.id)} title="Supprimer" className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"><Trash2 size={13}/></button>
