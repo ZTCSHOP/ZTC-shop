@@ -136,6 +136,90 @@ export function AuthProvider({ children }){
   })
   useEffect(()=> localStorage.setItem('ztc_messages', JSON.stringify(messages.filter(m=>!m.cloud))), [messages])
 
+  // ---- VIP Membership (29.99 TND/mois, -10% marketplace) ----
+  const VIP_PRICE = 29.99
+  const VIP_DISCOUNT = 0.10
+  const isVipActive = (u=user)=>{
+    if(!u) return false
+    if(u.vipUntil && new Date(u.vipUntil) <= new Date()) return false
+    return !!u.isVip
+  }
+  const [vipSubs, setVipSubs] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem('ztc_vipsubs')||'[]')}catch{return []}
+  })
+  useEffect(()=> localStorage.setItem('ztc_vipsubs', JSON.stringify(vipSubs.filter(x=>!x.cloud))), [vipSubs])
+  const mapCloudVip = (r)=> ({ id: r.id, userId: r.user_id, months: r.months||1, amount: Number(r.amount||VIP_PRICE), status: r.status||'pending', date: r.created_at, cloud: true })
+  const refreshVipSubs = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('vip_subs').select('*').order('created_at', { ascending: false }).limit(200)
+      if(error) throw error
+      const mapped = (data||[]).map(mapCloudVip)
+      setVipSubs(prev=>{
+        const map = new Map()
+        prev.forEach(x=> map.set(x.id, x))
+        mapped.forEach(x=> map.set(x.id, x))
+        return [...map.values()]
+      })
+    }catch(e){ console.warn('cloud vip:', e.message) }
+  }, [])
+  const myVipSub = ()=> user ? vipSubs.filter(x=> x.userId===user.id).sort((a,b)=> new Date(b.date||0)-new Date(a.date||0))[0] : null
+  const createVipSub = async ()=>{
+    if(!user) throw new Error('login')
+    const pending = vipSubs.some(x=> x.userId===user.id && x.status==='pending')
+    if(pending) throw new Error('exists')
+    const sub = {
+      id: genId('vip'), userId: user.id, months: 1, amount: VIP_PRICE, status: 'pending',
+      date: new Date().toISOString(), cloud: !!(cloud && user.cloud),
+    }
+    if(sub.cloud){
+      try{
+        const { data, error } = await supabase.from('vip_subs').insert({
+          user_id: user.id, months: 1, amount: VIP_PRICE, status: 'pending',
+        }).select()
+        if(error) throw error
+        if(data?.[0]) { const m = mapCloudVip(data[0]); setVipSubs(prev=> [m, ...prev]); refreshVipSubs(); return m }
+      }catch(e){
+        const m = String(e.message||'')
+        if(/vip_subs/i.test(m)) throw new Error('need_sql')
+        throw e
+      }
+    }
+    setVipSubs(prev=> [sub, ...prev])
+    return sub
+  }
+  const confirmVipSub = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const target = vipSubs.find(x=> x.id===id)
+    if(!target) return
+    const until = new Date(Date.now() + 30*864e5).toISOString()
+    setVipSubs(prev=> prev.map(x=> x.id===id ? {...x, status:'active'} : x))
+    if(cloud && target.cloud){
+      const { error: e1 } = await supabase.from('vip_subs').update({ status: 'active' }).eq('id', id)
+      if(e1) throw e1
+      const { error: e2 } = await supabase.from('profiles').update({ is_vip: true, vip_until: until }).eq('id', target.userId)
+      if(e2) throw e2
+      refreshVipSubs()
+    }else{
+      // Mode local : flag direct sur le compte
+      try{
+        const users = readUsers().map(u=> u.id===target.userId ? {...u, isVip: true, vipUntil: until} : u)
+        localStorage.setItem('ztc_users', JSON.stringify(users))
+        if(user.id===target.userId){ const me = {...user, isVip: true, vipUntil: until}; setUser(me) }
+      }catch{}
+    }
+    return until
+  }
+  const rejectVipSub = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const target = vipSubs.find(x=> x.id===id)
+    setVipSubs(prev=> prev.filter(x=> x.id!==id))
+    if(cloud && target?.cloud){
+      const { error } = await supabase.from('vip_subs').delete().eq('id', id)
+      if(error){ refreshVipSubs(); throw new Error('del_need_policy') }
+    }
+  }
+
   // ---- Tournois ----
   const seedTournaments = [
     { id:'val-cup-1', game:'valorant', title:'Valorant Clash Cup #1', date: new Date(Date.now()+9*864e5).toISOString(), prize:'1000 TND + 5000 VP', max_teams:16, entry_fee:10, status:'open', rules:'5v5 • Maps : Ascent, Bind, Haven • Demi-finales BO3, finale BO5. Check-in Discord 30 min avant.', image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7raq6TZniTT-h3tAcCp4gTt1qayp_6_4m5VYdEKZf2w&s=10' },
@@ -238,8 +322,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -262,6 +346,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, ()=> refreshTournaments())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_regs' }, ()=> refreshRegs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, ()=> refreshTeams())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vip_subs' }, ()=> refreshVipSubs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .subscribe()
     const onFocus = ()=> refreshAll()
@@ -279,6 +364,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         name: prof?.name || sbUser.user_metadata?.name || email.split('@')[0] || 'Client',
         email, provider: 'email', principal: 'sb-'+String(sbUser.id).slice(0,8),
         isAdmin: !!(prof?.is_admin || isOwnerEmail(email)),
+        isVip: !!prof?.is_vip, vipUntil: prof?.vip_until || null,
         createdAt: prof?.created_at || new Date().toISOString(),
       }
       sbUserId.current = sbUser.id
@@ -840,6 +926,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

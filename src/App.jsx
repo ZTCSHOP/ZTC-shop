@@ -26,6 +26,7 @@ import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
 import MusicPlayer from './components/MusicPlayer'
 import Sidebar from './components/Sidebar'
+import SocialIcons from './components/SocialIcons'
 
 const basename = (()=>{ const b = import.meta.env.BASE_URL || '/'; return b === '/' ? '/' : b.replace(/\/$/, '') })()
 
@@ -63,11 +64,12 @@ export default function App(){
             </Routes>
             <footer className="border-t border-white/10 mt-8 py-6 text-center text-xs text-white/40">
               <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="ZTC Shop" className="w-12 h-12 mx-auto mb-2 rounded-2xl object-cover bg-white p-1"/>
-              <div className="flex items-center justify-center gap-5 mb-2 text-sm">
+              <div className="flex items-center justify-center gap-5 mb-3 text-sm">
                 <Link to="/catalog" className="text-white/60 hover:text-lime-400 font-semibold">Catalogue</Link>
                 <Link to="/about" className="text-white/60 hover:text-lime-400 font-semibold">À propos</Link>
                 <Link to="/support" className="text-white/60 hover:text-lime-400 font-semibold">Support</Link>
               </div>
+              <SocialIcons className="mb-3" />
               © 2026 ZTC SHOP • FR / EN / AR • TND
             </footer>
               </div>

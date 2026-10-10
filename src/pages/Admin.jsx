@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { initialProducts, categories } from '../data/products'
-import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX } from 'lucide-react'
+import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX, Shield, Crown } from 'lucide-react'
 import TournamentManager from '../components/TournamentManager'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import PushBell from '../components/PushBell'
 
 export default function Admin(){
-  const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regsFor, deleteReg } = useAuth()
+  const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE } = useAuth()
   const [trnForm, setTrnForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
   const imgForGame = (g)=> initialProducts.find(p=>p.category===g)?.image || ''
   const handleCreateTrn = async ()=>{
@@ -142,6 +142,8 @@ export default function Admin(){
         <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10">{soundOn ? <Volume2 size={15}/> : <VolumeX size={15}/>}</button>
         <PushBell className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10" />
         <button onClick={()=>setTab('tournaments')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='tournaments'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Trophy size={15}/> {t('tournaments')} ({tournaments.length})</button>
+        <button onClick={()=>setTab('teams')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='teams'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Shield size={15}/> {t('adm_teams')} ({regs.length + teams.length})</button>
+        <button onClick={()=>setTab('vip')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='vip'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Crown size={15}/> VIP ({vipSubs.filter(x=>x.status==='pending').length})</button>
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>
 
@@ -368,6 +370,85 @@ export default function Admin(){
                 <TournamentManager tr={tr} />
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {tab==='teams' && (
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <h3 className="font-black text-sm mb-2">🛡️ {t('adm_regs')} ({regs.length})</h3>
+            <div className="space-y-1.5">
+              {regs.length===0 && <div className="text-xs text-white/40">—</div>}
+              {regs.map(r=>(
+                <div key={r.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{r.team}</span>
+                  <span className="text-white/50">{(tournaments.find(x=>x.id===r.tournament_id)?.title)||r.tournament_id}</span>
+                  <span className="text-white/50">{r.captain} {r.phone ? `• 📞 ${r.phone}` : ''}</span>
+                  <button onClick={async()=>{ if(window.confirm(t('tc_delete_q'))){ try{ await deleteReg(r.id) }catch{ alert(t('del_need_policy')) } } }} className="ml-auto p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"><Trash2 size={13}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <h3 className="font-black text-sm mb-2">✨ {t('adm_standalone')} ({teams.length})</h3>
+            <div className="space-y-1.5">
+              {teams.length===0 && <div className="text-xs text-white/40">—</div>}
+              {teams.map(x=>(
+                <div key={x.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{x.name}</span>
+                  <span className="text-white/50">🎮 {x.game}</span>
+                  <span className="text-white/50">{x.captain}</span>
+                  <button onClick={async()=>{ if(window.confirm(t('tc_delete_q'))){ try{ await deleteTeam(x.id) }catch{ alert(t('del_need_policy')) } } }} className="ml-auto p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"><Trash2 size={13}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <h3 className="font-black text-sm mb-2">👤 {t('adm_players')} ({joinReqs.filter(q=>q.status==='pending').length})</h3>            <div className="space-y-1.5">
+              {joinReqs.filter(q=>q.status==='pending').length===0 && <div className="text-xs text-white/40">—</div>}
+              {joinReqs.filter(q=>q.status==='pending').map(q=>(
+                <div key={q.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{q.userName||q.userId?.slice(0,8)}</span>
+                  <span className="text-white/50">→ {(regs.find(r=>r.id===q.regId)?.team)||'?'} • {q.message}</span>
+                  <span className="ml-auto flex gap-1.5">
+                    <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1 rounded-lg bg-emerald-500 text-black font-bold">✓</button>
+                    <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-bold">✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {tab==='vip' && (
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl bg-amber-500/[0.06] border border-amber-500/25 p-4">
+            <h3 className="font-black text-sm mb-2">👑 {t('vip_requests')} ({vipSubs.filter(x=>x.status==='pending').length}) — {VIP_PRICE.toFixed(2)} TND/{t('vip_month')}</h3>
+            <div className="space-y-1.5">
+              {vipSubs.filter(x=>x.status==='pending').length===0 && <div className="text-xs text-white/40">—</div>}
+              {vipSubs.filter(x=>x.status==='pending').map(s=>(
+                <div key={s.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{(allAccounts().find(a=>a.id===s.userId)?.name)||s.userId?.slice(0,8)}</span>
+                  <span className="text-white/50">{s.date ? new Date(s.date).toLocaleString() : ''} • {Number(s.amount).toFixed(2)} TND</span>
+                  <span className="ml-auto flex gap-1.5">
+                    <button onClick={async()=>{ try{ await confirmVipSub(s.id) }catch{ alert(t('del_need_policy')) } }} className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-bold">{t('vip_confirm')}</button>
+                    <button onClick={async()=>{ try{ await rejectVipSub(s.id) }catch{ alert(t('del_need_policy')) } }} className="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-bold">✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <h3 className="font-black text-sm mb-2">✅ {t('vip_actives')} ({vipSubs.filter(x=>x.status==='active').length})</h3>
+            <div className="space-y-1.5">
+              {vipSubs.filter(x=>x.status==='active').length===0 && <div className="text-xs text-white/40">—</div>}
+              {vipSubs.filter(x=>x.status==='active').map(s=>(
+                <div key={s.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black text-amber-300">👑 {(allAccounts().find(a=>a.id===s.userId)?.name)||s.userId?.slice(0,8)}</span>
+                  <span className="text-white/50">{s.date ? new Date(s.date).toLocaleDateString() : ''}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

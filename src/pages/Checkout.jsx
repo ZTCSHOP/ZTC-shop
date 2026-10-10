@@ -10,10 +10,12 @@ function genCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; fo
 export const D17_NUMBER = '20074821'
 
 export default function Checkout(){
-  const { cart, total, clearCart } = useCart()
-  const { user, addOrder } = useAuth()
+  const { cart, total: rawTotal, clearCart } = useCart()
+  const { user, addOrder, isVipActive, VIP_DISCOUNT } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
+  const vip = isVipActive()
+  const total = vip ? Math.round(rawTotal * (1 - VIP_DISCOUNT) * 100) / 100 : rawTotal
   const [form, setForm] = useState({ name:'', email:'', phone:'', address:'' })
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -44,7 +46,7 @@ export default function Checkout(){
       id: 'ORD-'+Date.now().toString().slice(-8),
       date: new Date().toISOString(),
       items: cart.map(c=> ({...c, code: genCode()})),
-      total, method: 'd17', customer: { name: form.name, email: form.email, phone: (form.phone||'').replace(/[\s.-]/g,''), address: form.address },
+      total, method: 'd17', vip, customer: { name: form.name, email: form.email, phone: (form.phone||'').replace(/[\s.-]/g,''), address: form.address },
       userId: user.id, principal: user.principal, provider: user.provider,
       // Tout code reste verrouillé jusqu'à confirmation admin après réception D17
       status: 'En attente de confirmation (paiement reçu)'
@@ -97,6 +99,7 @@ export default function Checkout(){
         <div className="mt-3 space-y-2">
           {cart.map(i=> <div key={i.key} className="flex justify-between text-sm"><span className="text-white/70">{i.name} ×{i.qty} <span className="text-white/40">({i.variantLabel})</span></span><span className="font-semibold">{(i.price*i.qty).toFixed(2)} TND</span></div>)}
           <div className="flex justify-between font-black border-t border-white/10 pt-2"><span>{t('total')}</span><span className="text-lime-400">{total.toFixed(2)} TND</span></div>
+          {vip && <div className="flex justify-between text-xs font-bold text-amber-300 pt-1"><span>👑 VIP -{Math.round(VIP_DISCOUNT*100)}%</span><span>-{(rawTotal - total).toFixed(2)} TND</span></div>}
         </div>
         <div className="mt-4 text-xs text-white/40">En confirmant, tes codes seront générés et visibles dans “Mes commandes”.</div>
       </div>

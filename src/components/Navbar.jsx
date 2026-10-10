@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu, Gamepad2 } from 'lucide-react'
+import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu, Gamepad2, Crown } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang, LANGS } from '../context/LanguageContext'
@@ -10,7 +10,7 @@ const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook
 
 export default function Navbar({ onBurger }){
   const { count } = useCart()
-  const { user, logout } = useAuth()
+  const { user, logout, isVipActive } = useAuth()
   const { lang, setLang, t } = useLang()
   const nav = useNavigate()
   const [q, setQ] = useState('')
@@ -72,7 +72,10 @@ export default function Navbar({ onBurger }){
                 : <div className={`w-8 h-8 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-sm text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>
               }
               <div className="text-xs leading-tight">
-                <div className="text-white font-bold truncate max-w-[120px]">{user.name || user.email || user.principal?.slice(0,12)}</div>
+                <div className="text-white font-bold truncate max-w-[120px] flex items-center gap-1">
+                  {user.name || user.email || user.principal?.slice(0,12)}
+                  {isVipActive() && <Crown size={13} className="text-amber-300 shrink-0"/>}
+                </div>
                 <div className="text-white/50">{providerLabel[user.provider]||user.provider}</div>
               </div>
             </Link>
