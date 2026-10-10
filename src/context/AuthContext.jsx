@@ -220,6 +220,95 @@ export function AuthProvider({ children }){
     }
   }
 
+  // ---- Wallet ZTC (1 TND = 1 coin, recharge D17 validée par l'admin) ----
+  const COIN_RATE = 1 // 1 TND = 1 coin
+  const [recharges, setRecharges] = useState(()=>{
+    try{ return JSON.parse(localStorage.getItem('ztc_recharges')||'[]')}catch{return []}
+  })
+  useEffect(()=> localStorage.setItem('ztc_recharges', JSON.stringify(recharges.filter(x=>!x.cloud))), [recharges])
+  const mapCloudRecharge = (r)=> ({ id: r.id, userId: r.user_id, amount: Number(r.amount_tnd||0), coins: r.coins||0, method: r.method||'D17', phone: r.phone||'', status: r.status||'pending', date: r.created_at, cloud: true })
+  const refreshRecharges = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('recharges').select('*').order('created_at', { ascending: false }).limit(200)
+      if(error) throw error
+      const mapped = (data||[]).map(mapCloudRecharge)
+      setRecharges(prev=>{
+        const map = new Map()
+        prev.forEach(x=> map.set(x.id, x))
+        mapped.forEach(x=> map.set(x.id, x))
+        return [...map.values()]
+      })
+    }catch(e){ console.warn('cloud recharges:', e.message) }
+  }, [])
+  const myRecharges = ()=> user ? recharges.filter(x=> x.userId===user.id).sort((a,b)=> new Date(b.date||0)-new Date(a.date||0)) : []
+  const createRecharge = async ({ amountTnd, phone })=>{
+    if(!user) throw new Error('login')
+    const amount = Math.floor(Number(amountTnd)||0)
+    if(amount < 1) throw new Error('amount')
+    const coins = Math.floor(amount * COIN_RATE)
+    const rec = {
+      id: genId('rch'), userId: user.id, amount, coins, method: 'D17',
+      phone: (phone||'').replace(/[\s.-]/g,''), status: 'pending',
+      date: new Date().toISOString(), cloud: !!(cloud && user.cloud),
+    }
+    if(rec.cloud){
+      try{
+        const { data, error } = await supabase.from('recharges').insert({
+          user_id: user.id, amount_tnd: amount, coins, method: 'D17', phone: rec.phone, status: 'pending',
+        }).select()
+        if(error) throw error
+        if(data?.[0]) { const m = mapCloudRecharge(data[0]); setRecharges(prev=> [m, ...prev]); refreshRecharges(); return m }
+      }catch(e){
+        if(/recharges/i.test(String(e.message||''))) throw new Error('need_sql')
+        throw e
+      }
+    }
+    setRecharges(prev=> [rec, ...prev])
+    return rec
+  }
+  const confirmRecharge = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const target = recharges.find(x=> x.id===id)
+    if(!target || target.status!=='pending') return
+    setRecharges(prev=> prev.map(x=> x.id===id ? {...x, status:'approved'} : x))
+    if(cloud && target.cloud){
+      const { error: e1 } = await supabase.from('recharges').update({ status: 'approved' }).eq('id', id)
+      if(e1) throw e1
+      // Crédite le solde (lecture puis écriture pour cumuler)
+      const { data: prof } = await supabase.from('profiles').select('ztc_balance').eq('id', target.userId).single()
+      const cur = Number(prof?.ztc_balance || 0)
+      const { error: e2 } = await supabase.from('profiles').update({ ztc_balance: cur + target.coins }).eq('id', target.userId)
+      if(e2) throw e2
+      refreshRecharges()
+    }else{
+      try{
+        const users = readUsers().map(u=> u.id===target.userId ? {...u, balance: Number(u.balance||0) + target.coins} : u)
+        localStorage.setItem('ztc_users', JSON.stringify(users))
+        if(user.id===target.userId){ setUser({...user, balance: Number(user.balance||0) + target.coins}) }
+      }catch{}
+    }
+  }
+  const rejectRecharge = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const target = recharges.find(x=> x.id===id)
+    setRecharges(prev=> prev.filter(x=> x.id!==id))
+    if(cloud && target?.cloud){
+      const { error } = await supabase.from('recharges').delete().eq('id', id)
+      if(error){ refreshRecharges(); throw new Error('del_need_policy') }
+    }
+  }
+  // Recharge solde + statut VIP depuis la base (après validation admin)
+  const refreshMyBalance = useCallback(async ()=>{
+    if(!cloud) return
+    const uid = sbUserId.current
+    if(!uid) return
+    try{
+      const { data } = await supabase.from('profiles').select('ztc_balance,is_vip,vip_until').eq('id', uid).single()
+      if(data) setUser(prev=> prev ? {...prev, balance: Number(data.ztc_balance||0), isVip: !!data.is_vip, vipUntil: data.vip_until || prev.vipUntil} : prev)
+    }catch{}
+  }, [cloud])
+
   // ---- Tournois ----
   const REMOVED_TOURNAMENT_IDS = ['val-cup-1'] // tournois supprimés : purgés du cache local aussi
   const seedTournaments = [
@@ -322,8 +411,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -347,6 +436,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_regs' }, ()=> refreshRegs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'teams' }, ()=> refreshTeams())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vip_subs' }, ()=> refreshVipSubs())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recharges' }, ()=> refreshRecharges())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .subscribe()
     const onFocus = ()=> refreshAll()
@@ -365,6 +455,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         email, provider: 'email', principal: 'sb-'+String(sbUser.id).slice(0,8),
         isAdmin: !!(prof?.is_admin || isOwnerEmail(email)),
         isVip: !!prof?.is_vip, vipUntil: prof?.vip_until || null,
+        balance: Number(prof?.ztc_balance || 0),
         createdAt: prof?.created_at || new Date().toISOString(),
       }
       sbUserId.current = sbUser.id
@@ -926,6 +1017,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)
