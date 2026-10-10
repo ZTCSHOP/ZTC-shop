@@ -9,7 +9,7 @@ import { computeStandings } from '../lib/bracket'
 export default function TournamentDetail(){
   const { id } = useParams()
   const nav = useNavigate()
-  const { tournaments, regsFor, myRegs, registerTournament, user } = useAuth()
+  const { tournaments, regsFor, myRegs, registerTournament, saveTournament, user } = useAuth()
   const { t } = useLang()
   const tr = tournaments.find(x=> x.id===id)
   const [form, setForm] = useState({ team:'', captain:'', phone:'', gameId:'', logo:'' })
@@ -28,6 +28,11 @@ export default function TournamentDetail(){
     e.preventDefault(); setError('')
     if(!user) return nav('/login', { state: { from: `/tournaments/${tr.id}` } })
     try{
+      // Si admin : synchronise d'abord le tournoi en base (évite l'erreur FK
+      // quand le tournoi n'existe qu'en local), puis inscrit l'équipe.
+      if(user.isAdmin){
+        try{ await saveTournament({ ...tr }) }catch{}
+      }
       await registerTournament({ tournamentId: tr.id, team: form.team, captain: form.captain, phone: form.phone, gameId: form.gameId, logo: form.logo })
       setDone(true)
     }catch(err){

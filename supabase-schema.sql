@@ -272,6 +272,5 @@ create policy "tournaments_insert_pending" on public.tournaments
 
 -- 2 tournois d'exemple
 insert into public.tournaments (id, game, title, date, prize, max_teams, entry_fee, status, rules, image) values
-('val-cup-1','valorant','Valorant Clash Cup #1', now() + interval '9 days','1000 TND + 5000 VP',16,10,'open','5v5 • Maps : Ascent, Bind, Haven • Demi-finales BO3, finale BO5. Check-in Discord 30 min avant.','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7raq6TZniTT-h3tAcCp4gTt1qayp_6_4m5VYdEKZf2w&s=10'),
 ('lol-clash-1','lol','LoL Tunisian Showdown', now() + interval '23 days','2000 TND cash prize',32,0,'soon','5v5 Summoners Rift • Tournoi à élimination directe. Règlement complet publié à l’ouverture des inscriptions.','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNztnpwTexsNw2a58jD4GD3VukhzYqPHAouBNgep7nzA&s=10')
 on conflict (id) do nothing;

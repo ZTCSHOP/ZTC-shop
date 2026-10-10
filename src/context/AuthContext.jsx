@@ -222,7 +222,6 @@ export function AuthProvider({ children }){
 
   // ---- Tournois ----
   const seedTournaments = [
-    { id:'val-cup-1', game:'valorant', title:'Valorant Clash Cup #1', date: new Date(Date.now()+9*864e5).toISOString(), prize:'1000 TND + 5000 VP', max_teams:16, entry_fee:10, status:'open', rules:'5v5 • Maps : Ascent, Bind, Haven • Demi-finales BO3, finale BO5. Check-in Discord 30 min avant.', image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7raq6TZniTT-h3tAcCp4gTt1qayp_6_4m5VYdEKZf2w&s=10' },
     { id:'lol-clash-1', game:'lol', title:'LoL Tunisian Showdown', date: new Date(Date.now()+23*864e5).toISOString(), prize:'2000 TND cash prize', max_teams:32, entry_fee:0, status:'soon', rules:'5v5 Summoners Rift • Tournoi à élimination directe.', image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNztnpwTexsNw2a58jD4GD3VukhzYqPHAouBNgep7nzA&s=10' },
   ]
   const [tournaments, setTournamentsState] = useState(()=>{
