@@ -1,5 +1,10 @@
-export const categories = [
-  { id: 'all', label: 'Tout' },
+// Prix minimum sûr (la base peut renvoyer variants null/vide)
+export const minPrice = (p)=>{
+  const vs = Array.isArray(p?.variants) ? p.variants.map(v=> Number(v?.price)||0).filter(x=> x>0) : []
+  return vs.length ? Math.min(...vs) : 0
+}
+
+export const categories = [  { id: 'all', label: 'Tout' },
   { id: 'valorant', label: 'Valorant' },
   { id: 'lol', label: 'League of Legends' },
   { id: 'fc26', label: 'FC 26 Coins' },

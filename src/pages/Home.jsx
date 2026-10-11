@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Zap, ShieldCheck, Truck, Clock } from 'lucide-react'
-import { initialProducts } from '../data/products'
+import { initialProducts, minPrice } from '../data/products'
 import { useLang } from '../context/LanguageContext'
 
 const heroCats = [
@@ -115,7 +115,7 @@ export default function Home(){
                 <div className="text-xs text-white/50">{p.subtitle}</div>
                 <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
                   <span className="text-sm text-white/50">{t('from')}</span>
-                  <span className="font-display text-2xl font-bold text-lime-400">{Math.min(...p.variants.map(v=>v.price)).toFixed(2)} TND</span>
+                  <span className="font-display text-2xl font-bold text-lime-400">{minPrice(p).toFixed(2)} TND</span>
                 </div>
               </div>
             </Link>

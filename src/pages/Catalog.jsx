@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, SlidersHorizontal } from 'lucide-react'
-import { categories, initialProducts, MENUS } from '../data/products'
+import { categories, initialProducts, MENUS, minPrice } from '../data/products'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 
@@ -22,9 +22,9 @@ export default function Catalog(){
     let arr = [...products]
     if(menu) arr = arr.filter(p=> menu.products.includes(p.id))
     else if(category!=='all') arr = arr.filter(p=> p.category===category)
-    if(q) arr = arr.filter(p=> (p.name+' '+p.subtitle+' '+p.category+' '+p.variants.map(v=>v.label).join(' ')).toLowerCase().includes(q.toLowerCase()))
-    if(sort==='price-asc') arr.sort((a,b)=> Math.min(...a.variants.map(v=>v.price)) - Math.min(...b.variants.map(v=>v.price)))
-    if(sort==='price-desc') arr.sort((a,b)=> Math.min(...b.variants.map(v=>v.price)) - Math.min(...a.variants.map(v=>v.price)))
+    if(q) arr = arr.filter(p=> (p.name+' '+p.subtitle+' '+p.category+' '+(Array.isArray(p.variants)?p.variants.map(v=>v.label).join(' '):'')).toLowerCase().includes(q.toLowerCase()))
+    if(sort==='price-asc') arr.sort((a,b)=> minPrice(a) - minPrice(b))
+    if(sort==='price-desc') arr.sort((a,b)=> minPrice(b) - minPrice(a))
     if(sort==='name') arr.sort((a,b)=> a.name.localeCompare(b.name))
     return arr
   }, [products, category, q, sort, menuParam])
@@ -80,11 +80,11 @@ export default function Catalog(){
               <div className="font-bold">{p.name}</div>
               <div className="text-xs text-white/50 line-clamp-1">{p.subtitle}</div>
               <div className="mt-2 flex flex-wrap gap-1">
-                {p.variants.slice(0,3).map(v=> <span key={v.id} className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{v.label}</span>)}
-                {p.variants.length>3 && <span className="text-[11px] px-2 py-1 rounded bg-lime-400/15 border border-lime-400/25 text-lime-300">+{p.variants.length-3}</span>}
+                {(Array.isArray(p.variants)?p.variants:[]).slice(0,3).map(v=> <span key={v.id} className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{v.label}</span>)}
+                {(Array.isArray(p.variants)?p.variants:[]).length>3 && <span className="text-[11px] px-2 py-1 rounded bg-lime-400/15 border border-lime-400/25 text-lime-300">+{(Array.isArray(p.variants)?p.variants:[]).length-3}</span>}
               </div>
               <div className="mt-3 flex items-center justify-between">
-                <span className="font-black text-lime-400">{t('from')} {Math.min(...p.variants.map(v=>v.price)).toFixed(2)} TND</span>
+                <span className="font-black text-lime-400">{t('from')} {minPrice(p).toFixed(2)} TND</span>
                 <span className="text-xs px-3 py-1.5 rounded-xl bg-white text-black font-bold">{t('see')}</span>
               </div>
             </div>
