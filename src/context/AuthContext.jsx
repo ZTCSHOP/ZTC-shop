@@ -1004,10 +1004,13 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const isAdminMsg = !!user.isAdmin
     // Côté admin : le fil appartient au client (toUserId). Côté client : son propre fil.
     const threadUserId = isAdminMsg ? (toUserId || user.id) : (user.cloud ? user.id : (user.id))
+    // Si l'admin écrit à un compte précis : affiche le nom du destinataire dans le fil
+    // (sinon le thread tout neuf apparaîtrait au nom de l'admin)
+    const targetName = (isAdminMsg && toUserId) ? allAccounts().find(a=> a.id===toUserId)?.name : null
     const msg = {
       id: genId('msg'), userId: threadUserId, orderId,
       sender: isAdminMsg ? 'admin' : 'client',
-      name: user.name || user.email || 'Client',
+      name: targetName || user.name || user.email || 'Client',
       // Images (data URL) gardées entières, textes limités à 1000
       text: clean.startsWith('data:image') ? clean : clean.slice(0, 1000), isRead: false,
       date: new Date().toISOString(), cloud: !!(cloud && (user.cloud || isAdminMsg)),
@@ -1026,11 +1029,15 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           const preview = clean.startsWith('data:image') ? '📷 Photo' : clean.slice(0, 120)
           supabase.functions.invoke('push-message', {
             body: isAdminMsg
-              ? { senderId: user.cloud ? user.id : null, senderName: msg.name, text: preview, targetUserId: threadUserId }
+              ? { senderId: user.cloud ? user.id : null, senderName: user.name || 'ZTC Shop', text: preview, targetUserId: threadUserId }
               : { senderId: user.cloud ? user.id : null, senderName: msg.name, text: preview, toAdmins: true },
           }).catch(()=>{})
         }catch{}
-      }catch(e){ console.warn('cloud send message:', e.message) }
+      }catch(e){
+        console.warn('cloud send message:', e.message)
+        // Échec cloud (RLS/réseau) : garde une copie locale persistée au lieu de la perdre au reload
+        setMessages(prev=> prev.map(m=> m.id===msg.id ? {...m, cloud: false} : m))
+      }
     }
     return msg
   }

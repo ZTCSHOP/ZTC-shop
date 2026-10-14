@@ -100,6 +100,17 @@ export default function Admin(){
   const [catFilter, setCatFilter] = useState('all')
   const [newProd, setNewProd] = useState({ name:'', category:'valorant', price:'', label:'' })
   const [qUser, setQUser] = useState('')
+  const [msgTarget, setMsgTarget] = useState(null) // compte destinataire (message direct admin)
+  const [msgText, setMsgText] = useState('')
+  const [msgSent, setMsgSent] = useState('')
+  const sendDirectMsg = async ()=>{
+    if(!msgTarget || !msgText.trim()) return
+    try{
+      await sendMessage({ text: msgText.trim(), toUserId: msgTarget.id })
+      setMsgSent(`Message envoyé à ${msgTarget.name||msgTarget.email||'ce compte'} ✓`)
+      setMsgText('')
+    }catch{ setMsgSent("Échec d'envoi — réessaie.") }
+  }
   const [spinning, setSpinning] = useState(false)
   const [lastSync, setLastSync] = useState(null)
   const visibleProds = catFilter==='all' ? prods : prods.filter(p=>p.category===catFilter)
@@ -304,7 +315,21 @@ export default function Admin(){
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={16}/>
             <input value={qUser} onChange={e=>setQUser(e.target.value)} placeholder="Rechercher nom, email, téléphone..." className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-lime-500/50 text-sm"/>
           </div>
-          <p className="text-xs text-white/40 mt-2">Chaque compte créé sur le site (email, Discord, Facebook) + infos de ses commandes.</p>
+          <p className="text-xs text-white/40 mt-2">Chaque compte créé sur le site (email, Discord, Facebook) + infos de ses commandes. Tu peux aussi écrire directement à n’importe quel compte via 💬.</p>
+          {msgTarget && (
+            <div className="mt-4 rounded-2xl bg-lime-400/10 border border-lime-400/30 p-4">
+              <div className="flex items-center gap-2 text-sm font-black">
+                <MessageCircle size={15} className="text-lime-300"/> Message direct à <span className="text-lime-300">{msgTarget.name||msgTarget.email||msgTarget.id}</span>
+                <button onClick={()=>{ setMsgTarget(null); setMsgText(''); setMsgSent('') }} className="ml-auto p-1.5 rounded-lg bg-white/10 hover:bg-white/20"><X size={13}/></button>
+              </div>
+              <textarea value={msgText} onChange={e=>setMsgText(e.target.value)} rows="3" placeholder="Écris ton message (promo, rappel tournoi, support...)..." className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-sm focus:outline-none focus:border-lime-500"/>
+              {msgSent && <div className="mt-2 text-xs text-lime-300">{msgSent}</div>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={sendDirectMsg} disabled={!msgText.trim()} className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60"><Send size={14}/> Envoyer</button>
+                {msgSent.includes('✓') && <button onClick={()=>{ setTab('messages'); openThread(msgTarget.id) }} className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-bold">Ouvrir la conversation →</button>}
+              </div>
+            </div>
+          )}
           <div className="mt-4 grid md:grid-cols-2 gap-3">
             {visibleAccounts.map(a=>(
               <div key={a.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
@@ -316,6 +341,9 @@ export default function Admin(){
                   </div>
                   {a.id!==user.id && !a.isAdmin && (
                     <button onClick={()=>handleDeleteAccount(a)} title="Supprimer ce compte" className="p-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 shrink-0"><Trash2 size={14}/></button>
+                  )}
+                  {a.id!==user.id && (
+                    <button onClick={()=>{ setMsgTarget(a); setMsgText(''); setMsgSent('') }} title="Envoyer un message direct" className="p-2 rounded-xl bg-lime-400/20 text-lime-300 hover:bg-lime-400/30 shrink-0"><MessageCircle size={14}/></button>
                   )}
                 </div>
                 <div className="mt-3 space-y-1 text-xs">
