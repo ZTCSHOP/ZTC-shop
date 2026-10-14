@@ -80,6 +80,26 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 .badge-pop { animation: badge-pop .35s ease; }
 
+/* Bouton RGB LED (Create Team) : bordure arc-en-ciel animée + halo */
+.btn-rgb { position: relative; z-index: 0; isolation: isolate; }
+.btn-rgb::before {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit; z-index: -1;
+  background: linear-gradient(90deg, #ff004c, #ff8a00, #ffee00, #00ff85, #00cfff, #7a00ff, #ff004c);
+  background-size: 300% 100%;
+  animation: rgb-slide 3.5s linear infinite;
+}
+.btn-rgb::after {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit; z-index: -2;
+  background: linear-gradient(90deg, #ff004c, #ff8a00, #ffee00, #00ff85, #00cfff, #7a00ff, #ff004c);
+  background-size: 300% 100%;
+  animation: rgb-slide 3.5s linear infinite;
+  filter: blur(8px); opacity: .75;
+}
+@keyframes rgb-slide { to { background-position: 300% 0; } }
+/* Pulse d'arrivée quand on vient d'un lien profond (?tab=create) */
+@keyframes rgb-arrive { 0% { transform: scale(.85); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.rgb-arrive { animation: rgb-arrive .6s ease; }
+
 /* Reflet balayant sur les boutons */
 .btn-shine { position: relative; overflow: hidden; }
 .btn-shine::after {

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Shield, Users, Send, Check, Trophy, Medal, Plus, Trash2, Gamepad2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -38,7 +38,17 @@ export default function Teams(){
   const [msg, setMsg] = useState({}) // regId -> message texte
   const [info, setInfo] = useState('')
   const [filter, setFilter] = useState('all')
-  const [tab, setTab] = useState('teams') // teams | ranking | create
+  const [params] = useSearchParams()
+  const deepCreate = params.get('tab')==='create'
+  const [tab, setTab] = useState(deepCreate ? 'create' : 'teams') // teams | ranking | create
+  // Arrivée via "Create my team" (tournois) : amène directement au bouton LED RGB
+  useEffect(()=>{
+    if(!deepCreate) return
+    const t = setTimeout(()=>{
+      document.getElementById('create-team-tab')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 350)
+    return ()=> clearTimeout(t)
+  }, [deepCreate])
   // ---- formulaire création ----
   const [fname, setFname] = useState('')
   const [fgame, setFgame] = useState('valorant')
@@ -141,7 +151,7 @@ export default function Teams(){
       <div className="mt-4 flex gap-2 flex-wrap">
         <button onClick={()=>setTab('teams')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='teams'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Shield size={13}/> {t('teams')}</button>
         <button onClick={()=>setTab('ranking')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='ranking'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Trophy size={13}/> {t('ranking')}</button>
-        <button onClick={()=>setTab('create')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='create'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Plus size={13}/> {t('tab_create')}</button>
+        <button id="create-team-tab" onClick={()=>setTab('create')} className={`text-sm px-5 py-2 rounded-full font-black flex items-center gap-1.5 btn-rgb ${deepCreate ? 'rgb-arrive' : ''} ${tab==='create'?'bg-emerald-500 text-black':'bg-black/60 text-white'}`}><Plus size={14}/> {t('tab_create')}</button>
       </div>
 
       {tab==='create' ? (

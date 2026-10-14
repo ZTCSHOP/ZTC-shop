@@ -127,7 +127,7 @@ export default function TournamentDetail(){
               <div className="text-4xl mb-2">🛡️</div>
               <div className="font-black mb-1">{t('tr_no_team_t')}</div>
               <p className="text-sm text-white/50 mb-4">{t('tr_no_team_d')}</p>
-              <Link to="/teams" className="inline-block px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm">＋ {t('tr_create_team_btn')}</Link>
+              <Link to="/teams?tab=create" className="inline-block px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm">＋ {t('tr_create_team_btn')}</Link>
             </div>
           ) : (
             <div className="space-y-3">
