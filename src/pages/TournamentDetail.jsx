@@ -5,15 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
 import { computeStandings } from '../lib/bracket'
-
-// Extrait l'ID YouTube (watch, youtu.be, shorts, embed, live ou ID brut)
-const ytId = (url)=>{
-  if(!url) return null
-  const s = String(url).trim()
-  if(/^[A-Za-z0-9_-]{11}$/.test(s)) return s
-  const m = s.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
-  return m ? m[1] : null
-}
+import { ytId } from '../lib/video'
 
 export default function TournamentDetail(){
   const { id } = useParams()

@@ -6,6 +6,7 @@ import { initialProducts, categories } from '../data/products'
 import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX, Shield, Crown, Coins } from 'lucide-react'
 import TournamentManager from '../components/TournamentManager'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
+import { ytId } from '../lib/video'
 import PushBell from '../components/PushBell'
 
 export default function Admin(){
@@ -434,6 +435,17 @@ export default function Admin(){
             <input placeholder={t('tr_fee')} type="number" value={trnForm.entry_fee} onChange={e=>setTrnForm({...trnForm,entry_fee:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_image_ph')} value={trnForm.image} onChange={e=>setTrnForm({...trnForm,image:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_video_ph')} value={trnForm.video} onChange={e=>setTrnForm({...trnForm,video:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
+            {trnForm.video.trim()!=='' && (
+              <div className="md:col-span-2">
+                {ytId(trnForm.video) ? (
+                  <div className="rounded-xl overflow-hidden border border-emerald-500/30 bg-black aspect-video max-w-[280px]">
+                    <iframe key={ytId(trnForm.video)} src={`https://www.youtube-nocookie.com/embed/${ytId(trnForm.video)}?rel=0`} title="Aperçu vidéo" className="w-full h-full" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+                  </div>
+                ) : (
+                  <div className="text-xs text-red-400">⚠️ {t('tr_video_bad')}</div>
+                )}
+              </div>
+            )}
             <input placeholder={t('tr_rules')} value={trnForm.rules} onChange={e=>setTrnForm({...trnForm,rules:e.target.value})} className="md:col-span-4 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <button onClick={handleSaveTrn} className={`md:col-span-4 px-4 py-3 rounded-xl font-black flex items-center justify-center gap-2 text-black ${editingTrId ? 'bg-amber-400 hover:bg-amber-300':'bg-amber-500 hover:bg-amber-400'}`}>
               {editingTrId ? '💾 Enregistrer les modifications' : <><Plus size={16}/> {t('tr_create')}</>}
