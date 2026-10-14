@@ -904,16 +904,21 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     return teams.filter(x=> x.userId===u.id)
   }
   // ---- Inscription en 1 clic avec une équipe existante (sans formulaire) ----
+  // Sécurité : seul le capitaine (propriétaire) peut inscrire SON équipe (admin excepté)
   const registerMyTeam = async ({ tournamentId, team })=>{
     if(!user) throw new Error('login')
-    const name = (team?.name||'').trim()
+    const own = myTeams().find(x=> x.id===team?.id)
+    if(!user.isAdmin && !own) throw new Error('notowner')
+    const src = own || teams.find(x=> x.id===team?.id)
+    const name = (src?.name||'').trim()
     if(!name) throw new Error('team')
     if(regs.some(x=> x.tournament_id===tournamentId && (x.team||'').toLowerCase()===name.toLowerCase())) throw new Error('already')
     const reg = {
       id: genId('reg'), tournament_id: tournamentId, team: name,
-      captain: team.captain || user.name || '', phone: team.phone || '',
-      game_id: team.game || '', logo: (team.logo||'').slice(0, 200000),
-      userId: user.id, date: new Date().toISOString(),
+      captain: src.captain || user.name || '', phone: src.phone || '',
+      game_id: src.game || '', logo: (src.logo||'').slice(0, 200000),
+      userId: user.isAdmin && !own ? (src.userId || user.id) : user.id,
+      date: new Date().toISOString(),
       cloud: !!(cloud && user.cloud),
     }
     if(reg.cloud){

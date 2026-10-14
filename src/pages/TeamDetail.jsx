@@ -44,7 +44,7 @@ export default function TeamDetail(){
             <span className="ml-auto text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black shrink-0">{t('tc_new')}</span>
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>
+            {(mine || user?.isAdmin) && <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>}
             {canDel && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm">{t('tc_delete')}</button>}
           </div>
           <p className="text-xs text-white/40 mt-4">{t('tc_no_tournament')}</p>

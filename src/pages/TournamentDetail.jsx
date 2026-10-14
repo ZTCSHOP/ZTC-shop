@@ -42,6 +42,7 @@ export default function TournamentDetail(){
       const m = err.message||''
       setError(
         m==='already' ? t('tr_already')
+        : m==='notowner' ? t('tr_notowner')
         : m.includes('foreign key') ? t('tr_need_sync')
         : m
       )

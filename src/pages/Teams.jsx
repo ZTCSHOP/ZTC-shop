@@ -301,7 +301,7 @@ export default function Teams(){
               </div>
               {x.description && <div className="text-xs text-white/40 mt-1 line-clamp-2">{x.description}</div>}
               <div className="mt-3 flex gap-2">
-                <Link to="/tournaments" className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Trophy size={12}/> {t('tc_goto_tournaments')}</Link>
+                {(mine || user?.isAdmin) && <Link to="/tournaments" className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Trophy size={12}/> {t('tc_goto_tournaments')}</Link>}
                 {canDel && <button onClick={()=>rmTeam(x.id)} className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold flex items-center gap-1"><Trash2 size={12}/></button>}
               </div>
             </div>
