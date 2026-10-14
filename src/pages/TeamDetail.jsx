@@ -8,7 +8,7 @@ import { computeStandings, getChampion } from '../lib/bracket'
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, requestJoinTeam, updateTeamLogo, deleteTeam } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, deleteTeam } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
@@ -188,6 +188,29 @@ export default function TeamDetail(){
               <button onClick={()=>ask(reg)} className="mt-3 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
             )}
             {myReqs.some(x=>x.regId===reg.id) && <div className="mt-3 text-xs text-emerald-300 flex items-center gap-1"><Check size={12}/> {t('teams_join_sent')}</div>}
+            {/* ---- Le capitaine accepte/refuse directement (sans admin) ---- */}
+            {user && reg.userId===user.id && (()=> {
+              const reqs = joinReqsFor(reg.id)
+              const pend = reqs.filter(q=>q.status==='pending')
+              const acc = reqs.filter(q=>q.status==='accepted')
+              return (
+                <div className="mt-3 rounded-xl bg-black/30 border border-white/10 p-3">
+                  <div className="text-xs font-black mb-2">📥 {t('team_join_reqs')} ({pend.length})</div>
+                  {reqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
+                  {pend.map(q=>(
+                    <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold truncate">{q.userName||'Joueur'}</div>
+                        {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}
+                      </div>
+                      <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
+                      <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>
+                    </div>
+                  ))}
+                  {acc.length>0 && <div className="mt-1.5 text-[11px] text-emerald-300">{acc.map(q=>q.userName||'Joueur').join(', ')} ✓</div>}
+                </div>
+              )
+            })()}
           </div>
         ))}
       </div>

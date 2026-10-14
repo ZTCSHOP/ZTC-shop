@@ -898,6 +898,37 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(!u) return []
     return regs.filter(x=> x.userId===u.id)
   }
+  // ---- Équipes standalone de l'utilisateur (créées sur le site) ----
+  const myTeams = (u=user)=>{
+    if(!u) return []
+    return teams.filter(x=> x.userId===u.id)
+  }
+  // ---- Inscription en 1 clic avec une équipe existante (sans formulaire) ----
+  const registerMyTeam = async ({ tournamentId, team })=>{
+    if(!user) throw new Error('login')
+    const name = (team?.name||'').trim()
+    if(!name) throw new Error('team')
+    if(regs.some(x=> x.tournament_id===tournamentId && (x.team||'').toLowerCase()===name.toLowerCase())) throw new Error('already')
+    const reg = {
+      id: genId('reg'), tournament_id: tournamentId, team: name,
+      captain: team.captain || user.name || '', phone: team.phone || '',
+      game_id: team.game || '', logo: (team.logo||'').slice(0, 200000),
+      userId: user.id, date: new Date().toISOString(),
+      cloud: !!(cloud && user.cloud),
+    }
+    if(reg.cloud){
+      const { data, error } = await supabase.from('tournament_regs').insert({
+        tournament_id: tournamentId, team: reg.team, captain: reg.captain,
+        phone: reg.phone, game_id: reg.game_id,
+        ...(reg.logo ? { logo: reg.logo } : {}),
+        user_id: sbUserId.current || user.id,
+      }).select()
+      if(error) throw error
+      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); return mapCloudReg(data[0]) }
+    }
+    setRegs(prev=> [reg, ...prev])
+    return reg
+  }
   // ---- Demandes pour rejoindre une équipe (player avec compte) ----
   const joinReqsFor = (regId)=> joinReqs.filter(x=> x.regId===regId)
   const myJoinReqs = (u=user)=>{
@@ -1057,6 +1088,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)
