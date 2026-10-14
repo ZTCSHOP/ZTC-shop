@@ -10,7 +10,8 @@ import PushBell from '../components/PushBell'
 
 export default function Admin(){
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge } = useAuth()
-  const [trnForm, setTrnForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
+  const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'' }
+  const [trnForm, setTrnForm] = useState(EMPTY_TRN)
   const [editingTrId, setEditingTrId] = useState(null)
   const imgForGame = (g)=> initialProducts.find(p=>p.category===g)?.image || ''
   const handleSaveTrn = async ()=>{
@@ -20,15 +21,16 @@ export default function Admin(){
         ...trnForm,
         max_teams: Number(trnForm.max_teams)||16,
         entry_fee: Number(trnForm.entry_fee)||0,
-        image: trnForm.image || imgForGame(trnForm.game)
+        image: trnForm.image || imgForGame(trnForm.game),
+        video: (trnForm.video||'').trim(),
       }
       if(editingTrId) {
         payload.id = editingTrId
       }
       await saveTournament(payload)
-      setTrnForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
+      setTrnForm(EMPTY_TRN)
       setEditingTrId(null)
-    }catch{ alert('Écriture cloud refusée — vérifie ton droit admin (SQL is_admin)') }
+    }catch(e){ alert(e.message==='need_sql_video' ? t('need_sql_video') : 'Écriture cloud refusée — vérifie ton droit admin (SQL is_admin)') }
   }
   const startEditTrn = (tr)=>{
     setEditingTrId(tr.id)
@@ -55,13 +57,14 @@ export default function Admin(){
       entry_fee: tr.entry_fee || 0,
       status: tr.status || 'soon',
       rules: tr.rules || '',
-      image: tr.image || ''
+      image: tr.image || '',
+      video: tr.video || ''
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const cancelEditTrn = ()=>{
     setEditingTrId(null)
-    setTrnForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
+    setTrnForm(EMPTY_TRN)
   }
   const handleDeleteTrn = async (id)=>{
     if(!window.confirm(t('tr_delete_q'))) return
@@ -429,7 +432,8 @@ export default function Admin(){
             <input placeholder={t('tr_prize')} value={trnForm.prize} onChange={e=>setTrnForm({...trnForm,prize:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_max')} type="number" value={trnForm.max_teams} onChange={e=>setTrnForm({...trnForm,max_teams:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_fee')} type="number" value={trnForm.entry_fee} onChange={e=>setTrnForm({...trnForm,entry_fee:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
-            <input placeholder={t('tr_image_ph')} value={trnForm.image} onChange={e=>setTrnForm({...trnForm,image:e.target.value})} className="md:col-span-3 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
+            <input placeholder={t('tr_image_ph')} value={trnForm.image} onChange={e=>setTrnForm({...trnForm,image:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
+            <input placeholder={t('tr_video_ph')} value={trnForm.video} onChange={e=>setTrnForm({...trnForm,video:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_rules')} value={trnForm.rules} onChange={e=>setTrnForm({...trnForm,rules:e.target.value})} className="md:col-span-4 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <button onClick={handleSaveTrn} className={`md:col-span-4 px-4 py-3 rounded-xl font-black flex items-center justify-center gap-2 text-black ${editingTrId ? 'bg-amber-400 hover:bg-amber-300':'bg-amber-500 hover:bg-amber-400'}`}>
               {editingTrId ? '💾 Enregistrer les modifications' : <><Plus size={16}/> {t('tr_create')}</>}

@@ -15,7 +15,7 @@ export default function Tournaments(){
   const { tournaments, regsFor, saveTournament, user } = useAuth()
   const { t } = useLang()
   const [game, setGame] = useState('all')
-  const [form, setForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'' })
+  const [form, setForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'', video:'' })
   const [sent, setSent] = useState(false)
   const games = ['all', ...new Set(tournaments.map(x=> x.game))]
   const list = (game==='all' ? tournaments : tournaments.filter(x=> x.game===game))
@@ -27,8 +27,8 @@ export default function Tournaments(){
   const propose = async (e)=>{
     e.preventDefault()
     if(!form.title.trim()) return
-    await saveTournament({ title: form.title.trim(), game: form.game, date: form.date || null, prize: form.prize.trim(), max_teams: Number(form.max_teams)||16, entry_fee: 0, rules: form.rules.trim(), image: '' })
-    setForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'' })
+    await saveTournament({ title: form.title.trim(), game: form.game, date: form.date || null, prize: form.prize.trim(), max_teams: Number(form.max_teams)||16, entry_fee: 0, rules: form.rules.trim(), image: '', video: (form.video||'').trim() })
+    setForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'', video:'' })
     setSent(true)
     setTimeout(()=>setSent(false), 4000)
   }
@@ -96,6 +96,7 @@ export default function Tournaments(){
             <input placeholder={t('tr_prize')} value={form.prize} onChange={e=>setForm({...form,prize:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_max')} type="number" value={form.max_teams} onChange={e=>setForm({...form,max_teams:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_rules')} value={form.rules} onChange={e=>setForm({...form,rules:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
+            <input placeholder={t('tr_video_ph')} value={form.video} onChange={e=>setForm({...form,video:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
             <button className="btn-shine sm:col-span-2 py-3.5 rounded-xl bg-lime-600 hover:bg-lime-500 font-black">{t('tr_submit')}</button>
           </form>
         )}

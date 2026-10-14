@@ -353,7 +353,7 @@ export function AuthProvider({ children }){
 useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>!x.cloud))), [teams])
   useEffect(()=> localStorage.setItem('ztc_join_reqs', JSON.stringify(joinReqs.filter(x=>!x.cloud))), [joinReqs])
 
-  const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
+  const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', video: r.video||'', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
   const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', logo: r.logo||'', userId: r.user_id, date: r.created_at, cloud: true })
   const mapCloudJoin = (r)=> ({ id: r.id, tournament_id: r.tournament_id, regId: r.reg_id, userId: r.user_id, message: r.message||'', status: r.status||'pending', date: r.created_at, cloud: true })
   const mapCloudTeam = (r)=> ({ id: r.id, name: r.name, game: r.game||'valorant', logo: r.logo||'', captain: r.captain||'', phone: r.phone||'', description: r.description||'', userId: r.user_id, date: r.created_at, cloud: true })
@@ -744,13 +744,20 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           id: row.id, game: row.game, title: row.title, date: row.date || null,
           prize: row.prize||'', max_teams: Number(row.max_teams)||16, entry_fee: Number(row.entry_fee)||0,
           status: row.status, rules: row.rules||'', image: row.image||'',
+          // Colonne video optionnelle : envoyée seulement si remplie (sinon les vieux tournois
+          // continuent de se sauvegarder même avant la migration supabase-video.sql)
+          ...(row.video ? { video: row.video } : {}),
           bracket: Array.isArray(row.bracket) ? row.bracket : [],
         }
         if(isNew) payload.created_by = sbUserId.current || (user?.cloud ? user?.id : null)
         const { error } = await supabase.from('tournaments').upsert(payload, { onConflict: 'id' })
         if(error) throw error
         refreshTournaments()
-      }catch(e){ console.warn('cloud save tournament:', e.message); throw e }
+      }catch(e){
+        console.warn('cloud save tournament:', e.message)
+        if(/video|column/i.test(String(e.message||''))) throw new Error('need_sql_video')
+        throw e
+      }
     }
     return row
   }

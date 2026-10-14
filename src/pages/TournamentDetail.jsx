@@ -6,6 +6,15 @@ import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
 import { computeStandings } from '../lib/bracket'
 
+// Extrait l'ID YouTube (watch, youtu.be, shorts, embed, live ou ID brut)
+const ytId = (url)=>{
+  if(!url) return null
+  const s = String(url).trim()
+  if(/^[A-Za-z0-9_-]{11}$/.test(s)) return s
+  const m = s.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+  return m ? m[1] : null
+}
+
 export default function TournamentDetail(){
   const { id } = useParams()
   const nav = useNavigate()
@@ -20,6 +29,7 @@ export default function TournamentDetail(){
   if(!tr) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('no_result')} <Link to="/tournaments" className="text-amber-300">← {t('tournaments')}</Link></div>
 
   const regs = regsFor(tr.id)
+  const vid = ytId(tr.video)
   const full = regs.length >= (tr.max_teams||16)
   const mine = user ? regs.find(r=> r.userId===user.id) : myRegs().find(r=> r.tournament_id===tr.id)
   const canRegister = tr.status==='open' && !full && !mine
@@ -70,6 +80,15 @@ export default function TournamentDetail(){
           <div className="rounded-xl bg-black/30 border border-white/10 p-3"><div className="text-white/50 text-xs flex items-center gap-1"><Ticket size={12}/> {t('tr_entry')}</div><div className="font-bold mt-0.5">{Number(tr.entry_fee)>0 ? `${tr.entry_fee} TND` : t('tr_free')}</div></div>
         </div>
       </div>
+
+      {vid && (
+        <div className="mt-6">
+          <h2 className="font-black mb-3">🎬 {t('tr_video')}</h2>
+          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video">
+            <iframe src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0`} title={tr.title} className="w-full h-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 grid lg:grid-cols-2 gap-6">
         <div>
