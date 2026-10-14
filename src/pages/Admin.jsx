@@ -11,13 +11,57 @@ import PushBell from '../components/PushBell'
 export default function Admin(){
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge } = useAuth()
   const [trnForm, setTrnForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
+  const [editingTrId, setEditingTrId] = useState(null)
   const imgForGame = (g)=> initialProducts.find(p=>p.category===g)?.image || ''
-  const handleCreateTrn = async ()=>{
+  const handleSaveTrn = async ()=>{
     if(!trnForm.title) return alert('Titre requis')
     try{
-      await saveTournament({ ...trnForm, max_teams: Number(trnForm.max_teams)||16, entry_fee: Number(trnForm.entry_fee)||0, image: trnForm.image || imgForGame(trnForm.game) })
+      const payload = {
+        ...trnForm,
+        max_teams: Number(trnForm.max_teams)||16,
+        entry_fee: Number(trnForm.entry_fee)||0,
+        image: trnForm.image || imgForGame(trnForm.game)
+      }
+      if(editingTrId) {
+        payload.id = editingTrId
+      }
+      await saveTournament(payload)
       setTrnForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
+      setEditingTrId(null)
     }catch{ alert('Écriture cloud refusée — vérifie ton droit admin (SQL is_admin)') }
+  }
+  const startEditTrn = (tr)=>{
+    setEditingTrId(tr.id)
+    // format date for datetime-local input if exists (YYYY-MM-DDThh:mm)
+    let formattedDate = ''
+    if(tr.date){
+      try {
+        const d = new Date(tr.date)
+        if(!isNaN(d.getTime())) {
+          formattedDate = d.toISOString().slice(0, 16)
+        } else {
+          formattedDate = tr.date.slice(0, 16)
+        }
+      } catch {
+        formattedDate = tr.date ? tr.date.slice(0, 16) : ''
+      }
+    }
+    setTrnForm({
+      title: tr.title || '',
+      game: tr.game || 'valorant',
+      date: formattedDate,
+      prize: tr.prize || '',
+      max_teams: tr.max_teams || 16,
+      entry_fee: tr.entry_fee || 0,
+      status: tr.status || 'soon',
+      rules: tr.rules || '',
+      image: tr.image || ''
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  const cancelEditTrn = ()=>{
+    setEditingTrId(null)
+    setTrnForm({ title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'' })
   }
   const handleDeleteTrn = async (id)=>{
     if(!window.confirm(t('tr_delete_q'))) return
@@ -337,7 +381,15 @@ export default function Admin(){
 
       {tab==='tournaments' && (
         <div className="mt-6">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 grid md:grid-cols-4 gap-3">
+          <div className={`rounded-2xl border p-4 grid md:grid-cols-4 gap-3 ${editingTrId ? 'bg-amber-500/10 border-amber-500/40' : 'bg-white/5 border-white/10'}`}>
+            <div className="md:col-span-4 flex items-center justify-between">
+              <div className="text-sm font-black flex items-center gap-2">
+                {editingTrId ? '✏️ Modifier le tournoi' : '➕ Créer un tournoi'}
+              </div>
+              {editingTrId && (
+                <button onClick={cancelEditTrn} className="text-xs px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">Annuler l'édition</button>
+              )}
+            </div>
             <input placeholder={t('tr_title_ph')} value={trnForm.title} onChange={e=>setTrnForm({...trnForm,title:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <select value={trnForm.game} onChange={e=>setTrnForm({...trnForm,game:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10">
               <option value="valorant">Valorant</option><option value="lol">LoL</option><option value="battlenet">Battle.net</option><option value="steamfresh">Steam Fresh</option><option value="steam-games">Steam Games</option><option value="battlenet-games">BNet Games</option><option value="xbox-games">Xbox Games</option><option value="ps5-games">PS5 Games</option><option value="fc26">FC26</option><option value="fc27">FC27</option><option value="pubg">PUBG</option><option value="warzone">Warzone</option><option value="r6">Rainbow Six</option><option value="roblox">Roblox</option><option value="freefire">Free Fire</option><option value="other">Autres</option>
@@ -351,12 +403,14 @@ export default function Admin(){
             <input placeholder={t('tr_fee')} type="number" value={trnForm.entry_fee} onChange={e=>setTrnForm({...trnForm,entry_fee:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_image_ph')} value={trnForm.image} onChange={e=>setTrnForm({...trnForm,image:e.target.value})} className="md:col-span-3 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_rules')} value={trnForm.rules} onChange={e=>setTrnForm({...trnForm,rules:e.target.value})} className="md:col-span-4 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
-            <button onClick={handleCreateTrn} className="md:col-span-4 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black flex items-center justify-center gap-2"><Plus size={16}/> {t('tr_create')}</button>
+            <button onClick={handleSaveTrn} className={`md:col-span-4 px-4 py-3 rounded-xl font-black flex items-center justify-center gap-2 text-black ${editingTrId ? 'bg-amber-400 hover:bg-amber-300':'bg-amber-500 hover:bg-amber-400'}`}>
+              {editingTrId ? '💾 Enregistrer les modifications' : <><Plus size={16}/> {t('tr_create')}</>}
+            </button>
           </div>
 
           <div className="mt-4 space-y-3">
             {tournaments.map(tr=>(
-              <div key={tr.id} className={`p-4 rounded-2xl border ${tr.status==='pending'?'bg-amber-500/5 border-amber-500/30':'bg-white/5 border-white/10'}`}>
+              <div key={tr.id} className={`p-4 rounded-2xl border ${editingTrId===tr.id ? 'bg-amber-500/10 border-amber-500/50' : tr.status==='pending'?'bg-amber-500/5 border-amber-500/30':'bg-white/5 border-white/10'}`}>
                 <div className="flex flex-wrap items-center gap-3">
                   <img src={tr.image || imgForGame(tr.game)} alt={tr.title} className="w-16 h-16 rounded-xl object-cover"/>
                   <div className="flex-1 min-w-[200px]">
@@ -366,7 +420,8 @@ export default function Admin(){
                   <select value={tr.status} onChange={e=>saveTournament({...tr, status:e.target.value})} className="px-2 py-2 rounded-xl bg-black/30 border border-white/10 text-xs">
                     <option value="soon">{t('tr_soon')}</option><option value="open">{t('tr_open')}</option><option value="done">{t('tr_done')}</option><option value="pending">{t('tr_pending')}</option>
                   </select>
-                  <button onClick={()=>handleDeleteTrn(tr.id)} className="p-2 rounded-xl bg-red-500/20 text-red-400"><Trash2 size={14}/></button>
+                  <button onClick={()=>startEditTrn(tr)} title="Modifier" className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300"><span className="text-xs">✏️</span></button>
+                  <button onClick={()=>handleDeleteTrn(tr.id)} title="Supprimer" className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400"><Trash2 size={14}/></button>
                 </div>
                 <TournamentManager tr={tr} />
               </div>
