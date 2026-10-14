@@ -3,17 +3,7 @@ import { ArrowRight, Zap, ShieldCheck, Truck, Clock } from 'lucide-react'
 import { initialProducts, minPrice } from '../data/products'
 import { useLang } from '../context/LanguageContext'
 
-const heroCats = [
-  { id:'valorant', label:'Valorant', img:'https://images.g2a.com/300x400/1x1x1/valorant-gift-card-10-usd-riot-key-latam-i10000206410010/6a355b9399534a69b7985242' },
-  { id:'lol', label:'League of Legends', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNztnpwTexsNw2a58jD4GD3VukhzYqPHAouBNgep7nzA&s=10' },
-  { id:'fc26', label:'FC 26 Coins', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhPfUeZMBSqKcCZINmj7HGMN4nDmh3OVPLURigP-u5bg&s=10' },
-  { id:'fc27', label:'FC 27', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhc6Hl7O2D2ZMM5mGE1Ou40bK_4_xPxWdJW8VsQ7faUHqHInv68ByFjCMH&s=10' },
-  { id:'pubg', label:'PUBG UC', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2k0Xlx3K5dZvgyfn4R20bh_OFVCv93xOJkyMmx-g-Zg&s=10' },
-  { id:'warzone', label:'Warzone', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZyqv8ihFLqe-huGX1idY3forMuHcN39UzhSDqVNCQ4g&s=10' },
-  { id:'r6', label:'Rainbow Six', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBN2ACWqqVPyzbeCQUHPa9BmoN5rgkkccXtbNxOohIYg&s' },
-  { id:'roblox', label:'Roblox', img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSyCcKCRn3kSwAHeU7aumRfEv7QvfvG639Rn5HkcsNUiA&s=10' },
-  { id:'netflix', label:'Netflix', img:'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=300&q=80&auto=format&fit=crop' },
-]
+const HERO_VIDEO = `${import.meta.env.BASE_URL}ztc-talk.mp4`
 
 export default function Home(){
   const { t } = useLang()
@@ -53,20 +43,11 @@ export default function Home(){
               <span className="flex items-center gap-2 text-white/70"><Clock size={16} className="text-lime-400"/> {t('fast')}</span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {heroCats.map(c=>(
-              <div key={c.id} className="anim-glow">
-              <Link to={`/catalog?cat=${c.id}`} className="group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-lime-400/60 transition block active:scale-95">
-                <img src={c.img} className="w-full h-28 object-cover group-hover:scale-105 transition duration-500" alt={c.label}/>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"/>
-                <span className="absolute bottom-2 left-2 text-xs font-bold uppercase tracking-wide">{c.label}</span>
-              </Link>
-              </div>
-            ))}
-            <div className="col-span-3 rounded-xl bg-lime-400 text-black p-4 flex items-center justify-between">
-              <div><div className="font-display text-2xl font-bold uppercase leading-none">+ 10 marques</div><div className="text-xs font-semibold opacity-70">PSN, Xbox, Steam…</div></div>
-              <Link to="/catalog" className="w-9 h-9 rounded-lg bg-black text-lime-400 flex items-center justify-center"><ArrowRight size={18}/></Link>
+          <div className="reveal">
+            <div className="relative rounded-2xl overflow-hidden border border-lime-400/30 bg-black aspect-video shadow-[0_0_60px_-15px_rgba(163,230,53,0.4)]">
+              <video src={HERO_VIDEO} className="w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata" controls />
             </div>
+            <div className="mt-2 text-center text-xs text-white/50">🎬 {t('home_video')}</div>
           </div>
         </div>
       </section>
