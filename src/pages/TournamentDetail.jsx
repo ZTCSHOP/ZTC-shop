@@ -17,6 +17,7 @@ export default function TournamentDetail(){
   const [done, setDone] = useState(false)
   const [saving, setSaving] = useState(false)
   const [teamId, setTeamId] = useState(null)
+  const [flash, setFlash] = useState(false)
 
   if(!tr) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('no_result')} <Link to="/tournaments" className="text-amber-300">← {t('tournaments')}</Link></div>
 
@@ -28,6 +29,12 @@ export default function TournamentDetail(){
   // Équipes de l'utilisateur créées sur le site
   const owned = user ? myTeams() : []
   const chosen = owned.find(x=> x.id===(teamId || owned[0]?.id)) || owned[0] || null
+
+  const goRegister = ()=>{
+    document.getElementById('tournament-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setFlash(true)
+    setTimeout(()=>setFlash(false), 1900)
+  }
 
   const submitOneClick = async ()=>{
     setError('')
@@ -60,9 +67,23 @@ export default function TournamentDetail(){
         <div className="relative h-56 md:h-72">
           <img src={tr.image} alt={tr.title} className="w-full h-full object-cover"/>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"/>
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="text-xs font-black text-amber-400 uppercase tracking-widest">{tr.game} • {tr.status==='open'?t('tr_open'):tr.status==='done'?t('tr_done'):t('tr_soon')}</div>
-            <h1 className="text-2xl md:text-4xl font-black">{tr.title}</h1>
+          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-black text-amber-400 uppercase tracking-widest">{tr.game} • {tr.status==='open'?t('tr_open'):tr.status==='done'?t('tr_done'):t('tr_soon')}</div>
+              <h1 className="text-2xl md:text-4xl font-black">{tr.title}</h1>
+            </div>
+            {mine ? (
+              <div className="px-5 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-sm flex items-center gap-2 shrink-0"><Check size={16}/> {mine.team}</div>
+            ) : tr.status!=='open' ? (
+              <div className="px-5 py-3 rounded-2xl bg-white/10 border border-white/15 text-white/60 font-black text-sm shrink-0">{tr.status==='done'?t('tr_done'):t('tr_soon')}</div>
+            ) : full ? (
+              <div className="px-5 py-3 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-300 font-black text-sm shrink-0">{t('tr_full')}</div>
+            ) : (
+              <button onClick={goRegister} className="btn-join px-8 py-4 rounded-2xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black font-black text-xl tracking-wide shrink-0">
+                ⚡ JOIN
+                <span className="block text-[11px] font-bold opacity-70">{t('tr_register')}</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="p-5 grid sm:grid-cols-4 gap-3 text-sm">
@@ -113,7 +134,7 @@ export default function TournamentDetail(){
           </div>
         )}
       </div>
-        <div className="rounded-2xl bg-white/5 border border-white/10 p-5 h-fit">
+        <div id="tournament-register" className={`rounded-2xl bg-white/5 border border-white/10 p-5 h-fit scroll-mt-24 ${flash ? 'reg-flash' : ''}`}>
           {done ? (
             <div className="text-center py-6">
               <Check size={32} className="mx-auto text-emerald-400"/>
