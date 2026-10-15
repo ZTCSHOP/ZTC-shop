@@ -4,7 +4,11 @@ import { useLang } from '../context/LanguageContext'
 
 const BASE = import.meta.env.BASE_URL || '/'
 const TRACKS = [
-  { id: 'sans-titre-4', title: 'Sans Titre 4' },
+  { file: 'my musique.mp3', title: 'My Musique' },
+  { file: 'Lingering_Heat.mp4', title: 'Lingering Heat' },
+  { file: 'Pulse_And_Bone.mp4', title: 'Pulse And Bone' },
+  { file: 'Silence_Has_Weight.mp4', title: 'Silence Has Weight' },
+  { file: 'Suspended_In_This_Time.mp4', title: 'Suspended In This Time' },
 ]
 const load = (k, d)=>{ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v) }catch{ return d } }
 const save = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} }
@@ -35,11 +39,11 @@ export default function MusicPlayer(){
     const a = audio.current
     if(!a) return
     const n = (i + TRACKS.length) % TRACKS.length
-    const changed = a.dataset.track !== TRACKS[n].id
+    const changed = a.dataset.track !== TRACKS[n].file
     setIdx(n)
     if(changed){
-      a.src = `${BASE}music/${TRACKS[n].id}.mp3`
-      a.dataset.track = TRACKS[n].id
+      a.src = `${BASE}music/${encodeURI(TRACKS[n].file)}`
+      a.dataset.track = TRACKS[n].file
     }
     a.volume = muted ? 0 : vol
     if(auto || changed || a.paused){
@@ -51,8 +55,10 @@ export default function MusicPlayer(){
     const a = audio.current
     if(!a) return
     const next = ()=> playTrack(idx + 1, true)
+    const skip = ()=> playTrack(idx + 1, true) // fichier illisible -> piste suivante
     a.addEventListener('ended', next)
-    return ()=> a.removeEventListener('ended', next)
+    a.addEventListener('error', skip)
+    return ()=> { a.removeEventListener('ended', next); a.removeEventListener('error', skip) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, vol, muted])
 
