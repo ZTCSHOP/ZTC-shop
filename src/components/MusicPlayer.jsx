@@ -5,10 +5,10 @@ import { useLang } from '../context/LanguageContext'
 const BASE = import.meta.env.BASE_URL || '/'
 const TRACKS = [
   { file: 'my musique.mp3', title: 'My Musique' },
-  { file: 'Lingering_Heat.mp4', title: 'Lingering Heat' },
-  { file: 'Pulse_And_Bone.mp4', title: 'Pulse And Bone' },
-  { file: 'Silence_Has_Weight.mp4', title: 'Silence Has Weight' },
-  { file: 'Suspended_In_This_Time.mp4', title: 'Suspended In This Time' },
+  { file: 'Lingering_Heat.mp3', title: 'Lingering Heat' },
+  { file: 'Pulse_And_Bone.mp3', title: 'Pulse And Bone' },
+  { file: 'Silence_Has_Weight.mp3', title: 'Silence Has Weight' },
+  { file: 'Suspended_In_This_Time.mp3', title: 'Suspended In This Time' },
 ]
 const load = (k, d)=>{ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v) }catch{ return d } }
 const save = (k, v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} }
