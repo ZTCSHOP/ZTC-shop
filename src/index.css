@@ -50,8 +50,21 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 @media (prefers-reduced-motion: reduce) {
   .anim-glow::before, .animate-support-ring, .animate-support-bounce,
   .marquee-track, .blob, .reveal, .badge-pop, .btn-shine::after,
-  .slide-zoom-a, .slide-zoom-b { animation: none !important; }
+  .slide-zoom-a, .slide-zoom-b,
+  .soc-jump, .soc-sway, .soc-pulse, .soc-wiggle, .soc-insta-bg { animation: none !important; }
 }
+
+/* Icônes réseaux : couleurs de marque + animation propre à chacun */
+@keyframes soc-jump { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.soc-jump { animation: soc-jump 1.6s ease-in-out infinite; }
+@keyframes soc-sway { 0%,100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+.soc-sway { animation: soc-sway 2.6s ease-in-out infinite; }
+@keyframes soc-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,0,0,.55); } 50% { box-shadow: 0 0 0 10px rgba(255,0,0,0); } }
+.soc-pulse { animation: soc-pulse 1.8s ease-out infinite; }
+@keyframes soc-wiggle { 0%,86%,100% { transform: rotate(0); } 88% { transform: rotate(-14deg); } 91% { transform: rotate(11deg); } 94% { transform: rotate(-6deg); } 97% { transform: rotate(0); } }
+.soc-wiggle { animation: soc-wiggle 3.2s ease-in-out infinite; }
+.soc-insta-bg { background: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7); background-size: 220% 220%; animation: insta-shift 4s ease infinite; }
+@keyframes insta-shift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
 /* Apparition en fondu */
 @keyframes fade-up {
