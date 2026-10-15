@@ -100,6 +100,25 @@ export default function Admin(){
   const { t } = useLang()
   const prods = products || initialProducts
   const [tab, setTab] = useState('orders')
+  // ---- Badges rouges "nouveau" par section : vus une fois l'onglet ouvert ----
+  const [seen, setSeen] = useState(()=>{ try{ return JSON.parse(localStorage.getItem('ztc_admin_seen')||'null') }catch{ return null } })
+  useEffect(()=>{
+    if(seen) return
+    const now = Date.now()
+    const s = { orders: now, users: now, tournaments: now, teams: now }
+    try{ localStorage.setItem('ztc_admin_seen', JSON.stringify(s)) }catch{}
+    setSeen(s)
+  }, [seen])
+  useEffect(()=>{
+    if(!seen) return
+    setSeen(prev=>{
+      const n = { ...(prev||{}), [tab]: Date.now() }
+      try{ localStorage.setItem('ztc_admin_seen', JSON.stringify(n)) }catch{}
+      return n
+    })
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
+  const ts = (d)=> new Date(d||0).getTime() || 0
+  const redBadge = (n)=> n>0 ? <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs animate-pulse">{n}</span> : null
   const [filter, setFilter] = useState('all')
   const [catFilter, setCatFilter] = useState('all')
   const [newProd, setNewProd] = useState({ name:'', category:'valorant', price:'', label:'' })
@@ -138,6 +157,16 @@ export default function Admin(){
   const visibleAccounts = qUser
     ? accounts.filter(a=> ((a.name||'')+' '+(a.email||'')+' '+(a.phones||[]).join(' ')+' '+(a.provider||'')).toLowerCase().includes(qUser.toLowerCase()))
     : accounts
+  // Compteurs "nouveau depuis ta dernière visite" (0 tant que seen n'est pas prêt)
+  const ready = !!seen
+  const newOrders = ready ? orders.filter(o=> ts(o.date) > (seen.orders||0)).length : 0
+  const newUsers = ready ? accounts.filter(a=> ts(a.createdAt) > (seen.users||0)).length : 0
+  const newRegs = ready ? regs.filter(r=> ts(r.date) > (seen.tournaments||0)).length : 0
+  const pendingTrn = tournaments.filter(x=> x.status==='pending').length
+  const newTeams = ready ? teams.filter(x=> ts(x.date) > (seen.teams||0)).length : 0
+  const pendingJoins = joinReqs.filter(q=> q.status==='pending').length
+  const pendingVip = vipSubs.filter(x=>x.status==='pending').length
+  const pendingWallet = recharges.filter(x=>x.status==='pending').length
 
   if(!user?.isAdmin) return (
     <div className="max-w-[600px] mx-auto px-4 py-16 text-center">
@@ -193,17 +222,17 @@ export default function Admin(){
       )}
       <div className="flex flex-wrap gap-2 mt-4">
         <button onClick={()=>setTab('orders')} className={`px-4 py-2 rounded-xl text-sm font-bold border ${tab==='orders'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}>
-          {t('orders_tab')} ({orders.length}){pendingCount>0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs">{pendingCount} à confirmer</span>}
+          {t('orders_tab')} ({orders.length}){pendingCount>0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs">{pendingCount} à confirmer</span>} {redBadge(newOrders)}
         </button>
         <button onClick={()=>setTab('products')} className={`px-4 py-2 rounded-xl text-sm font-bold border ${tab==='products'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}>{t('products_stock')}</button>
-        <button onClick={()=>setTab('users')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='users'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Users size={15}/> Comptes ({accounts.length})</button>
+        <button onClick={()=>setTab('users')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='users'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Users size={15}/> Comptes ({accounts.length}) {redBadge(newUsers)}</button>
         <button onClick={()=>setTab('messages')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='messages'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><MessageCircle size={15}/> {t('messages_tab')} {totalUnread>0 && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs animate-pulse">{totalUnread}</span>}</button>
         <button onClick={toggleSound} title={soundOn ? t('sound_on') : t('sound_off')} className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10">{soundOn ? <Volume2 size={15}/> : <VolumeX size={15}/>}</button>
         <PushBell className="px-3 py-2 rounded-xl text-sm border bg-white/5 border-white/10 hover:bg-white/10" />
-        <button onClick={()=>setTab('tournaments')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='tournaments'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Trophy size={15}/> {t('tournaments')} ({tournaments.length})</button>
-        <button onClick={()=>setTab('teams')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='teams'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Shield size={15}/> {t('adm_teams')} ({regs.length + teams.length})</button>
-        <button onClick={()=>setTab('vip')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='vip'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Crown size={15}/> VIP ({vipSubs.filter(x=>x.status==='pending').length})</button>
-        <button onClick={()=>setTab('wallet')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='wallet'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Coins size={15}/> Wallet ({recharges.filter(x=>x.status==='pending').length})</button>
+        <button onClick={()=>setTab('tournaments')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='tournaments'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Trophy size={15}/> {t('tournaments')} ({tournaments.length}) {redBadge(newRegs + pendingTrn)}</button>
+        <button onClick={()=>setTab('teams')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='teams'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Shield size={15}/> {t('adm_teams')} ({regs.length + teams.length}) {redBadge(newTeams + pendingJoins)}</button>
+        <button onClick={()=>setTab('vip')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='vip'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Crown size={15}/> VIP ({pendingVip}) {redBadge(pendingVip)}</button>
+        <button onClick={()=>setTab('wallet')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='wallet'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Coins size={15}/> Wallet ({pendingWallet}) {redBadge(pendingWallet)}</button>
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>
 
