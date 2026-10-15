@@ -90,3 +90,19 @@ export function computeStandings(rounds){
     .map(s=> ({ ...s, pts: s.w * 3 }))
     .sort((a, b)=> b.pts - a.pts || b.w - a.w)
 }
+
+// Tri d'affichage des tournois : open d'abord (date la plus proche),
+// puis soon/pending, done en bas (les plus récents d'abord)
+export function sortTournaments(arr){
+  const grp = (t)=> t?.status==='done' ? 2 : t?.status==='open' ? 0 : 1
+  const dd = (t)=> { const v = t?.date ? new Date(t.date).getTime() : NaN; return isNaN(v) ? null : v }
+  return [...(arr||[])].sort((a,b)=>{
+    const ga = grp(a), gb = grp(b)
+    if(ga!==gb) return ga-gb
+    const da = dd(a), db = dd(b)
+    if(da===null && db===null) return 0
+    if(da===null) return 1
+    if(db===null) return -1
+    return ga===2 ? db-da : da-db
+  })
+}

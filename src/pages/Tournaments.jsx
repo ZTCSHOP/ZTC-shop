@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Trophy, Calendar, Users, Gift, ArrowRight, Plus, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
+import { sortTournaments } from '../lib/bracket'
 
 const statusStyle = {
   open: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
@@ -18,9 +19,8 @@ export default function Tournaments(){
   const [form, setForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'', video:'' })
   const [sent, setSent] = useState(false)
   const games = ['all', ...new Set(tournaments.map(x=> x.game))]
-  const list = (game==='all' ? tournaments : tournaments.filter(x=> x.game===game))
+  const list = sortTournaments(game==='all' ? tournaments : tournaments.filter(x=> x.game===game))
     .filter(x=> x.status!=='pending')
-    .slice().sort((a,b)=> new Date(a.date||0) - new Date(b.date||0))
   const mine = user ? tournaments.filter(x=> x.createdBy===user.id && x.status==='pending') : []
   const statusLabel = (s)=> s==='open' ? t('tr_open') : s==='done' ? t('tr_done') : s==='pending' ? t('tr_pending') : t('tr_soon')
 

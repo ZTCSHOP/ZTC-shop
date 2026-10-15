@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Shuffle, RotateCcw, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { generateBracket, computeStandings } from '../lib/bracket'
+import { generateBracket, computeStandings, getChampion } from '../lib/bracket'
 import BracketView from './BracketView'
 
 export default function TournamentManager({ tr }){
@@ -38,6 +38,36 @@ export default function TournamentManager({ tr }){
 
   const validateMatch = async (newBracket)=>{
     await saveTournament({ ...tr, bracket: newBracket })
+  }
+
+  // ---- Tournoi terminé : résultats en lecture seule (pas de Generate/Reset) ----
+  if(tr.status==='done'){
+    const champ = getChampion(bracket)
+    return (
+      <div className="mt-3 rounded-2xl bg-black/30 border border-emerald-500/20 p-4 space-y-4">
+        <div className="text-sm font-black">🏁 {t('tr_done')}</div>
+        {champ && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-sm font-black text-amber-300 flex items-center gap-2">
+            🏆 {t('champion')} : {champ}
+          </div>
+        )}
+        {bracket.length>0 && <BracketView bracket={bracket} />}
+        {standings.length>0 && (
+          <div>
+            <div className="text-sm font-black mb-2">📊 {t('standings')}</div>
+            <div className="rounded-xl overflow-hidden border border-white/10 text-sm">
+              <div className="grid grid-cols-[1fr_50px_50px_50px] bg-white/5 px-3 py-2 text-xs text-white/50 font-bold"><span>{t('tr_participants')}</span><span className="text-center">{t('wins')}</span><span className="text-center">{t('losses')}</span><span className="text-center">{t('pts')}</span></div>
+              {standings.map((s,i)=>(
+                <div key={s.team} className="grid grid-cols-[1fr_50px_50px_50px] px-3 py-2 border-t border-white/5">
+                  <span className="font-bold truncate">{i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':''}{s.team}</span>
+                  <span className="text-center">{s.w}</span><span className="text-center">{s.l}</span><span className="text-center font-black text-amber-300">{s.pts}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (

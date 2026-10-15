@@ -5,6 +5,7 @@ import { useLang } from '../context/LanguageContext'
 import { initialProducts, categories } from '../data/products'
 import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX, Shield, Crown, Coins } from 'lucide-react'
 import TournamentManager from '../components/TournamentManager'
+import { sortTournaments } from '../lib/bracket'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import { ytId } from '../lib/video'
 import PushBell from '../components/PushBell'
@@ -482,7 +483,7 @@ export default function Admin(){
           </div>
 
           <div className="mt-4 space-y-3">
-            {tournaments.map(tr=>(
+            {sortTournaments(tournaments).map(tr=>(
               <div key={tr.id} className={`p-4 rounded-2xl border ${editingTrId===tr.id ? 'bg-amber-500/10 border-amber-500/50' : tr.status==='pending'?'bg-amber-500/5 border-amber-500/30':'bg-white/5 border-white/10'}`}>
                 <div className="flex flex-wrap items-center gap-3">
                   <img src={tr.image || imgForGame(tr.game)} alt={tr.title} className="w-16 h-16 rounded-xl object-cover"/>
