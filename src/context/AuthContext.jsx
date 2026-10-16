@@ -26,7 +26,10 @@ function saveProfile(u){
   try{
     const users = readUsers()
     const idx = users.findIndex(x=> x.id===u.id)
-    const entry = { id: u.id, name: u.name||'', email: u.email||'', provider: u.provider||'email', principal: u.principal||'', isAdmin: !!u.isAdmin || isOwnerEmail(u.email), createdAt: u.createdAt||new Date().toISOString(), lastSeen: new Date().toISOString() }
+    const prev = idx>=0 ? users[idx] : {}
+    const entry = { id: u.id, name: u.name||'', email: u.email||'', provider: u.provider||'email', principal: u.principal||'', isAdmin: !!u.isAdmin || isOwnerEmail(u.email), createdAt: u.createdAt||new Date().toISOString(), lastSeen: new Date().toISOString(),
+      // préserve les extras profil local (avatar/bannière/tél/naissance/sexe)
+      ...(prev.avatar?{avatar:prev.avatar}:{}), ...(prev.banner?{banner:prev.banner}:{}), ...(prev.phone?{phone:prev.phone}:{}), ...(prev.birthdate?{birthdate:prev.birthdate}:{}), ...(prev.gender?{gender:prev.gender}:{}) }
     if(idx>=0){
       const keepHash = users[idx].passwordHash
       users[idx] = { ...entry, createdAt: users[idx].createdAt||entry.createdAt, ...(keepHash?{passwordHash: keepHash}:{}) }
@@ -35,6 +38,19 @@ function saveProfile(u){
     } else users.push(entry)
     localStorage.setItem('ztc_users', JSON.stringify(users))
   }catch{}
+}
+
+// Extras profil stockés localement (avatar/bannière/tél/naissance/sexe) —
+// réinjectés quand le user cloud est reconstruit depuis Supabase au refresh.
+function readLocalExtras(id){
+  try{
+    const u = JSON.parse(localStorage.getItem('ztc_user')||'null')
+    if(u && u.id===id){
+      const { avatar, banner, phone, birthdate, gender } = u
+      return { ...(avatar?{avatar}:{}), ...(banner?{banner}:{}), ...(phone?{phone}:{}), ...(birthdate?{birthdate}:{}), ...(gender?{gender}:{}) }
+    }
+  }catch{}
+  return {}
 }
 
 // ---------- Mapping cloud <-> app ----------
@@ -97,7 +113,7 @@ export function AuthProvider({ children }){
   const [cloudProfiles, setCloudProfiles] = useState(null) // null = pas admin cloud ou pas chargé
   const sbUserId = useRef(null)
 
-  useEffect(()=> localStorage.setItem('ztc_user', JSON.stringify(user)), [user])
+  useEffect(()=>{ try{ localStorage.setItem('ztc_user', JSON.stringify(user)) }catch{} }, [user])
   useEffect(()=> localStorage.setItem('ii_user', JSON.stringify(user)), [user])
   useEffect(()=> localStorage.setItem('orders', JSON.stringify(orders.filter(o=>!o.cloud || o.syncError))), [orders])
   useEffect(()=> { if(products) localStorage.setItem('products_db', JSON.stringify(products)) }, [products])
@@ -478,6 +494,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         isVip: !!prof?.is_vip, vipUntil: prof?.vip_until || null,
         balance: Number(prof?.ztc_balance || 0),
         createdAt: prof?.created_at || new Date().toISOString(),
+        ...readLocalExtras(sbUser.id),
       }
       sbUserId.current = sbUser.id
       setUser(u); saveProfile(u)
@@ -656,7 +673,9 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       localStorage.setItem('ztc_user', JSON.stringify(next))
       const users = readUsers().map(u=> u.id===user.id ? { ...u, name: next.name||u.name, email: next.email||u.email } : u)
       localStorage.setItem('ztc_users', JSON.stringify(users))
-    }catch{}
+    }catch(e){
+      if(/quota|exceed/i.test(String(e?.message||e?.name||e))) throw new Error('quota')
+    }
     return next
   }
 

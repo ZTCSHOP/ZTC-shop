@@ -50,6 +50,7 @@ function ProfileSettings(){
   const [busy, setBusy] = useState(false)
   const xp = xpForActivity({ orders: myOrders().length, regs: myRegs().length, teams: myTeams().length })
   const { level, cur, need } = levelProgress(xp)
+  const saveMsg = (e)=> setMsg(e?.message==='quota' ? (t('pm_quota')||'Image trop lourde — choisis une image plus petite') : t('teams_join_err'))
   const imgToData = (f, maxW, maxH, cb)=>{
     if(!f || !f.type.startsWith('image/')){ setMsg(t('team_logo_bad')); return }
     if(f.size > 5*1024*1024){ setMsg(t('team_logo_big')); return }
@@ -69,7 +70,7 @@ function ProfileSettings(){
   }
   const save = async (e)=>{
     e.preventDefault(); setMsg(''); setBusy(true)
-    try{ await updateProfile({ name, phone, birthdate, gender }); setMsg('✓ ' + (t('pm_saved')||'Enregistré')) }catch{ setMsg(t('teams_join_err')) }
+    try{ await updateProfile({ name, phone, birthdate, gender }); setMsg('✓ ' + (t('pm_saved')||'Enregistré')) }catch(e){ saveMsg(e) }
     finally{ setBusy(false) }
   }
   const btnUp = 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black/40 border border-white/15 text-sm font-bold hover:bg-white/10 cursor-pointer'
@@ -87,7 +88,7 @@ function ProfileSettings(){
               : <span className="text-5xl font-black text-white/20">{(user.name||user.email||'?')[0].toUpperCase()}</span>}
           </div>
           <div className="mt-3 flex gap-2 w-[180px]">
-            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ await updateProfile({ avatar: d }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) } }) }}/></label>
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ await updateProfile({ avatar: d }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
             <button onClick={async()=>{ await updateProfile({ avatar: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
           </div>
           <div className="text-[11px] text-white/40 mt-1.5">Recommended: 400x400px</div>
@@ -100,7 +101,7 @@ function ProfileSettings(){
               : <span className="text-white/20 text-sm">1600 x 500</span>}
           </div>
           <div className="mt-3 flex gap-2 max-w-[420px]">
-            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 1600, 500, async (d)=>{ try{ await updateProfile({ banner: d }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) } }) }}/></label>
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 1280, 400, async (d)=>{ try{ await updateProfile({ banner: d }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
             <button onClick={async()=>{ await updateProfile({ banner: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
           </div>
           <div className="text-[11px] text-white/40 mt-1.5">Recommended: 1600x500px</div>
