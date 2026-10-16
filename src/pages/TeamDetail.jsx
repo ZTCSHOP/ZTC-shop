@@ -27,7 +27,7 @@ export default function TeamDetail(){
   // ---- Équipe standalone (créée directement, sans tournoi pour l'instant) ----
   if(solo){
     const mine = user && solo.userId===user.id
-    const canDel = user && (user.isAdmin || mine)
+    const canDel = user?.isAdmin // seul l'admin supprime
     return (
       <div className="max-w-[1000px] mx-auto px-4 py-8">
         <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
@@ -207,7 +207,17 @@ export default function TeamDetail(){
                       <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>
                     </div>
                   ))}
-                  {acc.length>0 && <div className="mt-1.5 text-[11px] text-emerald-300">{acc.map(q=>q.userName||'Joueur').join(', ')} ✓</div>}
+                  {acc.length>0 && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="text-[11px] font-black text-white/50">👥 {t('team_players')} ({acc.length})</div>
+                      {acc.map(q=>(
+                        <div key={q.id} className="flex items-center gap-2 text-[11px] text-emerald-300">
+                          <span className="font-bold truncate">✓ {q.userName||'Joueur'}</span>
+                          <button onClick={()=>{ if(window.confirm(t('team_remove_q')||'Retirer ce joueur ?')) updateJoinReq(q.id,'rejected') }} title={t('team_remove')||'Retirer'} className="ml-auto px-2 py-0.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-black">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })()}
