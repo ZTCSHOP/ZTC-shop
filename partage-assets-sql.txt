@@ -1,0 +1,37 @@
+-- ZTC SHOP : bannieres equipes + photos profils visibles par TOUS
+-- Copie tout ce bloc, colle-le dans Supabase > SQL Editor > New query > Run
+
+create table if not exists public.team_assets (
+  team_name text primary key,
+  banner text,
+  updated_by uuid references auth.users(id) on delete set null,
+  updated_at timestamptz default now()
+);
+
+alter table public.team_assets enable row level security;
+
+drop policy if exists "team_assets_public_read" on public.team_assets;
+create policy "team_assets_public_read" on public.team_assets
+  for select using (true);
+
+drop policy if exists "team_assets_write_auth" on public.team_assets;
+create policy "team_assets_write_auth" on public.team_assets
+  for all using (auth.uid() is not null) with check (auth.uid() is not null);
+
+create table if not exists public.profile_assets (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text,
+  avatar text,
+  banner text,
+  updated_at timestamptz default now()
+);
+
+alter table public.profile_assets enable row level security;
+
+drop policy if exists "profile_assets_public_read" on public.profile_assets;
+create policy "profile_assets_public_read" on public.profile_assets
+  for select using (true);
+
+drop policy if exists "profile_assets_write_own" on public.profile_assets;
+create policy "profile_assets_write_own" on public.profile_assets
+  for all using (auth.uid() = id) with check (auth.uid() = id);

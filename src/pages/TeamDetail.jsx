@@ -12,8 +12,9 @@ const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, saveTeamAsset } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, saveTeamAsset, profileAssets } = useAuth()
   const accounts = allAccounts()
+  const assetOf = (uid)=> (uid && profileAssets[uid]) || {}
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
@@ -76,8 +77,9 @@ export default function TeamDetail(){
   const allReqs = teamRegs.flatMap(r=> joinReqsFor(r.id))
   const accepted = allReqs.filter(q=>q.status==='accepted')
   const pending = allReqs.filter(q=>q.status==='pending')
-  const members = [{ name: ownerName||name, role: 'owner' },
-    ...accepted.map(q=> ({ name: reqDisplayName(q, accounts), role: 'member', reqId: q.id, date: q.date }))]
+  const members = [{ name: ownerName||name, role: 'owner', uid: ownerId },
+    ...accepted.map(q=> ({ name: reqDisplayName(q, accounts), role: 'member', reqId: q.id, date: q.date, uid: q.userId }))]
+  const memberAvatar = (m)=> assetOf(m.uid).avatar || ''
 
   // ---- Historique matchs ----
   const history = []
@@ -287,8 +289,11 @@ export default function TeamDetail(){
                 <div className="mt-3 space-y-2">
                   {members.slice(0,4).map((m,i)=>(
                     <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>
-                      <div className="min-w-0"><div className="font-bold truncate flex items-center gap-2">{m.name}
+                      {memberAvatar(m)
+                        ? <img src={memberAvatar(m)} alt="" className="w-10 h-10 rounded-full object-cover"/>
+                        : <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>}
+                      <div className="min-w-0"><div className="font-bold truncate flex items-center gap-2">
+                        {m.uid ? <Link to={`/player/${m.uid}`} className="hover:text-emerald-300 hover:underline">{m.name}</Link> : m.name}
                         {m.role==='owner' && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-black">PROPRIÉTAIRE</span>}</div>
                         <div className="text-xs text-white/50">{m.role==='owner' ? (ownerName||m.name) : 'Membre'}</div></div>
                       <div className="ml-auto text-right text-xs"><div className="font-black">{winrate} % de victoires</div><div className="text-white/50">{games} matchs</div></div>
@@ -309,8 +314,11 @@ export default function TeamDetail(){
               <div className="mt-3 space-y-2">
                 {members.map((m,i)=>(
                   <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>
-                    <div className="min-w-0 flex-1"><div className="font-bold truncate flex items-center gap-2">{m.name}
+                    {memberAvatar(m)
+                      ? <img src={memberAvatar(m)} alt="" className="w-10 h-10 rounded-full object-cover"/>
+                      : <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>}
+                    <div className="min-w-0 flex-1"><div className="font-bold truncate flex items-center gap-2">
+                      {m.uid ? <Link to={`/player/${m.uid}`} className="hover:text-emerald-300 hover:underline">{m.name}</Link> : m.name}
                       {m.role==='owner'
                         ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-black">PROPRIÉTAIRE</span>
                         : <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black">MEMBRE</span>}</div>
@@ -326,7 +334,7 @@ export default function TeamDetail(){
                   {pending.length===0 && allReqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
                   {pending.map(q=>(
                     <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
-                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{reqDisplayName(q, accounts)}</div>
+                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate"><Link to={`/player/${q.userId}`} className="hover:text-emerald-300 hover:underline">{reqDisplayName(q, accounts)}</Link></div>
                       {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}</div>
                       <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
                       <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>

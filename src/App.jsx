@@ -20,6 +20,7 @@ import TournamentDetail from './pages/TournamentDetail'
 import Recrutement from './pages/Recrutement'
 import Teams from './pages/Teams'
 import TeamDetail from './pages/TeamDetail'
+import PlayerProfile from './pages/PlayerProfile'
 import AnimatedBackground from './components/AnimatedBackground'
 import VideoBackground from './components/VideoBackground'
 import ChatWidget from './components/ChatWidget'
@@ -61,6 +62,7 @@ export default function App(){
               <Route path="/recrutement" element={<Recrutement/>}/>
               <Route path="/teams" element={<Teams/>}/>
               <Route path="/teams/:teamName" element={<TeamDetail/>}/>
+              <Route path="/player/:id" element={<PlayerProfile/>}/>
             </Routes>
             <footer className="border-t border-white/10 mt-8 py-6 text-center text-xs text-white/40">
               <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="ZTC Shop" className="w-12 h-12 mx-auto mb-2 rounded-2xl object-cover bg-white p-1"/>

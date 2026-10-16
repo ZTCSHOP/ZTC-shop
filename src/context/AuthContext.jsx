@@ -468,6 +468,21 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
     return banner
   }
+  // Photos/bannières profils partagées (visibles par tous) — clé = user id
+  const [profileAssets, setProfileAssets] = useState(()=>{ try{ return JSON.parse(localStorage.getItem('ztc_profile_assets')||'{}') }catch{return {}} })
+  useEffect(()=>{ try{ localStorage.setItem('ztc_profile_assets', JSON.stringify(profileAssets)) }catch{} }, [profileAssets])
+  const refreshProfileAssets = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('profile_assets').select('*').limit(1000)
+      if(error) throw error
+      if(data){
+        const obj = {}
+        data.forEach(r=>{ if(r.id) obj[r.id] = { name: r.name||'', avatar: r.avatar||'', banner: r.banner||'' } })
+        setProfileAssets(prev=> ({ ...prev, ...obj }))
+      }
+    }catch(e){ console.warn('cloud profile assets:', e.message) }
+  }, [])
   const refreshJoinReqs = useCallback(async ()=>{    if(!cloud) return
     try{
       const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(500)
@@ -498,8 +513,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshProfileAssets()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshProfileAssets])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -721,6 +736,16 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(gender!==undefined) next.gender = gender
     setUser(next)
     writeExtrasById(user.id, { ...(next.avatar?{avatar:next.avatar}:{}), ...(next.banner?{banner:next.banner}:{}), ...(next.phone?{phone:next.phone}:{}), ...(next.birthdate?{birthdate:next.birthdate}:{}), ...(next.gender?{gender:next.gender}:{}) })
+    // Partage cloud (photo+bannière visibles par tous) — best effort
+    if(cloud && user.cloud){
+      try{
+        const { error } = await supabase.from('profile_assets').upsert(
+          { id: user.id, name: next.name||'', avatar: next.avatar||null, banner: next.banner||null },
+          { onConflict: 'id' })
+        if(error) throw error
+        setProfileAssets(prev=> ({ ...prev, [user.id]: { name: next.name||'', avatar: next.avatar||'', banner: next.banner||'' } }))
+      }catch(e){ console.warn('cloud profile asset:', e.message) }
+    }
     try{
       localStorage.setItem('ztc_user', JSON.stringify(next))
       const users = readUsers().map(u=> u.id===user.id ? { ...u, name: next.name||u.name, email: next.email||u.email } : u)
@@ -1234,6 +1259,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)
