@@ -50,6 +50,7 @@ export default function TeamDetail(){
   const about = extras.about || solo?.description || ''
   const location = extras.location || 'Tunisia'
   const website = extras.website || ''
+  const banner = extras.banner || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
 
   // ---- Stats agrégées ----
@@ -139,6 +140,28 @@ export default function TeamDetail(){
     setTeamExtras(name, { location: locDraft||'Tunisia', website: webDraft })
     setExtras(getTeamExtras(name)); setEditInfos(false); setInfo('✓')
   }
+  const onBannerFile = (f)=>{
+    setInfo('')
+    if(!f) return
+    if(!f.type.startsWith('image/')){ setInfo(t('team_logo_bad')); return }
+    if(f.size > 5*1024*1024){ setInfo(t('team_logo_big')); return }
+    const rd = new FileReader()
+    rd.onload = ()=>{
+      const img = new Image()
+      img.onload = ()=>{
+        const s = Math.min(1, 1280 / img.width, 400 / img.height)
+        const c = document.createElement('canvas')
+        c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        setTeamExtras(name, { banner: c.toDataURL('image/jpeg', 0.78) })
+        setExtras(getTeamExtras(name)); setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
+      }
+      img.onerror = ()=> setInfo(t('team_logo_bad'))
+      img.src = rd.result
+    }
+    rd.readAsDataURL(f)
+  }
+
   const copyInvite = async ()=>{
     try{ await navigator.clipboard.writeText(window.location.href); setInfo(t('team_link_copied')||'Lien copié ! Partage-le pour recruter.') }
     catch{ setInfo(window.location.href) }
@@ -153,6 +176,21 @@ export default function TeamDetail(){
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
       <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
+
+      {/* Bannière équipe */}
+      <div className="mt-4 rounded-3xl overflow-hidden border border-white/10 bg-white/5 relative">
+        {banner
+          ? <img src={banner} alt="" className="w-full h-44 md:h-56 object-cover"/>
+          : <div className="w-full h-28 md:h-36 flex items-center justify-center text-white/20 text-sm">1600 x 500</div>}
+        {isOwner && (
+          <div className="absolute bottom-3 right-3 flex gap-2">
+            <label className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 text-xs font-bold hover:bg-black/80 cursor-pointer">⬆ Upload
+              <input type="file" accept="image/*" className="hidden" onChange={e=>{ onBannerFile(e.target.files?.[0]); e.target.value='' }}/>
+            </label>
+            {banner && <button onClick={()=>{ setTeamExtras(name, { banner: '' }); setExtras(getTeamExtras(name)); setInfo('✓') }} className="px-3 py-1.5 rounded-xl bg-black/60 border border-red-500/60 text-red-400 text-xs font-bold hover:bg-black/80">🗑 Remove</button>}
+          </div>
+        )}
+      </div>
 
       {/* Header équipe */}
       <div className="mt-4 flex items-center gap-4">

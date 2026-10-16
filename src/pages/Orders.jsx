@@ -173,27 +173,19 @@ function VipCard(){
 }
 
 function MyTeam(){
-  const { user, teams, myRegs, tournaments } = useAuth()
+  const { user, teams } = useAuth()
   const { t } = useLang()
   const mine = teams.filter(x=> x.userId===user.id)
-  const regs = myRegs()
-  const trName = (id)=> (tournaments.find(x=>x.id===id)?.title)||id
   return (
     <div id="myteam" className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 scroll-mt-24">
       <h2 className="font-black flex items-center gap-2"><Shield size={17} className="text-emerald-400"/> {t('team_my')}</h2>
-      {(mine.length===0 && regs.length===0)
+      {mine.length===0
         ? <div className="text-xs text-white/50 mt-2">{t('team_my_empty')} <Link to="/teams" className="text-emerald-300 font-bold">→ {t('teams')}</Link></div>
         : <div className="mt-3 grid sm:grid-cols-2 gap-2">
             {mine.map(x=>(
               <Link key={'t-'+x.id} to={`/teams/${encodeURIComponent(x.name)}`} className="flex items-center gap-2.5 rounded-2xl bg-black/30 border border-white/10 p-3 hover:border-emerald-500/50">
                 {x.logo ? <img src={x.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white"/> : <span className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
                 <div className="min-w-0"><div className="font-bold text-sm truncate">{x.name}</div><div className="text-[11px] text-white/50">🎮 {x.game} • {t('tc_new')}</div></div>
-              </Link>
-            ))}
-            {regs.map(r=>(
-              <Link key={'r-'+r.id} to={`/teams/${encodeURIComponent(r.team)}`} className="flex items-center gap-2.5 rounded-2xl bg-black/30 border border-white/10 p-3 hover:border-emerald-500/50">
-                <span className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>
-                <div className="min-w-0"><div className="font-bold text-sm truncate">{r.team}</div><div className="text-[11px] text-white/50">🏆 {trName(r.tournament_id)}</div></div>
               </Link>
             ))}
           </div>}
