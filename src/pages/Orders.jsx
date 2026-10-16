@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Crown, Check, Shield, Coins, Copy, Plus, Trophy, Settings, Camera } from 'lucide-react'
+import { Crown, Check, Shield, Coins, Copy, Plus, Trophy } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { D17_NUMBER } from './Checkout'
@@ -44,23 +44,24 @@ function ProfileSettings(){
   const { t } = useLang()
   const [name, setName] = useState(user.name||'')
   const [phone, setPhone] = useState(user.phone||myOrders()[0]?.customer?.phone||'')
+  const [birthdate, setBirthdate] = useState(user.birthdate||'')
+  const [gender, setGender] = useState(user.gender||'')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const xp = xpForActivity({ orders: myOrders().length, regs: myRegs().length, teams: myTeams().length })
   const { level, cur, need } = levelProgress(xp)
-  const onAvatar = (f)=>{
-    setMsg('')
+  const imgToData = (f, maxW, maxH, cb)=>{
     if(!f || !f.type.startsWith('image/')){ setMsg(t('team_logo_bad')); return }
-    if(f.size > 2*1024*1024){ setMsg(t('team_logo_big')); return }
+    if(f.size > 5*1024*1024){ setMsg(t('team_logo_big')); return }
     const rd = new FileReader()
     rd.onload = ()=>{
       const img = new Image()
-      img.onload = async ()=>{
-        const s = Math.min(1, 128 / Math.max(img.width, img.height))
+      img.onload = ()=>{
+        const s = Math.min(1, maxW / img.width, maxH / img.height)
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-        try{ await updateProfile({ avatar: c.toDataURL('image/jpeg', 0.82) }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) }
+        cb(c.toDataURL('image/jpeg', 0.82))
       }
       img.src = rd.result
     }
@@ -68,32 +69,61 @@ function ProfileSettings(){
   }
   const save = async (e)=>{
     e.preventDefault(); setMsg(''); setBusy(true)
-    try{ await updateProfile({ name, phone }); setMsg('✓ ' + (t('pm_saved')||'Enregistré')) }catch{ setMsg(t('teams_join_err')) }
+    try{ await updateProfile({ name, phone, birthdate, gender }); setMsg('✓ ' + (t('pm_saved')||'Enregistré')) }catch{ setMsg(t('teams_join_err')) }
     finally{ setBusy(false) }
   }
+  const btnUp = 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black/40 border border-white/15 text-sm font-bold hover:bg-white/10 cursor-pointer'
+  const btnRm = 'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-transparent border border-red-500/60 text-red-400 text-sm font-bold hover:bg-red-500/10'
   return (
-    <div id="settings" className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 scroll-mt-24">
-      <h2 className="font-black flex items-center gap-2"><Settings size={17} className="text-white/70"/> {t('pm_settings')||'Paramètres'}</h2>
-      <div className="mt-3 flex items-center gap-4">
-        <label className="cursor-pointer relative shrink-0">
-          {user.avatar
-            ? <img src={user.avatar} alt="" className="w-16 h-16 rounded-full object-cover border border-white/20"/>
-            : <div className="w-16 h-16 rounded-full bg-lime-600 flex items-center justify-center font-black text-2xl text-black">{(user.name||user.email||'?')[0].toUpperCase()}</div>}
-          <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center"><Camera size={13}/></span>
-          <input type="file" accept="image/*" className="hidden" onChange={e=>{ onAvatar(e.target.files?.[0]); e.target.value='' }}/>
-        </label>
-        <div className="flex-1">
-          <div className="flex items-center justify-between text-xs"><span className="font-black">Niveau {level}</span><span className="text-white/50">{cur} / {need} XP</span></div>
-          <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{ width: `${Math.min(100, Math.round((cur/need)*100))}%` }}/>
+    <div id="settings" className="mt-6 rounded-3xl bg-[#16181d] border border-white/10 p-6 scroll-mt-24">
+      <h2 className="text-xl font-black flex items-center gap-2"><span className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-300">⚙️</span> {t('pm_settings_title')||'Paramètres du profil'}</h2>
+      <p className="text-xs text-white/50 mt-0.5">{t('pm_settings_sub')||"Mettez à jour vos photos et vos informations personnelles"}</p>
+      <div className="mt-5 grid md:grid-cols-[220px_1fr] gap-6">
+        <div>
+          <div className="text-sm font-black mb-2">{t('pm_avatar')||'Photo de profil'}</div>
+          <div className="w-[180px] h-[180px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+            {user.avatar
+              ? <img src={user.avatar} alt="" className="w-full h-full object-cover"/>
+              : <span className="text-5xl font-black text-white/20">{(user.name||user.email||'?')[0].toUpperCase()}</span>}
           </div>
-          <div className="text-[11px] text-white/40 mt-1">+100 XP / commande • +50 XP / tournoi • +30 XP / équipe</div>
+          <div className="mt-3 flex gap-2 w-[180px]">
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ await updateProfile({ avatar: d }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) } }) }}/></label>
+            <button onClick={async()=>{ await updateProfile({ avatar: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
+          </div>
+          <div className="text-[11px] text-white/40 mt-1.5">Recommended: 400x400px</div>
+        </div>
+        <div>
+          <div className="text-sm font-black mb-2">{t('pm_banner')||'Arrière-plan du profil'}</div>
+          <div className="h-[180px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+            {user.banner
+              ? <img src={user.banner} alt="" className="w-full h-full object-cover"/>
+              : <span className="text-white/20 text-sm">1600 x 500</span>}
+          </div>
+          <div className="mt-3 flex gap-2 max-w-[420px]">
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 1600, 500, async (d)=>{ try{ await updateProfile({ banner: d }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) } }) }}/></label>
+            <button onClick={async()=>{ await updateProfile({ banner: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
+          </div>
+          <div className="text-[11px] text-white/40 mt-1.5">Recommended: 1600x500px</div>
         </div>
       </div>
-      <form onSubmit={save} className="mt-3 grid sm:grid-cols-2 gap-2">
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder={t('name_ph')} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
-        <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder={t('phone_ph')} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
-        <div className="text-xs text-white/50 px-1 truncate self-center">{user.email||''}</div>
+      <div className="mt-5">
+        <div className="flex items-center justify-between text-xs"><span className="font-black">Niveau {level}</span><span className="text-white/50">{cur} / {need} XP</span></div>
+        <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{ width: `${Math.min(100, Math.round((cur/need)*100))}%` }}/>
+        </div>
+      </div>
+      <form onSubmit={save} className="mt-5 grid sm:grid-cols-2 gap-3">
+        <div><label className="block text-xs font-bold text-white/60 mb-1">{t('pm_username')||"Nom d'utilisateur"}</label>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder={t('name_ph')} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/></div>
+        <div><label className="block text-xs font-bold text-white/60 mb-1">{t('pm_phone')||'Numéro de téléphone'}</label>
+        <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder={t('phone_ph')} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/></div>
+        <div><label className="block text-xs font-bold text-white/60 mb-1">{t('pm_birth')||'Date de naissance'}</label>
+        <input type="date" value={birthdate} onChange={e=>setBirthdate(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500 [color-scheme:dark]"/></div>
+        <div><label className="block text-xs font-bold text-white/60 mb-1">{t('pm_gender')||'Sexe'}</label>
+        <select value={gender} onChange={e=>setGender(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500">
+          <option value="">—</option><option value="male">{t('pm_male')||'Homme'}</option><option value="female">{t('pm_female')||'Femme'}</option>
+        </select></div>
+        <div className="text-xs text-white/50 px-1 self-center truncate">{user.email||''}</div>
         <button disabled={busy} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-black disabled:opacity-60">{busy ? '...' : (t('pm_save')||'Enregistrer')}</button>
       </form>
       {msg && <div className="mt-2 text-xs text-emerald-300">{msg}</div>}

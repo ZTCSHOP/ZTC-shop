@@ -23,7 +23,7 @@ export default function ProfileMenu(){
   const pct = Math.min(100, Math.round((cur / need) * 100))
 
   const rows = [
-    { to:'/orders', icon:<User size={16}/>, label: t('pm_profile')||'Profil' },
+    { to:'/orders#settings', icon:<User size={16}/>, label: t('pm_profile')||'Profil' },
     { to:'/orders#mytournaments', icon:<Trophy size={16}/>, label: t('pm_mytournaments')||'Mes Tournois', badge: regs.length||null },
     { to:'/orders#myteam', icon:<Shield size={16}/>, label: t('pm_myteam')||'Mon Équipe', badge: teamNames.size||null },
     { to:'/orders#wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },
@@ -49,6 +49,7 @@ export default function ProfileMenu(){
       {open && (
         <div className="absolute right-0 top-full pt-2 w-[280px] z-50">
           <div className="rounded-2xl overflow-hidden bg-[#121214] border border-white/10 shadow-2xl">
+            {user.banner && <img src={user.banner} alt="" className="w-full h-[70px] object-cover"/>}
             <div className="p-4 bg-gradient-to-b from-white/5 to-transparent">
               <div className="flex items-center gap-3">
                 {user.avatar

@@ -641,13 +641,16 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     setUser(null)
   }
 
-  // ---- Profil membre : nom / téléphone / avatar (local + mémoire, best effort) ----
-  const updateProfile = async ({ name, phone, avatar })=>{
+  // ---- Profil membre : nom / téléphone / avatar / bannière / naissance / sexe ----
+  const updateProfile = async ({ name, phone, avatar, banner, birthdate, gender })=>{
     if(!user) throw new Error('login')
     const next = { ...user }
     if(name!=null) next.name = String(name).slice(0, 60)
     if(phone!=null) next.phone = String(phone).slice(0, 30)
     if(avatar!==undefined) next.avatar = avatar
+    if(banner!==undefined) next.banner = banner
+    if(birthdate!==undefined) next.birthdate = birthdate
+    if(gender!==undefined) next.gender = gender
     setUser(next)
     try{
       localStorage.setItem('ztc_user', JSON.stringify(next))
