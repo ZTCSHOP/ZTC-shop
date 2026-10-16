@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Shuffle, RotateCcw, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { generateBracket, computeStandings, getChampion } from '../lib/bracket'
 import BracketView from './BracketView'
+
+const CK_KEY = (tid)=> `ztc_checkin_${tid}`
+const loadCk = (tid)=> { try { return JSON.parse(localStorage.getItem(CK_KEY(tid))||'{}') } catch { return {} } }
 
 export default function TournamentManager({ tr }){
   const { regsFor, addTeamManual, saveTournament, deleteReg } = useAuth()
@@ -12,9 +15,24 @@ export default function TournamentManager({ tr }){
   const [shuffle, setShuffle] = useState(true)
   const [msg, setMsg] = useState('')
 
-  const teams = [...new Set(regsFor(tr.id).map(r=> r.team).filter(Boolean))]
+  const regs = regsFor(tr.id)
+  const teams = [...new Set(regs.map(r=> r.team).filter(Boolean))]
   const bracket = tr.bracket || []
   const standings = computeStandings(bracket)
+
+  // ---- Check-in admin : validated / waitlist / absent (stocké local, par navigateur) ----
+  const [ck, setCk] = useState(()=> loadCk(tr.id))
+  useEffect(()=>{ setCk(loadCk(tr.id)) }, [tr.id])
+  const statusOf = (r)=> ck[r.id] || 'validated'
+  const setStatus = (r, s)=> setCk(prev=>{ const n = { ...prev, [r.id]: s }; try{ localStorage.setItem(CK_KEY(tr.id), JSON.stringify(n)) }catch{}; return n })
+  const validatedRegs = regs.filter(r=> statusOf(r)==='validated')
+  const waitRegs = regs.filter(r=> statusOf(r)==='waitlist')
+  const absentRegs = regs.filter(r=> statusOf(r)==='absent')
+  const stBadge = (s)=> s==='validated'
+    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+    : s==='waitlist' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+    : 'bg-red-500/20 text-red-300 border-red-500/40'
+  const stLabel = (s)=> s==='validated' ? 'Validated' : s==='waitlist' ? 'Waitlist' : 'Absent'
 
   const addTeam = async (e)=>{
     e.preventDefault(); setMsg('')
@@ -25,9 +43,13 @@ export default function TournamentManager({ tr }){
   const generate = async ()=>{
     setMsg('')
     try{
-      if(teams.length < 2){ setMsg(t('need_teams')); return }
-      const b = generateBracket(teams, shuffle)
+      // Bracket généré UNIQUEMENT avec les équipes Validated (si au moins 2), sinon toutes
+      const pool = validatedRegs.length>=2 ? validatedRegs : regs
+      const names = [...new Set(pool.map(r=> r.team).filter(Boolean))]
+      if(names.length < 2){ setMsg(t('need_teams')); return }
+      const b = generateBracket(names, shuffle)
       await saveTournament({ ...tr, bracket: b })
+      if(validatedRegs.length>=2 && validatedRegs.length<regs.length) setMsg(`Bracket généré avec ${validatedRegs.length} équipes validées (${waitRegs.length} waitlist, ${absentRegs.length} absent — exclus).`)
     }catch{ setMsg(t('need_teams')) }
   }
 
@@ -116,17 +138,31 @@ export default function TournamentManager({ tr }){
         </div>
       )}
 
-      {/* Inscriptions (téléphones) */}
-      {regsFor(tr.id).length>0 && (
-        <div className="text-xs space-y-1">
-          {regsFor(tr.id).map(r=>(
-            <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-white/60">
-              <span className="font-bold text-white/80">{r.team}</span>
-              <span>{r.captain} {r.game_id?`(${r.game_id})`:''}</span>
-              {r.phone && <span className="text-emerald-300 font-bold">📞 {r.phone}</span>}
-              <button onClick={async()=>{ if(window.confirm(t('del_order_q'))){ try{ await deleteReg(r.id) }catch{ alert(t('del_need_policy')) } } }} className="ml-auto text-red-400 hover:text-red-300"><Trash2 size={12}/></button>
+      {/* Check-in : tableau équipes inscrites + statut */}
+      {regs.length>0 && (
+        <div>
+          <div className="grid grid-cols-3 gap-2 mb-2 text-center text-xs font-black">
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-2 py-2">✅ Validated Teams<div className="text-lg text-emerald-300">{validatedRegs.length}</div></div>
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-2 py-2">⏳ Waitlist Queue<div className="text-lg text-amber-300">{waitRegs.length}</div></div>
+            <div className="rounded-xl bg-white/5 border border-white/10 px-2 py-2">👥 Total Participants<div className="text-lg">{regs.length}</div></div>
+          </div>
+          <div className="rounded-xl overflow-hidden border border-white/10 text-xs">
+            <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 bg-white/5 px-3 py-2 font-black text-white/50 uppercase tracking-wider text-[11px]">
+              <span>Team Name</span><span className="hidden sm:block">Captain (Game)</span><span className="hidden sm:block">Contact ID</span><span>Status</span>
             </div>
-          ))}
+            {regs.map(r=>(
+              <div key={r.id} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center px-3 py-2 border-t border-white/5">
+                <span className="font-bold truncate">{r.team}<span className="block sm:hidden text-white/40 font-normal">{r.captain} • 📞 {r.phone||'—'}</span></span>
+                <span className="hidden sm:block text-white/60 truncate">{r.captain} ({r.game_id||tr.game})</span>
+                <span className="hidden sm:block text-emerald-300 font-bold truncate">📞 {r.phone||'—'}</span>
+                <span className="flex items-center gap-1">
+                  <button onClick={()=>setStatus(r, statusOf(r)==='validated'?'waitlist':statusOf(r)==='waitlist'?'absent':'validated')} title="Cliquer pour changer le statut" className={`px-2 py-1 rounded-full border text-[11px] font-black ${stBadge(statusOf(r))}`}>{stLabel(statusOf(r))}</button>
+                  <button onClick={async()=>{ if(window.confirm(t('del_order_q'))){ try{ await deleteReg(r.id) }catch{ alert(t('del_need_policy')) } } }} className="text-red-400 hover:text-red-300"><Trash2 size={12}/></button>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="text-[11px] text-white/40 mt-1">Clique sur le statut pour changer : Validated → Waitlist → Absent. Le bracket utilise uniquement les Validated.</div>
         </div>
       )}
     </div>
