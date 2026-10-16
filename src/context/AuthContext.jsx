@@ -935,7 +935,22 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(error){ refreshTeams(); throw new Error('del_need_policy') }
     }
   }
-  // Le capitaine change le logo de SON équipe (ou l'admin)
+  // Le capitaine modifie la description de SON équipe standalone (ou l'admin)
+  const updateTeamInfo = async (id, { description })=>{
+    const clean = (description||'').trim().slice(0, 500)
+    const target = teams.find(x=> x.id===id)
+    if(!target) throw new Error('team')
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    setTeams(prev=> prev.map(x=> x.id===id ? {...x, description: clean} : x))
+    if(cloud && target.cloud){
+      try{
+        const { error } = await supabase.from('teams').update({ description: clean || null }).eq('id', id)
+        if(error) throw error
+      }catch{ refreshTeams() }
+      refreshTeams()
+    }
+    return clean
+  }
   const updateTeamLogo = async (regId, logo)=>{
     const clean = (logo||'').slice(0, 200000)
     const target = regs.find(x=> x.id===regId)
@@ -1161,6 +1176,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, teams, createTeam, deleteTeam, updateProfile, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, teams, createTeam, deleteTeam, updateProfile, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

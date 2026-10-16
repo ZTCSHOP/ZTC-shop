@@ -1,19 +1,36 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Shield, Trophy, Users, Send, Check, Swords, Target, Pencil } from 'lucide-react'
-import { useState } from 'react'
+import { Shield, Trophy, Users, Send, Check, Swords, Pencil, MapPin, Calendar, Globe, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
+import { getTeamExtras, setTeamExtras } from '../lib/teamExtras'
+
+const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, deleteTeam } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam } = useAuth()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
+  const [joinMsg, setJoinMsg] = useState('')
   const [info, setInfo] = useState('')
   const [logoErr, setLogoErr] = useState('')
+  const [tab, setTab] = useState('apercu')
+  const [extras, setExtras] = useState(()=> getTeamExtras(name))
+  const [editAbout, setEditAbout] = useState(false)
+  const [aboutDraft, setAboutDraft] = useState('')
+  const [editInfos, setEditInfos] = useState(false)
+  const [locDraft, setLocDraft] = useState('')
+  const [webDraft, setWebDraft] = useState('')
+  useEffect(()=>{
+    setExtras(getTeamExtras(name))
+    const h = ()=> setExtras(getTeamExtras(name))
+    window.addEventListener('ztc:team-extras', h)
+    return ()=> window.removeEventListener('ztc:team-extras', h)
+  }, [name])
 
   const teamRegs = regs.filter(r=> (r.team||'').toLowerCase()===name.toLowerCase())
   const solo = teamRegs.length===0
@@ -24,55 +41,39 @@ export default function TeamDetail(){
     return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-emerald-300">← {t('teams')}</Link></div>
   }
 
-  // ---- Équipe standalone (créée directement, sans tournoi pour l'instant) ----
-  if(solo){
-    const mine = user && solo.userId===user.id
-    const canDel = user?.isAdmin // seul l'admin supprime
-    return (
-      <div className="max-w-[1000px] mx-auto px-4 py-8">
-        <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
-        <div className="mt-4 rounded-3xl overflow-hidden bg-emerald-500/[0.06] border border-emerald-500/25 p-6">
-          <div className="flex items-center gap-4">
-            {solo.logo
-              ? <img src={solo.logo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
-              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
-            <div>
-              <h1 className="text-2xl md:text-4xl font-black">{solo.name}</h1>
-              <div className="text-xs text-white/50 mt-1">🎮 {solo.game}{solo.captain && <> • {t('captain_ph')}: <b className="text-white/80">{solo.captain}</b></>}</div>
-              {solo.description && <div className="text-sm text-white/60 mt-1">{solo.description}</div>}
-            </div>
-            <span className="ml-auto text-[11px] px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black shrink-0">{t('tc_new')}</span>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            {(mine || user?.isAdmin) && <Link to="/tournaments" className="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm flex items-center gap-2"><Trophy size={16}/> {t('tc_goto_tournaments')}</Link>}
-            {canDel && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-bold text-sm">{t('tc_delete')}</button>}
-          </div>
-          <p className="text-xs text-white/40 mt-4">{t('tc_no_tournament')}</p>
-        </div>
-      </div>
-    )
-  }
-  const teamLogo = (teamRegs.find(r=> r.logo)||{}).logo || ''
-  const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
-  const canEditLogo = user && (user.isAdmin || !!myReg)
+  const game = (solo?.game || teamRegs[0]?.game || teamRegs[0]?.game_id || 'valorant')
+  const teamLogo = solo?.logo || (teamRegs.find(r=> r.logo)||{}).logo || ''
+  const ownerId = solo?.userId || teamRegs[0]?.userId
+  const isOwner = user && (user.isAdmin || user.id===ownerId)
+  const ownerName = solo?.captain || teamRegs[0]?.captain || ''
+  const founded = solo?.date || teamRegs[0]?.date
+  const about = extras.about || solo?.description || ''
+  const location = extras.location || 'Tunisia'
+  const website = extras.website || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
-  const myReqs = myJoinReqs()
 
   // ---- Stats agrégées ----
   let titles = 0, w = 0, l = 0
+  const champTitles = []
   const perTournament = teamRegs.map(r=>{
     const tr = trById[r.tournament_id]
     const bracket = tr?.bracket || []
     const st = computeStandings(bracket).find(s=> (s.team||'').toLowerCase()===name.toLowerCase())
     const champ = getChampion(bracket)
     const isChamp = champ && champ.toLowerCase()===name.toLowerCase()
-    if(isChamp) titles += 1
+    if(isChamp){ titles += 1; if(tr) champTitles.push(tr) }
     if(st){ w += st.w; l += st.l }
     return { reg: r, tr, st: st||{w:0,l:0,pts:0}, isChamp }
   })
-  const pts = w * 3
-  const games = w + l
+  const pts = w * 3, games = w + l
   const winrate = games>0 ? Math.round((w/games)*100) : 0
+
+  // ---- Membres : propriétaire + demandes acceptées ----
+  const allReqs = teamRegs.flatMap(r=> joinReqsFor(r.id))
+  const accepted = allReqs.filter(q=>q.status==='accepted')
+  const pending = allReqs.filter(q=>q.status==='pending')
+  const members = [{ name: ownerName||name, role: 'owner' },
+    ...accepted.map(q=> ({ name: q.userName||'Joueur', role: 'member', reqId: q.id, date: q.date }))]
 
   // ---- Historique matchs ----
   const history = []
@@ -81,19 +82,21 @@ export default function TeamDetail(){
     ;(tr?.bracket||[]).forEach((rd, ri)=>{
       rd.matches.forEach(m=>{
         if(m.teamA?.toLowerCase()===name.toLowerCase() || m.teamB?.toLowerCase()===name.toLowerCase()){
-          if(m.teamA && m.teamB && (m.scoreA!=null || m.scoreB!=null || m.winner)){
-            history.push({ tr, round: ri, m })
-          }
+          if(m.teamA && m.teamB && (m.scoreA!=null || m.scoreB!=null || m.winner)) history.push({ tr, round: ri, m })
         }
       })
     })
   })
 
+  const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
+  const canEditLogo = user && (user.isAdmin || !!myReg)
+  const myReqs = myJoinReqs()
+
   const ask = async (r)=>{
     setInfo('')
     if(!user) return nav('/login', { state: { from: `/teams/${encodeURIComponent(name)}` } })
     try{
-      await requestJoinTeam({ regId: r.id, tournamentId: r.tournament_id, message: msg })
+      await requestJoinTeam({ regId: r.id, tournamentId: r.tournament_id, message: joinMsg })
       setInfo(t('teams_join_ok'))
     }catch(e){
       setInfo(e.message==='already' ? t('teams_join_already') : e.message==='ownteam' ? t('teams_join_own') : e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err'))
@@ -116,12 +119,8 @@ export default function TeamDetail(){
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-        try{
-          await updateTeamLogo(target.id, c.toDataURL('image/jpeg', 0.82))
-          setInfo(t('team_logo_ok'))
-        }catch(e){
-          setLogoErr(e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err'))
-        }
+        try{ await updateTeamLogo(target.id, c.toDataURL('image/jpeg', 0.82)); setInfo(t('team_logo_ok')) }
+        catch(e){ setLogoErr(e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err')) }
       }
       img.onerror = ()=> setLogoErr(t('team_logo_bad'))
       img.src = rd.result
@@ -129,135 +128,234 @@ export default function TeamDetail(){
     rd.readAsDataURL(f)
   }
 
-  const stat = (label, value, gold)=>{
-    return <div className="rounded-2xl bg-black/30 border border-white/10 p-4 text-center">
-      <div className={`text-3xl font-black ${gold?'text-emerald-300':''}`}>{value}</div>
-      <div className="text-xs text-white/50 mt-1">{label}</div>
-    </div>
+  const saveAbout = async ()=>{
+    try{
+      if(solo){ await updateTeamInfo(solo.id, { description: aboutDraft }) }
+      else setTeamExtras(name, { about: aboutDraft })
+      setExtras(getTeamExtras(name)); setEditAbout(false); setInfo('✓')
+    }catch{ setInfo(t('teams_join_err')) }
+  }
+  const saveInfos = ()=>{
+    setTeamExtras(name, { location: locDraft||'Tunisia', website: webDraft })
+    setExtras(getTeamExtras(name)); setEditInfos(false); setInfo('✓')
+  }
+  const copyInvite = async ()=>{
+    try{ await navigator.clipboard.writeText(window.location.href); setInfo(t('team_link_copied')||'Lien copié ! Partage-le pour recruter.') }
+    catch{ setInfo(window.location.href) }
   }
 
+  const tabBtn = (id, label, badge)=> (
+    <button key={id} onClick={()=>setTab(id)} className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px ${tab===id?'text-rose-400 border-rose-500':'text-white/50 border-transparent hover:text-white'}`}>
+      {label}{badge!=null && badge>0 && <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full bg-white/10">{badge}</span>}
+    </button>
+  )
+
   return (
-    <div className="max-w-[1000px] mx-auto px-4 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 py-8">
       <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
 
-      <div className="mt-4 rounded-3xl overflow-hidden bg-white/5 border border-white/10 p-6">
-        <div className="flex items-center gap-4">
-          <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
-            {teamLogo
-              ? <img src={teamLogo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
-              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
-            {canEditLogo && <>
-              <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300 group-hover/logo:text-emerald-200"><Pencil size={11}/> {t('team_logo_change')}</span>
-              <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
-            </>}
-          </label>
-          <div>
-            <h1 className="text-2xl md:text-4xl font-black">{name}</h1>
-            <div className="text-xs text-white/50 flex items-center gap-1 mt-1"><Users size={12}/> {t('teams_sub')}</div>
-            {logoErr && <div className="text-xs text-red-400 mt-1">{logoErr}</div>}
-          </div>
-          {titles>0 && <div className="ml-auto text-xs px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black flex items-center gap-1"><Trophy size={12}/> {titles}x {t('champion')}</div>}
+      {/* Header équipe */}
+      <div className="mt-4 flex items-center gap-4">
+        <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
+          {teamLogo
+            ? <img src={teamLogo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+            : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
+          {canEditLogo && <>
+            <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300"><Pencil size={11}/></span>
+            <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
+          </>}
+        </label>
+        <div>
+          <h1 className="text-2xl md:text-4xl font-black">{name}</h1>
+          <div className="text-xs text-white/50 mt-1">🎮 {game}{titles>0 && <span className="ml-2 text-amber-300 font-black">🏆 {titles}x {t('champion')}</span>}</div>
+          {logoErr && <div className="text-xs text-red-400 mt-1">{logoErr}</div>}
         </div>
-
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {stat(t('team_participations'), perTournament.length)}
-          {stat(t('team_titles'), titles, true)}
-          {stat(t('wins'), w)}
-          {stat(t('losses'), l)}
-          {stat(t('team_winrate'), `${winrate}%`, true)}
-        </div>
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {stat(t('pts'), pts, true)}
-          {stat(t('team_matches'), games)}
-          {stat(t('tr_participants'), `${teamRegs.length}`)}
-        </div>
+        {isOwner && solo && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="ml-auto px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold">{t('tc_delete')}</button>}
       </div>
 
-      <h2 className="font-black mt-8 mb-3 flex items-center gap-2"><Shield size={16}/> {t('team_tournaments')}</h2>
-      <div className="grid md:grid-cols-2 gap-3">
-        {perTournament.map(({reg, tr, st, isChamp})=>(
-          <div key={reg.id} className="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <div className="font-black">{tr ? <Link to={`/tournaments/${tr.id}`} className="hover:text-emerald-300">{tr.title}</Link> : reg.tournament_id}</div>
-            <div className="text-xs text-white/50 mt-0.5">{tr?.game} • {tr?.prize} {isChamp && <span className="text-emerald-300 font-black">• 🏆 {t('champion')}</span>}</div>
-            <div className="mt-2 flex gap-4 text-xs">
-              <span><b className="text-emerald-300">{st.w}</b> {t('wins')}</span>
-              <span><b className="text-red-300">{st.l}</b> {t('losses')}</span>
-              <span><b className="text-emerald-300">{st.pts}</b> {t('pts')}</span>
+      {/* Tabs */}
+      <div className="mt-6 flex gap-1 overflow-x-auto border-b border-white/10">
+        {tabBtn('apercu', t('team_tab_overview')||'Aperçu')}
+        {tabBtn('membres', t('team_tab_members')||'Membres', members.length)}
+        {tabBtn('tournois', t('team_tab_tournaments')||'Tournois', perTournament.length)}
+        {tabBtn('stats', t('team_tab_stats')||'Statistiques')}
+        {tabBtn('realisations', t('team_tab_achieve')||'Réalisations', titles||null)}
+        <span className="px-4 py-2.5 text-sm text-white/25 font-bold cursor-not-allowed" title="Bientôt">Opportunités</span>
+        <span className="px-4 py-2.5 text-sm text-white/25 font-bold cursor-not-allowed" title="Bientôt">Scrims</span>
+      </div>
+
+      <div className="mt-5 grid lg:grid-cols-[280px_1fr] gap-5 items-start">
+        {/* Sidebar infos */}
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4 flex items-center gap-3">
+            {teamLogo
+              ? <img src={teamLogo} alt="" className="w-10 h-10 rounded-xl object-cover bg-white"/>
+              : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-700 flex items-center justify-center">🎮</div>}
+            <div className="font-black capitalize">{game}</div>
+          </div>
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4">
+            <div className="flex items-center justify-between">
+              <div className="font-black text-sm">{t('team_infos')||"Infos de l'équipe"}</div>
+              {isOwner && <button onClick={()=>{ setLocDraft(location); setWebDraft(website); setEditInfos(!editInfos) }} className="text-white/40 hover:text-white"><Pencil size={13}/></button>}
             </div>
-            {!myReqs.some(x=>x.regId===reg.id) && !(user && reg.userId===user.id) && (
-              <button onClick={()=>ask(reg)} className="mt-3 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
+            {editInfos ? (
+              <div className="mt-3 space-y-2">
+                <input value={locDraft} onChange={e=>setLocDraft(e.target.value)} placeholder="Tunisia" className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <input value={webDraft} onChange={e=>setWebDraft(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <button onClick={saveInfos} className="w-full px-3 py-2 rounded-xl bg-emerald-500 text-black text-sm font-black">✓</button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2.5 text-sm">
+                <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><MapPin size={15} className="text-rose-400 shrink-0"/><div><div className="text-[10px] text-white/40 font-black uppercase">Localisation</div><div className="font-bold">{location}</div></div></div>
+                <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><Calendar size={15} className="text-rose-400 shrink-0"/><div><div className="text-[10px] text-white/40 font-black uppercase">Fondée</div><div className="font-bold">{founded ? new Date(founded).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—'}</div></div></div>
+                <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><Globe size={15} className="text-rose-400 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">Site web</div><div className="font-bold truncate">{website ? <a href={website} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{website}</a> : 'Aucun site web fourni'}</div></div></div>
+              </div>
             )}
-            {myReqs.some(x=>x.regId===reg.id) && <div className="mt-3 text-xs text-emerald-300 flex items-center gap-1"><Check size={12}/> {t('teams_join_sent')}</div>}
-            {/* ---- Le capitaine accepte/refuse directement (sans admin) ---- */}
-            {user && reg.userId===user.id && (()=> {
-              const reqs = joinReqsFor(reg.id)
-              const pend = reqs.filter(q=>q.status==='pending')
-              const acc = reqs.filter(q=>q.status==='accepted')
-              return (
-                <div className="mt-3 rounded-xl bg-black/30 border border-white/10 p-3">
-                  <div className="text-xs font-black mb-2">📥 {t('team_join_reqs')} ({pend.length})</div>
-                  {reqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
-                  {pend.map(q=>(
+          </div>
+        </div>
+
+        {/* Contenu onglet */}
+        <div className="min-w-0">
+          {tab==='apercu' && (
+            <div className="space-y-5">
+              <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="font-black text-lg">À propos</div>
+                  {isOwner && <button onClick={()=>{ setAboutDraft(about); setEditAbout(!editAbout) }} className="text-white/40 hover:text-white"><Pencil size={14}/></button>}
+                </div>
+                {editAbout ? (
+                  <div className="mt-2">
+                    <textarea value={aboutDraft} onChange={e=>setAboutDraft(e.target.value)} rows="3" maxLength="500" className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                    <button onClick={saveAbout} className="mt-2 px-4 py-2 rounded-xl bg-emerald-500 text-black text-sm font-black">✓ {t('pm_save')||'Enregistrer'}</button>
+                  </div>
+                ) : <p className="text-sm text-white/70 mt-1 whitespace-pre-line">{about || 'WIN Esports tournament and go to the world champions'}</p>}
+              </div>
+              <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+                <div className="flex items-center justify-between">
+                  <div><div className="font-black text-lg">Membres de l'équipe</div><div className="text-xs text-white/50">Effectif actuel de {members.length}+ joueurs</div></div>
+                  {isOwner && <button onClick={copyInvite} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5"><Plus size={13}/> Ajouter un membre</button>}
+                </div>
+                <div className="mt-3 space-y-2">
+                  {members.slice(0,4).map((m,i)=>(
+                    <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>
+                      <div className="min-w-0"><div className="font-bold truncate flex items-center gap-2">{m.name}
+                        {m.role==='owner' && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-black">PROPRIÉTAIRE</span>}</div>
+                        <div className="text-xs text-white/50">{m.role==='owner' ? (ownerName||m.name) : 'Membre'}</div></div>
+                      <div className="ml-auto text-right text-xs"><div className="font-black">{winrate} % de victoires</div><div className="text-white/50">{games} matchs</div></div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>setTab('membres')} className="mt-3 text-xs text-emerald-300 font-bold hover:underline">Voir tout →</button>
+              </div>
+            </div>
+          )}
+
+          {tab==='membres' && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+              <div className="flex items-center justify-between">
+                <div><div className="font-black text-lg">Membres de l'équipe</div><div className="text-xs text-white/50">Effectif actuel de {members.length}+ joueurs</div></div>
+                {isOwner && <button onClick={copyInvite} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5"><Plus size={13}/> Ajouter un membre</button>}
+              </div>
+              <div className="mt-3 space-y-2">
+                {members.map((m,i)=>(
+                  <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>
+                    <div className="min-w-0 flex-1"><div className="font-bold truncate flex items-center gap-2">{m.name}
+                      {m.role==='owner'
+                        ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-black">PROPRIÉTAIRE</span>
+                        : <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black">MEMBRE</span>}</div>
+                      <div className="text-xs text-white/50">{m.date ? `Rejoint le ${new Date(m.date).toLocaleDateString('fr-FR')}` : (ownerName||m.name)}</div></div>
+                    <div className="text-right text-xs mr-1"><div className="font-black">{winrate} %</div><div className="text-white/50">{games} matchs</div></div>
+                    {m.role==='member' && isOwner && <button onClick={()=>{ if(window.confirm(t('team_remove_q')||'Retirer ce joueur ?')) updateJoinReq(m.reqId,'rejected') }} className="px-2 py-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-black">✕</button>}
+                  </div>
+                ))}
+              </div>
+              {isOwner && (
+                <div className="mt-4 rounded-xl bg-black/30 border border-white/10 p-3">
+                  <div className="text-xs font-black mb-2">📥 {t('team_join_reqs')} ({pending.length})</div>
+                  {pending.length===0 && allReqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
+                  {pending.map(q=>(
                     <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold truncate">{q.userName||'Joueur'}</div>
-                        {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}
-                      </div>
-                      <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
+                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{q.userName||'Joueur'}</div>
+                      {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}</div>
+                      <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
                       <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>
                     </div>
                   ))}
-                  {acc.length>0 && (
-                    <div className="mt-1.5 space-y-1">
-                      <div className="text-[11px] font-black text-white/50">👥 {t('team_players')} ({acc.length})</div>
-                      {acc.map(q=>(
-                        <div key={q.id} className="flex items-center gap-2 text-[11px] text-emerald-300">
-                          <span className="font-bold truncate">✓ {q.userName||'Joueur'}</span>
-                          <button onClick={()=>{ if(window.confirm(t('team_remove_q')||'Retirer ce joueur ?')) updateJoinReq(q.id,'rejected') }} title={t('team_remove')||'Retirer'} className="ml-auto px-2 py-0.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-black">✕</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              )
-            })()}
-          </div>
-        ))}
-      </div>
-
-      <h2 className="font-black mt-8 mb-3 flex items-center gap-2"><Swords size={16}/> {t('team_history')}</h2>
-      <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5">
-        {history.length===0 && <div className="p-4 text-sm text-white/40">{t('team_no_matches')}</div>}
-        {history.map((h,i)=>{
-          const meFirst = h.m.teamA?.toLowerCase()===name.toLowerCase()
-          const myScore = meFirst ? h.m.scoreA : h.m.scoreB
-          const opScore = meFirst ? h.m.scoreB : h.m.scoreA
-          const opp = meFirst ? h.m.teamB : h.m.teamA
-          const won = h.m.winner?.toLowerCase()===name.toLowerCase()
-          return (
-            <div key={i} className="px-4 py-2.5 text-sm flex items-center gap-3">
-              <span className={`w-2 h-2 rounded-full ${won?'bg-emerald-400':'bg-red-400'}`}/>
-              <span className="font-bold">{name}</span>
-              <span className="font-black text-emerald-300">{myScore ?? '–'} : {opScore ?? '–'}</span>
-              <Link to={`/teams/${encodeURIComponent(opp||'')}`} className="text-white/70 hover:text-white truncate">{opp}</Link>
-              <span className="ml-auto text-xs text-white/40 truncate">{h.tr?.title}</span>
+              )}
+              {!isOwner && teamRegs.filter(r=> !(user && r.userId===user.id) && !myReqs.some(x=>x.regId===r.id)).map(r=>(
+                <div key={r.id} className="mt-3 flex gap-2">
+                  <input value={joinMsg} onChange={e=>setJoinMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-xs"/>
+                  <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
+                </div>
+              ))}
             </div>
-          )
-        })}
+          )}
+
+          {tab==='tournois' && (
+            <div className="grid md:grid-cols-2 gap-3">
+              {perTournament.length===0 && <div className="text-sm text-white/40">{t('tc_no_tournament')}</div>}
+              {perTournament.map(({reg, tr, st, isChamp})=>(
+                <div key={reg.id} className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                  <div className="font-black">{tr ? <Link to={`/tournaments/${tr.id}`} className="hover:text-emerald-300">{tr.title}</Link> : reg.tournament_id}</div>
+                  <div className="text-xs text-white/50 mt-0.5">{tr?.game} • {tr?.prize} {isChamp && <span className="text-emerald-300 font-black">• 🏆 {t('champion')}</span>}</div>
+                  <div className="mt-2 flex gap-4 text-xs">
+                    <span><b className="text-emerald-300">{st.w}</b> {t('wins')}</span>
+                    <span><b className="text-red-300">{st.l}</b> {t('losses')}</span>
+                    <span><b className="text-emerald-300">{st.pts}</b> {t('pts')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab==='stats' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[[t('team_participations'), perTournament.length],[t('team_titles'), titles],[t('wins'), w],[t('losses'), l],[t('team_winrate'), `${winrate}%`]].map(([l,v],i)=>(
+                  <div key={i} className="rounded-2xl bg-black/30 border border-white/10 p-4 text-center"><div className="text-2xl font-black text-emerald-300">{v}</div><div className="text-xs text-white/50 mt-1">{l}</div></div>
+                ))}
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 divide-y divide-white/5">
+                <div className="px-4 py-2.5 font-black text-sm flex items-center gap-2"><Swords size={14}/> {t('team_history')}</div>
+                {history.length===0 && <div className="p-4 text-sm text-white/40">{t('team_no_matches')}</div>}
+                {history.map((h,i)=>{
+                  const meFirst = h.m.teamA?.toLowerCase()===name.toLowerCase()
+                  const won = h.m.winner?.toLowerCase()===name.toLowerCase()
+                  return (
+                    <div key={i} className="px-4 py-2.5 text-sm flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full ${won?'bg-emerald-400':'bg-red-400'}`}/>
+                      <span className="font-bold">{name}</span>
+                      <span className="font-black text-emerald-300">{(meFirst?h.m.scoreA:h.m.scoreB) ?? '–'} : {(meFirst?h.m.scoreB:h.m.scoreA) ?? '–'}</span>
+                      <Link to={`/teams/${encodeURIComponent(meFirst?h.m.teamB:h.m.teamA||'')}`} className="text-white/70 hover:text-white truncate">{meFirst?h.m.teamB:h.m.teamA}</Link>
+                      <span className="ml-auto text-xs text-white/40 truncate">{h.tr?.title}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {tab==='realisations' && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+              <div className="font-black text-lg flex items-center gap-2"><Trophy size={17} className="text-amber-300"/> {t('team_tab_achieve')||'Réalisations'}</div>
+              {champTitles.length===0
+                ? <div className="text-sm text-white/40 mt-2">Aucun titre pour le moment — WIN Esports tournament and go to the world champions 🏆</div>
+                : <div className="mt-3 space-y-2">{champTitles.map(tr=>(
+                    <Link key={tr.id} to={`/tournaments/${tr.id}`} className="block rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 hover:bg-amber-500/15">
+                      <div className="font-black text-amber-300">🏆 Champion — {tr.title}</div>
+                      <div className="text-xs text-white/50">{tr.game} • {tr.prize}</div>
+                    </Link>
+                  ))}</div>}
+            </div>
+          )}
+        </div>
       </div>
 
       {info && <div className="mt-4 text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-xl p-2.5">{info}</div>}
-      {!user && (
-        <div className="mt-4 rounded-2xl bg-black/30 border border-white/10 p-4 text-sm text-white/60 flex items-center gap-2">
-          <Target size={14}/> {t('tr_login_needed')}
-          <Link to="/login" className="ml-auto px-3 py-1.5 rounded-xl bg-lime-400 text-black text-xs font-black">{t('login')}</Link>
-        </div>
-      )}
-      {user && (
-        <div className="mt-4 flex gap-2">
-          <input value={msg} onChange={e=>setMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
-        </div>
-      )}
+      {msg && <div className="mt-2 text-xs text-white/60">{msg}</div>}
     </div>
   )
 }
