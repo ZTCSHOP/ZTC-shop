@@ -8,6 +8,7 @@ import TournamentManager from '../components/TournamentManager'
 import { sortTournaments } from '../lib/bracket'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import { ytId } from '../lib/video'
+import { reqDisplayName, reqContact } from '../lib/names'
 import { getHeroVideoRaw, setHeroVideo } from '../lib/site'
 import PushBell from '../components/PushBell'
 
@@ -568,8 +569,11 @@ export default function Admin(){
               {joinReqs.filter(q=>q.status==='pending').length===0 && <div className="text-xs text-white/40">—</div>}
               {joinReqs.filter(q=>q.status==='pending').map(q=>(
                 <div key={q.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
-                  <span className="font-black">{q.userName||q.userId?.slice(0,8)}</span>
+                  <span className="font-black">{reqDisplayName(q, accounts)}</span>
                   <span className="text-white/50">→ {(regs.find(r=>r.id===q.regId)?.team)||'?'} • {q.message}</span>
+                  {(reqContact(q, accounts).email || reqContact(q, accounts).phone) && (
+                    <span className="text-emerald-300/80">{reqContact(q, accounts).email}{reqContact(q, accounts).phone ? ` • 📞 ${reqContact(q, accounts).phone}` : ''}</span>
+                  )}
                   <span className="ml-auto flex gap-1.5">
                     <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1 rounded-lg bg-emerald-500 text-black font-bold">✓</button>
                     <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-bold">✕</button>

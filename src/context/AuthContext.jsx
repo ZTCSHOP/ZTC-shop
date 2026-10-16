@@ -1020,9 +1020,15 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(!user) throw new Error('login')
     if(joinReqs.some(x=> x.regId===regId && x.userId===user.id)) throw new Error('already')
     if(regs.some(x=> x.id===regId && x.userId===user.id)) throw new Error('ownteam')
+    // Nom affichable : évite "Joueur" générique — préfère le préfixe email
+    let display = (user.name||'').trim()
+    if(!display || /^(joueur|player|client|user)$/i.test(display)){
+      display = (user.email||'').includes('@') ? user.email.split('@')[0] : ''
+    }
     const req = {
       id: genId('join'), tournament_id: tournamentId, regId,
-      userId: user.id, userName: user.name||user.email||'Joueur',
+      userId: user.id, userName: display || user.name || 'Joueur',
+      userEmail: user.email||'', principal: user.principal||'',
       message: (message||'').slice(0, 300), status: 'pending',
       date: new Date().toISOString(), cloud: !!(cloud && user.cloud),
     }

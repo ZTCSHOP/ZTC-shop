@@ -5,13 +5,15 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
 import { getTeamExtras, setTeamExtras } from '../lib/teamExtras'
+import { reqDisplayName } from '../lib/names'
 
 const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts } = useAuth()
+  const accounts = allAccounts()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState('')
@@ -74,7 +76,7 @@ export default function TeamDetail(){
   const accepted = allReqs.filter(q=>q.status==='accepted')
   const pending = allReqs.filter(q=>q.status==='pending')
   const members = [{ name: ownerName||name, role: 'owner' },
-    ...accepted.map(q=> ({ name: q.userName||'Joueur', role: 'member', reqId: q.id, date: q.date }))]
+    ...accepted.map(q=> ({ name: reqDisplayName(q, accounts), role: 'member', reqId: q.id, date: q.date }))]
 
   // ---- Historique matchs ----
   const history = []
@@ -315,7 +317,7 @@ export default function TeamDetail(){
                   {pending.length===0 && allReqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
                   {pending.map(q=>(
                     <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
-                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{q.userName||'Joueur'}</div>
+                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate">{reqDisplayName(q, accounts)}</div>
                       {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}</div>
                       <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
                       <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>

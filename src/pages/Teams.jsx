@@ -4,6 +4,7 @@ import { Shield, Users, Send, Check, Trophy, Medal, Plus, Trash2, Gamepad2 } fro
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
+import { reqDisplayName } from '../lib/names'
 
 const TEAM_GAMES = ['valorant', 'lol', 'cs2', 'fc27', 'tekken8', 'other']
 
@@ -32,7 +33,8 @@ function fileToLogo(file){
 }
 
 export default function Teams(){
-  const { regs, teams, tournaments, user, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, createTeam, deleteTeam } = useAuth()
+  const { regs, teams, tournaments, user, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, createTeam, deleteTeam, allAccounts } = useAuth()
+  const accounts = allAccounts()
   const { t } = useLang()
   const nav = useNavigate()
   const [msg, setMsg] = useState({}) // regId -> message texte
@@ -284,7 +286,7 @@ export default function Teams(){
                 <div className="mt-3 space-y-1.5">
                   {joinReqsFor(r.id).map(q=>(
                     <div key={q.id} className="text-xs flex items-center gap-2 bg-black/30 border border-white/10 rounded-xl px-2.5 py-1.5">
-                      <span className="font-bold">{q.userName||q.userId?.slice(0,8)}</span>
+                      <span className="font-bold">{reqDisplayName(q, accounts)}</span>
                       <span className="text-white/50 truncate">{q.message}</span>
                       <span className="ml-auto text-white/40">{q.status}</span>
                       {q.status==='pending' && (
