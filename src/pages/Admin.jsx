@@ -18,7 +18,7 @@ export default function Admin(){
     catch{ alert('Lien YouTube invalide') }
   }
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge } = useAuth()
-  const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'' }
+  const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'', elimination:'single', final_format:'BO1' }
   const [trnForm, setTrnForm] = useState(EMPTY_TRN)
   const [editingTrId, setEditingTrId] = useState(null)
   const imgForGame = (g)=> initialProducts.find(p=>p.category===g)?.image || ''
@@ -66,7 +66,9 @@ export default function Admin(){
       status: tr.status || 'soon',
       rules: tr.rules || '',
       image: tr.image || '',
-      video: tr.video || ''
+      video: tr.video || '',
+      elimination: tr.elimination || 'single',
+      final_format: tr.final_format || 'BO1'
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -485,6 +487,12 @@ export default function Admin(){
             <input placeholder={t('tr_prize')} value={trnForm.prize} onChange={e=>setTrnForm({...trnForm,prize:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_max')} type="number" value={trnForm.max_teams} onChange={e=>setTrnForm({...trnForm,max_teams:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_fee')} type="number" value={trnForm.entry_fee} onChange={e=>setTrnForm({...trnForm,entry_fee:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
+            <select value={trnForm.elimination} onChange={e=>setTrnForm({...trnForm,elimination:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10" title="Mode tournoi">
+              <option value="single">Single Elimination</option><option value="double">Double Elimination</option>
+            </select>
+            <select value={trnForm.final_format} onChange={e=>setTrnForm({...trnForm,final_format:e.target.value})} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10" title="Format finale">
+              <option value="BO1">Finale BO1</option><option value="BO3">Finale BO3</option>
+            </select>
             <input placeholder={t('tr_image_ph')} value={trnForm.image} onChange={e=>setTrnForm({...trnForm,image:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_video_ph')} value={trnForm.video} onChange={e=>setTrnForm({...trnForm,video:e.target.value})} className="md:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10"/>
             {trnForm.video.trim()!=='' && (
@@ -511,7 +519,7 @@ export default function Admin(){
                   <img src={tr.image || imgForGame(tr.game)} alt={tr.title} className="w-16 h-16 rounded-xl object-cover"/>
                   <div className="flex-1 min-w-[200px]">
                     <div className="font-bold">{tr.title} {tr.status==='pending' && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 ml-1">{t('tr_pending')}</span>}</div>
-                    <div className="text-xs text-white/50">{tr.game} • {tr.date?new Date(tr.date).toLocaleString('fr-FR'):'—'} • 🏆 {tr.prize} • {regsFor(tr.id).length}/{tr.max_teams} • {tr.status}</div>
+                    <div className="text-xs text-white/50">{tr.game} • {tr.date?new Date(tr.date).toLocaleString('fr-FR'):'—'} • 🏆 {tr.prize} • {regsFor(tr.id).length}/{tr.max_teams} • {tr.status} • {(tr.elimination||'single')==='double'?'Double Elim':'Single'} • Final {tr.final_format||'BO1'}</div>
                   </div>
                   <select value={tr.status} onChange={e=>saveTournament({...tr, status:e.target.value})} className="px-2 py-2 rounded-xl bg-black/30 border border-white/10 text-xs">
                     <option value="soon">{t('tr_soon')}</option><option value="open">{t('tr_open')}</option><option value="done">{t('tr_done')}</option><option value="pending">{t('tr_pending')}</option>

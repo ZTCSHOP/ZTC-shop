@@ -353,7 +353,7 @@ export function AuthProvider({ children }){
 useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>!x.cloud))), [teams])
   useEffect(()=> localStorage.setItem('ztc_join_reqs', JSON.stringify(joinReqs.filter(x=>!x.cloud))), [joinReqs])
 
-  const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', video: r.video||'', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
+  const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', video: r.video||'', elimination: r.elimination||'single', final_format: r.final_format||'BO1', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
   const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', logo: r.logo||'', userId: r.user_id, date: r.created_at, cloud: true })
   const mapCloudJoin = (r)=> ({ id: r.id, tournament_id: r.tournament_id, regId: r.reg_id, userId: r.user_id, message: r.message||'', status: r.status||'pending', date: r.created_at, cloud: true })
   const mapCloudTeam = (r)=> ({ id: r.id, name: r.name, game: r.game||'valorant', logo: r.logo||'', captain: r.captain||'', phone: r.phone||'', description: r.description||'', userId: r.user_id, date: r.created_at, cloud: true })
@@ -643,6 +643,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   // ---- Suppressions admin (local + cloud) ----
   const deleteOrder = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime
     const target = orders.find(o=> o.id===id)
     setOrders(prev=> prev.filter(o=> o.id!==id))
     // Rembourse un paiement wallet annulé avant confirmation
@@ -655,6 +656,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
   }
   const deleteAccount = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime
     try{ localStorage.setItem('ztc_users', JSON.stringify(readUsers().filter(u=> u.id!==id))) }catch{}
     if(cloud){
       const { error } = await supabase.from('profiles').delete().eq('id', id)
@@ -747,11 +749,23 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           // Colonne video optionnelle : envoyée seulement si remplie (sinon les vieux tournois
           // continuent de se sauvegarder même avant la migration supabase-video.sql)
           ...(row.video ? { video: row.video } : {}),
+          ...(row.elimination ? { elimination: row.elimination } : {}),
+          ...(row.final_format ? { final_format: row.final_format } : {}),
           bracket: Array.isArray(row.bracket) ? row.bracket : [],
         }
         if(isNew) payload.created_by = sbUserId.current || (user?.cloud ? user?.id : null)
-        const { error } = await supabase.from('tournaments').upsert(payload, { onConflict: 'id' })
-        if(error) throw error
+        try {
+          const { error } = await supabase.from('tournaments').upsert(payload, { onConflict: 'id' })
+          if(error) throw error
+        } catch(err) {
+          // Si colonnes elimination/final_format pas encore migrées en cloud, retry sans elles
+          if(/elimination|final_format|column/i.test(String(err.message||''))){
+            delete payload.elimination; delete payload.final_format
+            const { error } = await supabase.from('tournaments').upsert(payload, { onConflict: 'id' })
+            if(error) throw error
+            console.warn('tournaments format columns missing in cloud — run supabase-tournaments-format.sql')
+          } else throw err
+        }
         refreshTournaments()
       }catch(e){
         console.warn('cloud save tournament:', e.message)
@@ -762,6 +776,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     return row
   }
   const deleteTournament = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime
     setTournamentsState(prev=> prev.filter(x=> x.id!==id))
     setRegs(prev=> prev.filter(x=> x.tournament_id!==id))
     if(cloud){
@@ -798,6 +813,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     return reg
   }
   const deleteReg = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime
     const target = regs.find(x=> x.id===id)
     setRegs(prev=> prev.filter(x=> x.id!==id))
     if(cloud && target?.cloud){
@@ -872,9 +888,9 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     return team
   }
   const deleteTeam = async (id)=>{
+    if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime (même le capitaine)
     const target = teams.find(x=> x.id===id)
     if(!target) return
-    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
     setTeams(prev=> prev.filter(x=> x.id!==id))
     if(cloud && target.cloud){
       const { error } = await supabase.from('teams').delete().eq('id', id)

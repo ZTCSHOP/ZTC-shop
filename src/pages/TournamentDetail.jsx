@@ -71,6 +71,10 @@ export default function TournamentDetail(){
             <div className="min-w-0">
               <div className="text-xs font-black text-amber-400 uppercase tracking-widest">{tr.game} • {tr.status==='open'?t('tr_open'):tr.status==='done'?t('tr_done'):t('tr_soon')}</div>
               <h1 className="text-2xl md:text-4xl font-black">{tr.title}</h1>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="text-[11px] px-2 py-1 rounded-full bg-white/10 border border-white/15 font-bold">{(tr.elimination||'single')==='double'?'Double Elimination':'Single Elimination'}</span>
+                <span className="text-[11px] px-2 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">Final {tr.final_format||'BO1'} • Phases BO1</span>
+              </div>
             </div>
             {mine ? (
               <div className="px-5 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-sm flex items-center gap-2 shrink-0"><Check size={16}/> {mine.team}</div>
