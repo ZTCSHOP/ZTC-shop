@@ -49,7 +49,7 @@ function LottieIcon({ s, register }){
   const lottie = useLottie({
     src: `${BASE}${s.anim}`,
     autoplay: true,
-    loop: false,
+    loop: true,
     // Instagram se termine en fondu : on s'arrête à la frame 100 (logo visible)
     ...(s.hold!=null ? { segment: [0, s.hold] } : {}),
     subscriptions: { error: ()=> setFailed(true) },
