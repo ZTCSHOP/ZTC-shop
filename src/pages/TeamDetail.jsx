@@ -148,6 +148,7 @@ export default function TeamDetail(){
   const onBannerFile = (f)=>{
     setInfo('')
     if(!f) return
+    if(!user?.cloud){ setInfo('⚠️ Connecte-toi avec ton compte email (pas admin local) pour partager la bannière à tous — sinon visible que sur ton PC'); }
     if(!f.type.startsWith('image/')){ setInfo(t('team_logo_bad')); return }
     if(f.size > 5*1024*1024){ setInfo(t('team_logo_big')); return }
     const rd = new FileReader()
