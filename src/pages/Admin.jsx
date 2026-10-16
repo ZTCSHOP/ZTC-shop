@@ -8,9 +8,15 @@ import TournamentManager from '../components/TournamentManager'
 import { sortTournaments } from '../lib/bracket'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import { ytId } from '../lib/video'
+import { getHeroVideoRaw, setHeroVideo } from '../lib/site'
 import PushBell from '../components/PushBell'
 
 export default function Admin(){
+  const [heroUrl, setHeroUrl] = useState(()=> getHeroVideoRaw())
+  const saveHeroVideo = ()=>{
+    try{ setHeroVideo(heroUrl); alert('Vidéo accueil mise à jour ✓') }
+    catch{ alert('Lien YouTube invalide') }
+  }
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge } = useAuth()
   const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'' }
   const [trnForm, setTrnForm] = useState(EMPTY_TRN)
@@ -221,6 +227,22 @@ export default function Admin(){
           <button onClick={refreshAll} className="mt-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-xs">↻ Revérifier</button>
         </div>
       )}
+      <div className="mt-4 p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex flex-col md:flex-row gap-3 md:items-center">
+        <div className="flex-1">
+          <div className="font-black text-sm">🎬 Vidéo Accueil — ZTC Presentation</div>
+          <div className="text-xs text-white/50 mt-0.5">Colle lien YouTube (watch / youtu.be / shorts / embed) w el accueil tetbadel direct, blech code.</div>
+          <div className="flex gap-2 mt-2">
+            <input value={heroUrl} onChange={e=>setHeroUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="flex-1 px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-sm" />
+            <button onClick={saveHeroVideo} className="px-4 py-2 rounded-xl bg-lime-400 text-black font-black text-sm hover:bg-lime-300">Sauver</button>
+          </div>
+          {ytId(heroUrl) ? <div className="text-xs text-emerald-300 mt-1">✓ ID: {ytId(heroUrl)}</div> : heroUrl ? <div className="text-xs text-red-300 mt-1">Lien invalide</div> : null}
+        </div>
+        {ytId(heroUrl) && (
+          <div className="w-full md:w-[280px] aspect-video rounded-xl overflow-hidden border border-white/10 bg-black shrink-0">
+            <iframe key={ytId(heroUrl)} src={`https://www.youtube.com/embed/${ytId(heroUrl)}?rel=0`} title="Aperçu accueil" className="w-full h-full" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+          </div>
+        )}
+      </div>
       <div className="flex flex-wrap gap-2 mt-4">
         <button onClick={()=>setTab('orders')} className={`px-4 py-2 rounded-xl text-sm font-bold border ${tab==='orders'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}>
           {t('orders_tab')} ({orders.length}){pendingCount>0 && <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-400 text-black text-xs">{pendingCount} à confirmer</span>} {redBadge(newOrders)}

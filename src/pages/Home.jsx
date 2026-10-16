@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, ShieldCheck, Truck, Clock } from 'lucide-react'
 import { initialProducts, minPrice } from '../data/products'
 import { useLang } from '../context/LanguageContext'
-
-const HERO_VIDEO = `${import.meta.env.BASE_URL}ztc-talk.mp4`
+import { getHeroVideoId } from '../lib/site'
 
 export default function Home(){
   const { t } = useLang()
+  const [HERO_VIDEO_ID, setHeroId] = useState(()=> getHeroVideoId())
+  useEffect(()=>{
+    const h = ()=> setHeroId(getHeroVideoId())
+    window.addEventListener('ztc:hero-video', h)
+    window.addEventListener('storage', h)
+    return ()=> { window.removeEventListener('ztc:hero-video', h); window.removeEventListener('storage', h) }
+  }, [])
   const trust = [
     {title: t('trust1t'), desc: t('trust1d')},
     {title: t('trust2t'), desc: t('trust2d')},
@@ -45,9 +52,9 @@ export default function Home(){
           </div>
           <div className="reveal">
             <div className="relative rounded-2xl overflow-hidden border border-lime-400/30 bg-black aspect-video shadow-[0_0_60px_-15px_rgba(163,230,53,0.4)]">
-              <video src={HERO_VIDEO} className="w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata" controls />
+              <iframe src={`https://www.youtube.com/embed/${HERO_VIDEO_ID}?rel=0&autoplay=1&mute=1&playsinline=1`} title="ZTC Presentation" className="w-full h-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
             </div>
-            <div className="mt-2 text-center text-xs text-white/50">🎬 {t('home_video')}</div>
+            <div className="mt-2 flex items-center justify-center gap-3 text-xs text-white/50">🎬 {t('home_video')} <a href={`https://www.youtube.com/watch?v=${HERO_VIDEO_ID}`} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-500">▶ YouTube</a></div>
           </div>
         </div>
       </section>
