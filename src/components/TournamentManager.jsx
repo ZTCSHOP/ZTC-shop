@@ -22,6 +22,7 @@ export default function TournamentManager({ tr }){
 
   // ---- Check-in admin : validated / waitlist / absent (stocké local, par navigateur) ----
   const [ck, setCk] = useState(()=> loadCk(tr.id))
+  const [menuFor, setMenuFor] = useState(null) // regId dont le menu statut est ouvert
   useEffect(()=>{ setCk(loadCk(tr.id)) }, [tr.id])
   const statusOf = (r)=> ck[r.id] || 'validated'
   const setStatus = (r, s)=> setCk(prev=>{ const n = { ...prev, [r.id]: s }; try{ localStorage.setItem(CK_KEY(tr.id), JSON.stringify(n)) }catch{}; return n })
@@ -155,14 +156,24 @@ export default function TournamentManager({ tr }){
                 <span className="font-bold truncate">{r.team}<span className="block sm:hidden text-white/40 font-normal">{r.captain} • 📞 {r.phone||'—'}</span></span>
                 <span className="hidden sm:block text-white/60 truncate">{r.captain} ({r.game_id||tr.game})</span>
                 <span className="hidden sm:block text-emerald-300 font-bold truncate">📞 {r.phone||'—'}</span>
-                <span className="flex items-center gap-1">
-                  <button onClick={()=>setStatus(r, statusOf(r)==='validated'?'waitlist':statusOf(r)==='waitlist'?'absent':'validated')} title="Cliquer pour changer le statut" className={`px-2 py-1 rounded-full border text-[11px] font-black ${stBadge(statusOf(r))}`}>{stLabel(statusOf(r))}</button>
+                <span className="flex items-center gap-1 relative">
+                  <button onClick={()=>setMenuFor(menuFor===r.id?null:r.id)} title="Choisir le statut" className={`px-2 py-1 rounded-full border text-[11px] font-black ${stBadge(statusOf(r))}`}>{stLabel(statusOf(r))} ▾</button>
+                  {menuFor===r.id && (
+                    <>
+                      <span className="fixed inset-0 z-10" onClick={()=>setMenuFor(null)} />
+                      <span className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden border border-white/15 bg-[#141417] shadow-xl flex flex-col min-w-[110px]">
+                        {['validated','waitlist','absent'].map(s=>(
+                          <button key={s} onClick={()=>{ setStatus(r, s); setMenuFor(null) }} className={`text-left px-3 py-2 text-[11px] font-black hover:bg-white/10 ${s===statusOf(r)?'text-emerald-300':'text-white/70'}`}>{s==='validated'?'✅ Validated':s==='waitlist'?'⏳ Waitlist':'⛔ Absent'}</button>
+                        ))}
+                      </span>
+                    </>
+                  )}
                   <button onClick={async()=>{ if(window.confirm(t('del_order_q'))){ try{ await deleteReg(r.id) }catch{ alert(t('del_need_policy')) } } }} className="text-red-400 hover:text-red-300"><Trash2 size={12}/></button>
                 </span>
               </div>
             ))}
           </div>
-          <div className="text-[11px] text-white/40 mt-1">Clique sur le statut pour changer : Validated → Waitlist → Absent. Le bracket utilise uniquement les Validated.</div>
+          <div className="text-[11px] text-white/40 mt-1">Clique sur le statut w e5tar : ✅ Validated / ⏳ Waitlist / ⛔ Absent. Le bracket utilise uniquement les Validated.</div>
         </div>
       )}
     </div>
