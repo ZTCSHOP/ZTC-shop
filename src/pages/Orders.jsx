@@ -50,7 +50,10 @@ function ProfileSettings(){
   const [busy, setBusy] = useState(false)
   const xp = xpForActivity({ orders: myOrders().length, regs: myRegs().length, teams: myTeams().length })
   const { level, cur, need } = levelProgress(xp)
-  const saveMsg = (e)=> setMsg(e?.message==='quota' ? (t('pm_quota')||'Image trop lourde — choisis une image plus petite') : t('teams_join_err'))
+  const saveMsg = (e)=> {
+    console.error('Profile update error:', e)
+    setMsg(e?.message==='quota' ? (t('pm_quota')||'Image trop lourde — choisis une image plus petite') : (e?.message || t('teams_join_err')))
+  }
   const imgToData = (f, maxW, maxH, cb)=>{
     if(!f || !f.type.startsWith('image/')){ setMsg(t('team_logo_bad')); return }
     if(f.size > 5*1024*1024){ setMsg(t('team_logo_big')); return }

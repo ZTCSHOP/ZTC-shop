@@ -148,27 +148,35 @@ export default function TeamDetail(){
   const onBannerFile = (f)=>{
     setInfo('')
     if(!f) return
-    if(!user?.cloud){ setInfo('⚠️ Connecte-toi avec ton compte email (pas admin local) pour partager la bannière à tous — sinon visible que sur ton PC'); }
     if(!f.type.startsWith('image/')){ setInfo(t('team_logo_bad')); return }
     if(f.size > 5*1024*1024){ setInfo(t('team_logo_big')); return }
     const rd = new FileReader()
     rd.onload = ()=>{
       const img = new Image()
-      img.onload = ()=>{
+      img.onload = async ()=>{
         const s = Math.min(1, 1280 / img.width, 400 / img.height)
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
         const dataUrl = c.toDataURL('image/jpeg', 0.78)
         try{
+          console.log('Uploading team banner to cloud:', name)
           await saveTeamAsset(name, dataUrl)
-          // repli local aussi (affichage instantané hors-ligne)
           setTeamExtras(name, { banner: dataUrl })
-          setExtras(getTeamExtras(name)); setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
+          setExtras(getTeamExtras(name))
+          setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
         }catch(e){
-          if(e.message==='need_sql_assets'){ setTeamExtras(name, { banner: dataUrl }); setExtras(getTeamExtras(name)); setInfo('✓ local — exécute supabase-team-assets.sql pour la partager à tous') }
-          else setInfo(t('teams_join_err'))
+          console.error('Team banner upload error:', e)
+          setTeamExtras(name, { banner: dataUrl })
+          setExtras(getTeamExtras(name))
+          setInfo('✓ (Local) ' + (e.message || 'Erreur cloud'))
         }
+      }
+      img.onerror = ()=> setInfo(t('team_logo_bad'))
+      img.src = rd.result
+    }
+    rd.readAsDataURL(f)
+  }
       }
       img.onerror = ()=> setInfo(t('team_logo_bad'))
       img.src = rd.result
