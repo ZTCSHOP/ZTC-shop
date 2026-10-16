@@ -38,6 +38,7 @@ export default function Teams(){
   const [msg, setMsg] = useState({}) // regId -> message texte
   const [info, setInfo] = useState('')
   const [filter, setFilter] = useState('all')
+  const [q, setQ] = useState('')
   const [params] = useSearchParams()
   const deepCreate = params.get('tab')==='create'
   const [tab, setTab] = useState(deepCreate ? 'create' : 'teams') // teams | ranking | create
@@ -62,15 +63,16 @@ export default function Teams(){
   const myReqs = myJoinReqs()
   const reqFor = (regId)=> myReqs.find(x=> x.regId===regId)
 
+  const ql = q.trim().toLowerCase()
+  const matchQ = (name, extra='')=> !ql || (name||'').toLowerCase().includes(ql) || (extra||'').toLowerCase().includes(ql)
+
   const visible = regs.filter(r=>{
-    if(filter==='all') return true
-    return r.tournament_id===filter
+    if(filter!=='all' && r.tournament_id!==filter) return false
+    return matchQ(r.team, r.captain)
   }).sort((a,b)=> new Date(b.date||0) - new Date(a.date||0))
 
   // Équipes standalone (créées directement) : visibles avec le filtre "all"
-  const standalone = filter==='all'
-    ? [...teams].sort((a,b)=> new Date(b.date||0) - new Date(a.date||0))
-    : []
+  const standalone = (filter==='all' ? [...teams] : []).filter(x=> matchQ(x.name, `${x.game||''} ${x.captain||''}`)).sort((a,b)=> new Date(b.date||0) - new Date(a.date||0))
 
   const doCreate = async (e)=>{
     e.preventDefault()
@@ -90,6 +92,7 @@ export default function Teams(){
   }
 
   const rmTeam = async (id)=>{
+    if(!user?.isAdmin) return // seul l'admin supprime
     if(!window.confirm(t('tc_delete_q'))) return
     try{ await deleteTeam(id); setInfo(t('tc_deleted')) }
     catch{ setInfo(t('teams_join_err')) }
@@ -231,7 +234,10 @@ export default function Teams(){
       </div>
       ) : (
       <>
-      <div className="mt-4 flex gap-2 flex-wrap">
+      <div className="mt-4">
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t('teams_search_ph')} className="w-full px-4 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
+      </div>
+      <div className="mt-3 flex gap-2 flex-wrap">
         <button onClick={()=>setFilter('all')} className={`text-xs px-3 py-1.5 rounded-full border ${filter==='all'?'bg-emerald-500 text-black font-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}>{t('teams_all')}</button>
         {tournaments.filter(x=>x.status!=='pending').map(x=>(
           <button key={x.id} onClick={()=>setFilter(x.id)} className={`text-xs px-3 py-1.5 rounded-full border ${filter===x.id?'bg-emerald-500 text-black font-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}>{x.title}</button>
@@ -296,7 +302,7 @@ export default function Teams(){
         })}
         {standalone.map(x=>{
           const mine = user && x.userId===user.id
-          const canDel = user && (user.isAdmin || mine)
+          const canDel = user?.isAdmin // seul l'admin supprime
           return (
             <div key={'st-'+x.id} className="rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/25 p-4">
               <div className="flex items-center gap-2">
