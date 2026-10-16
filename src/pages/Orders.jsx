@@ -1,9 +1,105 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Crown, Check, Shield, Coins, Copy, Plus } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Crown, Check, Shield, Coins, Copy, Plus, Trophy, Settings, Camera } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { D17_NUMBER } from './Checkout'
+import { xpForActivity, levelProgress } from '../lib/level'
+
+function useHashScroll(){
+  const { hash } = useLocation()
+  useEffect(()=>{
+    if(!hash) return
+    const t = setTimeout(()=>{ document.getElementById(hash.slice(1))?.scrollIntoView({ behavior:'smooth', block:'start' }) }, 250)
+    return ()=> clearTimeout(t)
+  }, [hash])
+}
+
+function MyTournaments(){
+  const { myRegs, tournaments } = useAuth()
+  const { t } = useLang()
+  const regs = myRegs()
+  return (
+    <div id="mytournaments" className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 scroll-mt-24">
+      <h2 className="font-black flex items-center gap-2"><Trophy size={17} className="text-amber-400"/> {t('pm_mytournaments')||'Mes Tournois'} ({regs.length})</h2>
+      {regs.length===0
+        ? <div className="text-xs text-white/50 mt-2">{t('team_my_empty')} <Link to="/tournaments" className="text-amber-300 font-bold">→ {t('tournaments')}</Link></div>
+        : <div className="mt-3 grid sm:grid-cols-2 gap-2">
+            {regs.map(r=>{
+              const tr = tournaments.find(x=>x.id===r.tournament_id)
+              return (
+                <Link key={r.id} to={tr ? `/tournaments/${tr.id}` : '/tournaments'} className="rounded-2xl bg-black/30 border border-white/10 p-3 hover:border-amber-500/50">
+                  <div className="font-bold text-sm truncate">{tr?.title || r.tournament_id}</div>
+                  <div className="text-[11px] text-white/50 mt-0.5">🛡️ {r.team} • {tr?.status||''} {tr?.prize?`• 🏆 ${tr.prize}`:''}</div>
+                </Link>
+              )
+            })}
+          </div>}
+    </div>
+  )
+}
+
+function ProfileSettings(){
+  const { user, updateProfile, myOrders, myRegs, myTeams } = useAuth()
+  const { t } = useLang()
+  const [name, setName] = useState(user.name||'')
+  const [phone, setPhone] = useState(user.phone||myOrders()[0]?.customer?.phone||'')
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const xp = xpForActivity({ orders: myOrders().length, regs: myRegs().length, teams: myTeams().length })
+  const { level, cur, need } = levelProgress(xp)
+  const onAvatar = (f)=>{
+    setMsg('')
+    if(!f || !f.type.startsWith('image/')){ setMsg(t('team_logo_bad')); return }
+    if(f.size > 2*1024*1024){ setMsg(t('team_logo_big')); return }
+    const rd = new FileReader()
+    rd.onload = ()=>{
+      const img = new Image()
+      img.onload = async ()=>{
+        const s = Math.min(1, 128 / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        try{ await updateProfile({ avatar: c.toDataURL('image/jpeg', 0.82) }); setMsg('✓') }catch{ setMsg(t('teams_join_err')) }
+      }
+      img.src = rd.result
+    }
+    rd.readAsDataURL(f)
+  }
+  const save = async (e)=>{
+    e.preventDefault(); setMsg(''); setBusy(true)
+    try{ await updateProfile({ name, phone }); setMsg('✓ ' + (t('pm_saved')||'Enregistré')) }catch{ setMsg(t('teams_join_err')) }
+    finally{ setBusy(false) }
+  }
+  return (
+    <div id="settings" className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 scroll-mt-24">
+      <h2 className="font-black flex items-center gap-2"><Settings size={17} className="text-white/70"/> {t('pm_settings')||'Paramètres'}</h2>
+      <div className="mt-3 flex items-center gap-4">
+        <label className="cursor-pointer relative shrink-0">
+          {user.avatar
+            ? <img src={user.avatar} alt="" className="w-16 h-16 rounded-full object-cover border border-white/20"/>
+            : <div className="w-16 h-16 rounded-full bg-lime-600 flex items-center justify-center font-black text-2xl text-black">{(user.name||user.email||'?')[0].toUpperCase()}</div>}
+          <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center"><Camera size={13}/></span>
+          <input type="file" accept="image/*" className="hidden" onChange={e=>{ onAvatar(e.target.files?.[0]); e.target.value='' }}/>
+        </label>
+        <div className="flex-1">
+          <div className="flex items-center justify-between text-xs"><span className="font-black">Niveau {level}</span><span className="text-white/50">{cur} / {need} XP</span></div>
+          <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{ width: `${Math.min(100, Math.round((cur/need)*100))}%` }}/>
+          </div>
+          <div className="text-[11px] text-white/40 mt-1">+100 XP / commande • +50 XP / tournoi • +30 XP / équipe</div>
+        </div>
+      </div>
+      <form onSubmit={save} className="mt-3 grid sm:grid-cols-2 gap-2">
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder={t('name_ph')} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
+        <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder={t('phone_ph')} className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
+        <div className="text-xs text-white/50 px-1 truncate self-center">{user.email||''}</div>
+        <button disabled={busy} className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-black disabled:opacity-60">{busy ? '...' : (t('pm_save')||'Enregistrer')}</button>
+      </form>
+      {msg && <div className="mt-2 text-xs text-emerald-300">{msg}</div>}
+    </div>
+  )
+}
 
 function VipCard(){
   const { user, isVipActive, myVipSub, createVipSub, VIP_PRICE, VIP_DISCOUNT } = useAuth()
@@ -52,7 +148,7 @@ function MyTeam(){
   const regs = myRegs()
   const trName = (id)=> (tournaments.find(x=>x.id===id)?.title)||id
   return (
-    <div className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5">
+    <div id="myteam" className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 scroll-mt-24">
       <h2 className="font-black flex items-center gap-2"><Shield size={17} className="text-emerald-400"/> {t('team_my')}</h2>
       {(mine.length===0 && regs.length===0)
         ? <div className="text-xs text-white/50 mt-2">{t('team_my_empty')} <Link to="/teams" className="text-emerald-300 font-bold">→ {t('teams')}</Link></div>
@@ -93,7 +189,7 @@ function Wallet(){
     finally{ setBusy(false) }
   }
   return (
-    <div className="mt-6 rounded-3xl bg-gradient-to-br from-amber-500/15 to-yellow-600/5 border border-amber-500/30 p-5">
+    <div id="wallet" className="mt-6 rounded-3xl bg-gradient-to-br from-amber-500/15 to-yellow-600/5 border border-amber-500/30 p-5 scroll-mt-24">
       <div className="flex items-center gap-3">
         <span className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 text-black flex items-center justify-center"><Coins size={22}/></span>
         <div className="flex-1">
@@ -133,6 +229,7 @@ export default function Orders(){
   const [retrying, setRetrying] = useState(null)
   const [retryMsg, setRetryMsg] = useState('')
   useEffect(()=>{ try{ refreshMyBalance() }catch{} }, [])
+  useHashScroll()
   if(!user) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('login_required')}<br/><Link to="/login" className="inline-block mt-4 px-6 py-3 rounded-xl bg-lime-400 text-black font-black">{t('login')}</Link></div>
   const list = myOrders()
   const badge = (s)=>{
@@ -147,8 +244,10 @@ export default function Orders(){
       <p className="text-white/60 text-sm mt-1">{t('no_orders_d')}</p>
       <Link to="/catalog" className="inline-block mt-4 px-6 py-3 rounded-xl bg-lime-400 text-black font-black">{t('go_catalog')}</Link>
       <div className="text-left mt-6"><VipCard /></div>
+      <div className="text-left"><MyTournaments /></div>
       <div className="text-left"><MyTeam /></div>
       <div className="text-left"><Wallet /></div>
+      <div className="text-left"><ProfileSettings /></div>
     </div>
   )
   return (
@@ -156,9 +255,11 @@ export default function Orders(){
       <h1 className="font-display text-4xl font-bold uppercase tracking-wide">{t('profile')}</h1>
       <p className="text-sm text-white/50">{user.provider}{user.email? ` • ${user.email}`: user.principal? ` • ${user.principal}`:''}</p>
       <VipCard />
+      <MyTournaments />
       <MyTeam />
       <Wallet />
-      <h2 className="text-lg font-black mt-6">{t('my_orders')}</h2>
+      <ProfileSettings />
+      <h2 id="orders" className="text-lg font-black mt-6 scroll-mt-24">{t('my_orders')}</h2>
       {!user.cloud && <p className="mt-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5">⚠️ Compte local : tes commandes restent sur cet appareil. Crée un compte email pour les retrouver partout et que le support les voie.</p>}
       {retryMsg && <p className="mt-2 text-xs text-white/70">{retryMsg}</p>}
       <div className="mt-6 space-y-3">
