@@ -42,7 +42,26 @@ function saveProfile(u){
 
 // Extras profil stockés localement (avatar/bannière/tél/naissance/sexe) —
 // réinjectés quand le user cloud est reconstruit depuis Supabase au refresh.
+// Clé dédiée par user id : survit au logout (ztc_user est écrasé à null au logout).
+const EXTRAS_KEY = 'ztc_profile_extras'
+const readExtrasById = (id)=>{
+  if(!id) return {}
+  try{
+    const all = JSON.parse(localStorage.getItem(EXTRAS_KEY)||'{}')
+    return all[id] || {}
+  }catch{ return {} }
+}
+const writeExtrasById = (id, patch)=>{
+  if(!id) return
+  try{
+    const all = JSON.parse(localStorage.getItem(EXTRAS_KEY)||'{}')
+    all[id] = { ...(all[id]||{}), ...patch }
+    localStorage.setItem(EXTRAS_KEY, JSON.stringify(all))
+  }catch{}
+}
 function readLocalExtras(id){
+  const byId = readExtrasById(id)
+  if(Object.keys(byId).length) return byId
   try{
     const u = JSON.parse(localStorage.getItem('ztc_user')||'null')
     if(u && u.id===id){
@@ -52,6 +71,8 @@ function readLocalExtras(id){
   }catch{}
   return {}
 }
+// Fusionne les extras persistés dans un user frais (tous les logins)
+const withExtras = (u)=> ({ ...u, ...readLocalExtras(u.id) })
 
 // ---------- Mapping cloud <-> app ----------
 const mapCloudOrder = (r)=> ({
@@ -501,7 +522,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       return u
     }catch{
       const email = (sbUser.email||'').toLowerCase()
-      const u = { id: sbUser.id, cloud: true, name: email.split('@')[0]||'Client', email, provider:'email', principal: 'sb-'+String(sbUser.id).slice(0,8), isAdmin: isOwnerEmail(email), createdAt: new Date().toISOString() }
+      const u = { id: sbUser.id, cloud: true, name: email.split('@')[0]||'Client', email, provider:'email', principal: 'sb-'+String(sbUser.id).slice(0,8), isAdmin: isOwnerEmail(email), createdAt: new Date().toISOString(), ...readLocalExtras(sbUser.id) }
       sbUserId.current = sbUser.id
       setUser(u); return u
     }
@@ -553,7 +574,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   // Legacy Internet Identity (local)
   const login = (asAdmin=false)=>{
     const u = { id: genId('ii'), name: asAdmin?'Admin':'Joueur', email:'', provider:'Internet Identity', principal: genPrincipal(), isAdmin: asAdmin, createdAt: new Date().toISOString() }
-    setUser(u); saveProfile(u); return u
+    setUser(withExtras(u)); saveProfile(withExtras(u)); return withExtras(u)
   }
 
   // ---- Email : cloud si configuré, sinon local ----
@@ -573,7 +594,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const u = { id: genId('email'), name: name||email.split('@')[0], email, passwordHash: hashPw(password), provider:'email', principal: genPrincipal(), isAdmin: isOwnerEmail(email), createdAt: new Date().toISOString() }
     users.push(u); localStorage.setItem('ztc_users', JSON.stringify(users))
     const { passwordHash, ...safe } = u
-    setUser(safe); return safe
+    setUser(withExtras(safe)); return withExtras(safe)
   }
   const loginWithEmail = async (email, password)=>{
     email = email.trim().toLowerCase()
@@ -591,7 +612,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(found.passwordHash !== hashPw(password)) throw new Error('Mot de passe incorrect')
     const { passwordHash, ...safe } = found
     if(isOwnerEmail(email)) safe.isAdmin = true
-    setUser(safe); saveProfile(safe); return safe
+    setUser(withExtras(safe)); saveProfile(withExtras(safe)); return withExtras(safe)
   }
 
   // ---- Discord / Facebook (démo locale ; commandes locales) ----
@@ -605,7 +626,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       return null
     }
     const u = { id: genId('discord'), name: 'Joueur Discord', email:'', provider:'discord', principal: genPrincipal(), createdAt: new Date().toISOString() }
-    setUser(u); saveProfile(u); return u
+    setUser(withExtras(u)); saveProfile(withExtras(u)); return withExtras(u)
   }
   const loginWithFacebook = ()=>{
     const appId = import.meta.env.VITE_FACEBOOK_APP_ID
@@ -616,7 +637,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       return null
     }
     const u = { id: genId('fb'), name: 'Joueur Facebook', email:'', provider:'facebook', principal: genPrincipal(), createdAt: new Date().toISOString() }
-    setUser(u); saveProfile(u); return u
+    setUser(withExtras(u)); saveProfile(withExtras(u)); return withExtras(u)
   }
 
   // ---- Admin propriétaire ----
@@ -639,14 +660,14 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const expectedPass = import.meta.env.VITE_ADMIN_PASSWORD || 'ztc2026admin'
     if(email === expectedEmail && password === expectedPass){
       const u = { id: 'admin_owner', name: 'Admin ZTC', email, provider:'email', principal: genPrincipal(), isAdmin: true, createdAt: new Date().toISOString() }
-      setUser(u); saveProfile(u); return u
+      setUser(withExtras(u)); saveProfile(withExtras(u)); return withExtras(u)
     }
     const users = readUsers()
     const found = users.find(u=> u.email===email)
     if(found && found.passwordHash === hashPw(password) && (isOwnerEmail(email) || found.isAdmin)){
       const { passwordHash, ...safe } = found
       safe.isAdmin = true
-      setUser(safe); saveProfile(safe); return safe
+      setUser(withExtras(safe)); saveProfile(withExtras(safe)); return withExtras(safe)
     }
     if(email !== expectedEmail && !found) throw new Error('Email admin inconnu')
     throw new Error('Mot de passe admin incorrect')
@@ -669,6 +690,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(birthdate!==undefined) next.birthdate = birthdate
     if(gender!==undefined) next.gender = gender
     setUser(next)
+    writeExtrasById(user.id, { ...(next.avatar?{avatar:next.avatar}:{}), ...(next.banner?{banner:next.banner}:{}), ...(next.phone?{phone:next.phone}:{}), ...(next.birthdate?{birthdate:next.birthdate}:{}), ...(next.gender?{gender:next.gender}:{}) })
     try{
       localStorage.setItem('ztc_user', JSON.stringify(next))
       const users = readUsers().map(u=> u.id===user.id ? { ...u, name: next.name||u.name, email: next.email||u.email } : u)
