@@ -54,21 +54,34 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
   .soc-jump, .soc-sway, .soc-pulse, .soc-wiggle, .soc-insta-bg { animation: none !important; }
 }
 
-/* Animations sociales infinies (wobble/float) */
-@keyframes soc-float { 
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+/* Animations sociales infinies : sauts, rotations, pulsations */
+@keyframes soc-jump {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-16px) rotate(-4deg); }
+  55% { transform: translateY(0) rotate(0deg); }
+  70% { transform: translateY(-7px) rotate(3deg); }
+  85% { transform: translateY(0) rotate(0deg); }
 }
-@keyframes soc-wobble {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-8deg); }
-  75% { transform: rotate(8deg); }
+@keyframes soc-spin-sway {
+  0%, 100% { transform: translateY(0) rotate(-14deg); }
+  50% { transform: translateY(-10px) rotate(14deg); }
 }
-.soc-jump { animation: soc-float 3s ease-in-out infinite; }
-.soc-sway { animation: soc-wobble 4s ease-in-out infinite; }
-.soc-pulse { animation: soc-pulse 2s ease-in-out infinite; }
-.soc-wiggle { animation: soc-wobble 5s ease-in-out infinite; }
-.soc-insta-bg { background: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7); background-size: 220% 220%; animation: insta-shift 4s ease infinite, soc-sway 2.6s ease-in-out infinite; }
+@keyframes soc-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,0,0,.55); }
+  50% { transform: scale(1.18); box-shadow: 0 0 22px 4px rgba(255,0,0,.65); }
+}
+@keyframes soc-wiggle {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  20% { transform: rotate(-16deg) translateY(-4px); }
+  40% { transform: rotate(14deg) translateY(-8px); }
+  60% { transform: rotate(-10deg) translateY(-4px); }
+  80% { transform: rotate(8deg) translateY(-2px); }
+}
+.soc-jump { animation: soc-jump 1.6s ease-in-out infinite; }
+.soc-sway { animation: soc-spin-sway 2.8s ease-in-out infinite; }
+.soc-pulse { animation: soc-pulse 1.8s ease-in-out infinite; }
+.soc-wiggle { animation: soc-wiggle 2.2s ease-in-out infinite; }
+.soc-insta-bg { background: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7); background-size: 220% 220%; animation: insta-shift 4s ease infinite, soc-spin-sway 2.8s ease-in-out infinite; }
 @keyframes insta-shift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
 /* Apparition en fondu */
