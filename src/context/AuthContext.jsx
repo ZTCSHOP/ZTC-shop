@@ -385,6 +385,9 @@ export function AuthProvider({ children }){
   const [joinReqs, setJoinReqs] = useState(()=>{
     try{ return JSON.parse(localStorage.getItem('ztc_join_reqs')||'[]')}catch{return []}
   })
+  // Bannières équipes partagées (cloud, visibles par tous) — clé = nom normalisé
+  const [teamAssets, setTeamAssets] = useState(()=>{ try{ return JSON.parse(localStorage.getItem('ztc_team_assets')||'{}') }catch{return {}} })
+  useEffect(()=>{ try{ localStorage.setItem('ztc_team_assets', JSON.stringify(teamAssets)) }catch{} }, [teamAssets])
   useEffect(()=> localStorage.setItem('ztc_tournaments', JSON.stringify(tournaments.filter(x=>!x.cloud))), [tournaments])
   useEffect(()=> localStorage.setItem('ztc_regs', JSON.stringify(regs.filter(x=>!x.cloud))), [regs])
 useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>!x.cloud))), [teams])
@@ -439,6 +442,32 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       })
     }catch(e){ console.warn('cloud teams:', e.message) }
   }, [])
+  const refreshTeamAssets = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('team_assets').select('*').limit(500)
+      if(error) throw error
+      if(data){
+        const obj = {}
+        data.forEach(r=>{ if(r.team_name) obj[String(r.team_name).toLowerCase()] = r.banner || '' })
+        setTeamAssets(prev=> ({ ...prev, ...obj }))
+      }
+    }catch(e){ console.warn('cloud team assets:', e.message) }
+  }, [])
+  const saveTeamAsset = async (teamName, banner)=>{
+    const key = String(teamName||'').trim().toLowerCase()
+    if(!key) throw new Error('team')
+    setTeamAssets(prev=> ({ ...prev, [key]: banner||'' }))
+    if(cloud && user?.cloud){
+      try{
+        const { error } = await supabase.from('team_assets').upsert(
+          { team_name: key, banner: banner||null, updated_by: sbUserId.current || user.id },
+          { onConflict: 'team_name' })
+        if(error) throw error
+      }catch(e){ console.warn('cloud save team asset:', e.message); throw new Error('need_sql_assets') }
+    }
+    return banner
+  }
   const refreshJoinReqs = useCallback(async ()=>{    if(!cloud) return
     try{
       const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(500)
@@ -469,8 +498,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }, [])
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -496,6 +525,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vip_subs' }, ()=> refreshVipSubs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recharges' }, ()=> refreshRecharges())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=> refreshTeamAssets())
       .subscribe()
     const onFocus = ()=> refreshAll()
     window.addEventListener('focus', onFocus)
@@ -1204,6 +1234,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, teams, createTeam, deleteTeam, updateProfile, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

@@ -12,7 +12,7 @@ const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, saveTeamAsset } = useAuth()
   const accounts = allAccounts()
   const { t } = useLang()
   const nav = useNavigate()
@@ -52,7 +52,8 @@ export default function TeamDetail(){
   const about = extras.about || solo?.description || ''
   const location = extras.location || 'Tunisia'
   const website = extras.website || ''
-  const banner = extras.banner || ''
+  // Bannière partagée (cloud, visible par tous) avec repli local
+  const banner = teamAssets[name.toLowerCase()] || extras.banner || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
 
   // ---- Stats agrégées ----
@@ -155,8 +156,16 @@ export default function TeamDetail(){
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-        setTeamExtras(name, { banner: c.toDataURL('image/jpeg', 0.78) })
-        setExtras(getTeamExtras(name)); setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
+        const dataUrl = c.toDataURL('image/jpeg', 0.78)
+        try{
+          await saveTeamAsset(name, dataUrl)
+          // repli local aussi (affichage instantané hors-ligne)
+          setTeamExtras(name, { banner: dataUrl })
+          setExtras(getTeamExtras(name)); setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
+        }catch(e){
+          if(e.message==='need_sql_assets'){ setTeamExtras(name, { banner: dataUrl }); setExtras(getTeamExtras(name)); setInfo('✓ local — exécute supabase-team-assets.sql pour la partager à tous') }
+          else setInfo(t('teams_join_err'))
+        }
       }
       img.onerror = ()=> setInfo(t('team_logo_bad'))
       img.src = rd.result
@@ -189,7 +198,7 @@ export default function TeamDetail(){
             <label className="px-3 py-1.5 rounded-xl bg-black/60 border border-white/20 text-xs font-bold hover:bg-black/80 cursor-pointer">⬆ Upload
               <input type="file" accept="image/*" className="hidden" onChange={e=>{ onBannerFile(e.target.files?.[0]); e.target.value='' }}/>
             </label>
-            {banner && <button onClick={()=>{ setTeamExtras(name, { banner: '' }); setExtras(getTeamExtras(name)); setInfo('✓') }} className="px-3 py-1.5 rounded-xl bg-black/60 border border-red-500/60 text-red-400 text-xs font-bold hover:bg-black/80">🗑 Remove</button>}
+            {banner && <button onClick={async()=>{ try{ await saveTeamAsset(name, '') }catch{} setTeamExtras(name, { banner: '' }); setExtras(getTeamExtras(name)); setInfo('✓') }} className="px-3 py-1.5 rounded-xl bg-black/60 border border-red-500/60 text-red-400 text-xs font-bold hover:bg-black/80">🗑 Remove</button>}
           </div>
         )}
       </div>

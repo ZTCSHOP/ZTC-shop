@@ -81,6 +81,20 @@ export default function Navbar({ onBurger }){
           <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher…" className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-lime-400/60 text-sm"/>
         </form>
       </div>
+      {/* Accès rapide mobile : Équipes + Tournois + Recrutement (comme sur PC) */}
+      <div className="sm:hidden border-t border-white/10">
+        <div className="px-4 py-2 flex gap-2 overflow-x-auto">
+          <Link to="/teams" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black whitespace-nowrap">
+            <Shield size={14}/> {t('teams')}
+          </Link>
+          <Link to="/tournaments" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black whitespace-nowrap">
+            <Trophy size={14}/> {t('tournaments')}
+          </Link>
+          <Link to="/recrutement" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 text-red-300 text-xs font-black whitespace-nowrap">
+            <Gamepad2 size={14}/> {t('recrutement')}
+          </Link>
+        </div>
+      </div>
     </header>
   )
 }
