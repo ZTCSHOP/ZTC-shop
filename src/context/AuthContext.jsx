@@ -1149,7 +1149,14 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(existing){
       setJoinReqs(prev=> prev.map(x=> x.id===existing.id ? { ...x, ...req, id: existing.id } : x))
       if(cloud){
-        try{ await supabase.from('tournament_join_requests').update({ status: 'pending', message: req.message }).eq('id', existing.id) }catch{}
+        try{
+          const { error } = await supabase.from('tournament_join_requests').update({ status: 'pending', message: req.message, user_name: req.userName, user_email: req.userEmail }).eq('id', existing.id)
+          if(error && !String(error.message||'').includes('user_name')){
+            await supabase.from('tournament_join_requests').update({ status: 'pending', message: req.message }).eq('id', existing.id)
+          }
+        }catch{
+          try{ await supabase.from('tournament_join_requests').update({ status: 'pending', message: req.message }).eq('id', existing.id) }catch{}
+        }
         refreshJoinReqs()
       }
       return { ...req, id: existing.id }

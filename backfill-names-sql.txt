@@ -1,0 +1,23 @@
+-- ════════════════════════════════════════════════════════════════════
+--  BACKFILL DES NOMS — à exécuter UNE FOIS dans Supabase → SQL Editor
+-- ════════════════════════════════════════════════════════════════════
+--  Les anciennes demandes de team ont été créées AVANT les colonnes
+--  user_name / user_email → elles affichaient l'ID (uuid) au lieu du nom.
+--  Ce script remplit le nom pour TOUTES les anciennes demandes :
+--    - si le joueur a un pseudo dans profile_assets → on prend son pseudo
+--    - sinon → on prend la partie avant "@" de son email de connexion
+--  Résultat : plus aucun ID affiché, et visible par tout le monde.
+-- ════════════════════════════════════════════════════════════════════
+
+update tournament_join_requests j
+set user_name = coalesce(nullif(pa.name, ''), split_part(u.email, '@', 1))
+from auth.users u
+left join profile_assets pa on pa.id = u.id
+where j.user_id = u.id
+  and (j.user_name is null or j.user_name = '');
+
+-- Demande à rejoindre sans compte cloud correspondant (comptes locaux) :
+-- rien à faire, il n'y a pas d'email côté serveur pour eux.
+
+-- Vérifie le résultat (les lignes ci-dessous doivent avoir un user_name) :
+-- select id, user_id, user_name, status from tournament_join_requests order by created_at desc;
