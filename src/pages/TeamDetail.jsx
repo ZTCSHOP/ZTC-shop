@@ -177,12 +177,6 @@ export default function TeamDetail(){
     }
     rd.readAsDataURL(f)
   }
-      }
-      img.onerror = ()=> setInfo(t('team_logo_bad'))
-      img.src = rd.result
-    }
-    rd.readAsDataURL(f)
-  }
 
   const copyInvite = async ()=>{
     try{ await navigator.clipboard.writeText(window.location.href); setInfo(t('team_link_copied')||'Lien copié ! Partage-le pour recruter.') }
