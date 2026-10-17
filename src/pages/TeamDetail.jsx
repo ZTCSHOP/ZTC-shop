@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Shield, Trophy, Users, Send, Check, Swords, Pencil, MapPin, Calendar, Globe, Plus } from 'lucide-react'
+import { Shield, Trophy, Users, Send, Check, Swords, Pencil, MapPin, Calendar, Globe, Plus, ExternalLink } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -28,6 +28,9 @@ export default function TeamDetail(){
   const [editInfos, setEditInfos] = useState(false)
   const [locDraft, setLocDraft] = useState('')
   const [webDraft, setWebDraft] = useState('')
+  const [discDraft, setDiscDraft] = useState('')
+  const [ytDraft, setYtDraft] = useState('')
+  const [igDraft, setIgDraft] = useState('')
   useEffect(()=>{
     setExtras(getTeamExtras(name))
     const h = ()=> setExtras(getTeamExtras(name))
@@ -53,6 +56,9 @@ export default function TeamDetail(){
   const about = extras.about || solo?.description || ''
   const location = extras.location || 'Tunisia'
   const website = extras.website || ''
+  const discord = extras.discord || ''
+  const youtube = extras.youtube || ''
+  const instagram = extras.instagram || ''
   // Bannière partagée (cloud, visible par tous) avec repli local
   const banner = teamAssets[name.toLowerCase()] || extras.banner || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
@@ -142,7 +148,7 @@ export default function TeamDetail(){
     }catch{ setInfo(t('teams_join_err')) }
   }
   const saveInfos = ()=>{
-    setTeamExtras(name, { location: locDraft||'Tunisia', website: webDraft })
+    setTeamExtras(name, { location: locDraft||'Tunisia', website: webDraft, discord: discDraft, youtube: ytDraft, instagram: igDraft })
     setExtras(getTeamExtras(name)); setEditInfos(false); setInfo('✓')
   }
   const onBannerFile = (f)=>{
@@ -250,19 +256,25 @@ export default function TeamDetail(){
           <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4">
             <div className="flex items-center justify-between">
               <div className="font-black text-sm">{t('team_infos')||"Infos de l'équipe"}</div>
-              {isOwner && <button onClick={()=>{ setLocDraft(location); setWebDraft(website); setEditInfos(!editInfos) }} className="text-white/40 hover:text-white"><Pencil size={13}/></button>}
+              {isOwner && <button onClick={()=>{ setLocDraft(location); setWebDraft(website); setDiscDraft(discord); setYtDraft(youtube); setIgDraft(instagram); setEditInfos(!editInfos) }} className="text-white/40 hover:text-white"><Pencil size={13}/></button>}
             </div>
             {editInfos ? (
               <div className="mt-3 space-y-2">
                 <input value={locDraft} onChange={e=>setLocDraft(e.target.value)} placeholder="Tunisia" className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
                 <input value={webDraft} onChange={e=>setWebDraft(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <input value={discDraft} onChange={e=>setDiscDraft(e.target.value)} placeholder="discord.gg/..." className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <input value={ytDraft} onChange={e=>setYtDraft(e.target.value)} placeholder="youtube.com/..." className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <input value={igDraft} onChange={e=>setIgDraft(e.target.value)} placeholder="instagram.com/..." className="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm"/>
                 <button onClick={saveInfos} className="w-full px-3 py-2 rounded-xl bg-emerald-500 text-black text-sm font-black">✓</button>
               </div>
             ) : (
               <div className="mt-3 space-y-2.5 text-sm">
                 <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><MapPin size={15} className="text-rose-400 shrink-0"/><div><div className="text-[10px] text-white/40 font-black uppercase">Localisation</div><div className="font-bold">{location}</div></div></div>
                 <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><Calendar size={15} className="text-rose-400 shrink-0"/><div><div className="text-[10px] text-white/40 font-black uppercase">Fondée</div><div className="font-bold">{founded ? new Date(founded).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—'}</div></div></div>
-                <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><Globe size={15} className="text-rose-400 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">Site web</div><div className="font-bold truncate">{website ? <a href={website} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{website}</a> : 'Aucun site web fourni'}</div></div></div>
+                <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><Globe size={15} className="text-rose-400 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">{t('team_web')||'Site web'}</div><div className="font-bold truncate">{website ? <a href={website} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{website}</a> : 'Aucun site web fourni'}</div></div></div>
+                {discord && <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><ExternalLink size={15} className="text-blue-500 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">{t('team_discord')||'Discord'}</div><div className="font-bold truncate"><a href={discord.startsWith('http')?discord:'https://'+discord} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{discord}</a></div></div></div>}
+                {youtube && <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><ExternalLink size={15} className="text-red-500 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">{t('team_youtube')||'YouTube'}</div><div className="font-bold truncate"><a href={youtube.startsWith('http')?youtube:'https://'+youtube} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{youtube}</a></div></div></div>}
+                {instagram && <div className="rounded-xl bg-black/30 border border-white/10 p-3 flex items-center gap-2.5"><ExternalLink size={15} className="text-pink-500 shrink-0"/><div className="min-w-0"><div className="text-[10px] text-white/40 font-black uppercase">{t('team_instagram')||'Instagram'}</div><div className="font-bold truncate"><a href={instagram.startsWith('http')?instagram:'https://'+instagram} target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">{instagram}</a></div></div></div>}
               </div>
             )}
           </div>
