@@ -153,7 +153,7 @@ export default function TournamentManager({ tr }){
             </div>
             {regs.map(r=>(
               <div key={r.id} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center px-3 py-2 border-t border-white/5">
-                <span className="font-bold truncate">{r.team}<span className="block sm:hidden text-white/40 font-normal">{r.captain} • 📞 {r.phone||'—'}</span></span>
+                <span className="font-bold truncate">{r.team}{r.checkedIn && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 align-middle">✔ {t('tr_checked')}</span>}<span className="block sm:hidden text-white/40 font-normal">{r.captain} • 📞 {r.phone||'—'}</span></span>
                 <span className="hidden sm:block text-white/60 truncate">{r.captain} ({r.game_id||tr.game})</span>
                 <span className="hidden sm:block text-emerald-300 font-bold truncate">📞 {r.phone||'—'}</span>
                 <span className="flex items-center gap-1 relative">

@@ -1,0 +1,25 @@
+-- ════════════════════════════════════════════════════════════════════
+--  ZTC SHOP — CHECK-IN ÉQUIPE (confirmation "prêt à jouer")
+--  À exécuter dans : Supabase > SQL Editor > New query > Run
+-- ════════════════════════════════════════════════════════════════════
+--  Ajoute au tournoi un bouton "Confirmer présence" pour chaque équipe
+--  inscrite : le capitaine confirme que son équipe est prête, et tout
+--  le monde voit le statut (Confirmé ✔ / En attente ⏳).
+-- ════════════════════════════════════════════════════════════════════
+
+-- 1) Colonnes de check-in sur les inscriptions de tournoi
+alter table public.tournament_regs add column if not exists checked_in boolean not null default false;
+alter table public.tournament_regs add column if not exists checked_in_at timestamptz;
+
+-- 2) Le capitaine (propriétaire de l'inscription) peut modifier la sienne,
+--    l'admin peut tout modifier — nécessaire pour pouvoir se check-in
+drop policy if exists "regs_update_own_or_admin" on public.tournament_regs;
+create policy "regs_update_own_or_admin" on public.tournament_regs
+  for update
+  using (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+-- 3) Lecture publique (tout le monde voit les participants + leur statut)
+drop policy if exists "regs_public_read" on public.tournament_regs;
+create policy "regs_public_read" on public.tournament_regs
+  for select using (true);

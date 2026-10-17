@@ -10,7 +10,7 @@ import { ytId } from '../lib/video'
 export default function TournamentDetail(){
   const { id } = useParams()
   const nav = useNavigate()
-  const { tournaments, regsFor, myRegs, registerMyTeam, myTeams, saveTournament, user } = useAuth()
+  const { tournaments, regsFor, myRegs, registerMyTeam, myTeams, saveTournament, user, checkInTeam } = useAuth()
   const { t } = useLang()
   const tr = tournaments.find(x=> x.id===id)
   const [error, setError] = useState('')
@@ -18,6 +18,8 @@ export default function TournamentDetail(){
   const [saving, setSaving] = useState(false)
   const [teamId, setTeamId] = useState(null)
   const [flash, setFlash] = useState(false)
+  const [ckMsg, setCkMsg] = useState('')
+  const [ckBusy, setCkBusy] = useState('')
 
   if(!tr) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('no_result')} <Link to="/tournaments" className="text-amber-300">← {t('tournaments')}</Link></div>
 
@@ -34,6 +36,16 @@ export default function TournamentDetail(){
     document.getElementById('tournament-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     setFlash(true)
     setTimeout(()=>setFlash(false), 1900)
+  }
+
+  const doCheckIn = async (regId)=>{
+    setCkMsg(''); setCkBusy(regId)
+    try{
+      await checkInTeam(regId)
+      setCkMsg(t('tr_checkin_done'))
+    }catch(e){
+      setCkMsg(e.message==='need_sql' ? t('tr_checkin_sql') : (e.message==='login' ? t('tr_login_needed') : (e.message||'')))
+    }finally{ setCkBusy('') }
   }
 
   const submitOneClick = async ()=>{
@@ -112,10 +124,35 @@ export default function TournamentDetail(){
           <h2 className="font-black mb-2">{t('tr_rules')}</h2>
           <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{tr.rules||'—'}</p>
           <h2 className="font-black mt-6 mb-2">{t('tr_participants')} ({regs.length})</h2>
-          <div className="flex flex-wrap gap-2">
+          {regs.length>0 && (
+            <div className="text-xs text-emerald-300 font-bold mb-2">✅ {regs.filter(r=>r.checkedIn).length}/{regs.length} {t('tr_checked_count')}</div>
+          )}
+          <div className="space-y-2">
             {regs.length===0 && <span className="text-sm text-white/40">—</span>}
-            {regs.map(r=> <Link key={r.id} to={`/teams/${encodeURIComponent(r.team)}`} className="text-xs px-2 py-1.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 hover:border-amber-500">{r.logo ? <img src={r.logo} alt="" className="w-5 h-5 rounded-full object-cover bg-white"/> : '🛡️'} {r.team}</Link>)}
+            {regs.map(r=>{
+              const isMine = user && (r.userId===user.id || (mine && mine.id===r.id))
+              return (
+                <div key={r.id} className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                  <Link to={`/teams/${encodeURIComponent(r.team)}`} className="flex items-center gap-1.5 font-bold text-sm hover:text-amber-300 min-w-0">
+                    {r.logo ? <img src={r.logo} alt="" className="w-6 h-6 rounded-full object-cover bg-white shrink-0"/> : <span className="shrink-0">🛡️</span>}
+                    <span className="truncate">{r.team}</span>
+                  </Link>
+                  <span className="ml-auto flex items-center gap-2 shrink-0">
+                    {r.checkedIn
+                      ? <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black">✔ {t('tr_checked')}</span>
+                      : <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 font-black">⏳ {t('tr_waiting')}</span>}
+                    {isMine && !r.checkedIn && tr.status!=='done' && (
+                      <button onClick={()=>doCheckIn(r.id)} disabled={ckBusy===r.id} className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black disabled:opacity-60">{ckBusy===r.id ? '...' : `✓ ${t('tr_check_in')}`}</button>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
           </div>
+          {user && mine && !mine.checkedIn && tr.status!=='done' && (
+            <p className="text-[11px] text-white/40 mt-2">{t('tr_checkin_hint')}</p>
+          )}
+          {ckMsg && <p className="text-[11px] text-emerald-300 mt-2">{ckMsg}</p>}
         </div>
 
       <div className="mt-6 lg:col-span-2">
