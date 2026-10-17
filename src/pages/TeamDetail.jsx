@@ -43,6 +43,23 @@ export default function TeamDetail(){
     ? teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
     : null
 
+  // Migration auto : les infos saisies AVANT les colonnes cloud restaient dans ce navigateur.
+  // Dès que le capitaine ouvre sa page, on pousse ce qui manque pour que TOUT LE MONDE les voie.
+  useEffect(()=>{
+    const regList = regs.filter(r=> (r.team||'').toLowerCase()===name.toLowerCase())
+    const soloT = regList.length===0 ? teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase()) : null
+    const ownerId = soloT?.userId || regList[0]?.userId
+    if(!user || !(user.isAdmin || user.id===ownerId)) return
+    const local = getTeamExtras(name)
+    const cloud = teamInfos[name.toLowerCase()] || {}
+    const patch = {}
+    ;['location','website','discord','youtube','instagram','about'].forEach(k=>{
+      if(local[k] && !cloud[k]) patch[k] = local[k]
+    })
+    if(Object.keys(patch).length) saveTeamExtras(name, patch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, regs, teams, name, teamInfos])
+
   if(teamRegs.length===0 && !solo){
     return <div className="max-w-[800px] mx-auto px-4 py-16 text-center text-white/60">{t('teams_empty')} <Link to="/teams" className="text-emerald-300">← {t('teams')}</Link></div>
   }
