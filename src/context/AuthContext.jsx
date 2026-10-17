@@ -1130,19 +1130,29 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }
   const requestJoinTeam = async ({ regId, tournamentId, message })=>{
     if(!user) throw new Error('login')
-    if(joinReqs.some(x=> x.regId===regId && x.userId===user.id)) throw new Error('already')
     if(regs.some(x=> x.id===regId && x.userId===user.id)) throw new Error('ownteam')
+    const existing = joinReqs.find(x=> x.regId===regId && x.userId===user.id)
+    if(existing && existing.status!=='rejected') throw new Error('already')
     // Nom affichable : évite "Joueur" générique — préfère le préfixe email
     let display = (user.name||'').trim()
     if(!display || /^(joueur|player|client|user)$/i.test(display)){
       display = (user.email||'').includes('@') ? user.email.split('@')[0] : ''
     }
     const req = {
-      id: genId('join'), tournament_id: tournamentId, regId,
+      id: existing?.id || genId('join'), tournament_id: tournamentId, regId,
       userId: user.id, userName: display || user.name || 'Joueur',
       userEmail: user.email||'', principal: user.principal||'',
       message: (message||'').slice(0, 300), status: 'pending',
       date: new Date().toISOString(), cloud: !!(cloud && user.cloud),
+    }
+    // Réessai après refus : on réactive la demande existante (unique(reg_id,user_id) l'interdit)
+    if(existing){
+      setJoinReqs(prev=> prev.map(x=> x.id===existing.id ? { ...x, ...req, id: existing.id } : x))
+      if(cloud){
+        try{ await supabase.from('tournament_join_requests').update({ status: 'pending', message: req.message }).eq('id', existing.id) }catch{}
+        refreshJoinReqs()
+      }
+      return { ...req, id: existing.id }
     }
     if(req.cloud){
       try{

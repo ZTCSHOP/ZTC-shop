@@ -63,7 +63,9 @@ export default function Teams(){
 
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
   const myReqs = myJoinReqs()
-  const reqFor = (regId)=> myReqs.find(x=> x.regId===regId)
+  // Une demande refusée ne bloque PLUS le joueur : il peut réessayer (on ne compte que 'pending')
+  const reqFor = (regId)=> myReqs.find(x=> x.regId===regId && x.status==='pending')
+  const rejectedFor = (regId)=> myReqs.find(x=> x.regId===regId && x.status==='rejected')
 
   const ql = q.trim().toLowerCase()
   const matchQ = (name, extra='')=> !ql || (name||'').toLowerCase().includes(ql) || (extra||'').toLowerCase().includes(ql)
@@ -280,6 +282,7 @@ export default function Teams(){
                   <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
                 </div>
               )}
+              {!mine && !already && rejectedFor(r.id) && <div className="mt-1.5 text-[11px] text-red-300">✕ {t('teams_join_rejected')||'Demande refusée — tu peux réessayer.'}</div>}
               {already && <div className="mt-3 text-xs text-emerald-300 flex items-center gap-1"><Check size={12}/> {t('teams_join_sent')} ({already.status})</div>}
 
               {mine && incoming.length>0 && (

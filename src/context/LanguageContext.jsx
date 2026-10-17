@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+﻿import { createContext, useContext, useEffect, useState } from 'react'
 
 const LangCtx = createContext()
 
@@ -91,7 +91,7 @@ fr: {
   teams_all: 'Toutes', teams_empty: 'Aucune équipe inscrite pour le moment.', teams_mine: 'Mon équipe',
   teams_join: 'Rejoindre', teams_msg_ph: 'Message au capitaine (pseudo, rôle...)', teams_join_ok: 'Demande envoyée au capitaine !',
   teams_join_sent: 'Demande envoyée', teams_join_already: 'Demande déjà envoyée.', teams_join_own: "C'est ton équipe.",
-  teams_join_err: 'Envoi impossible pour le moment.', teams_need_sql: 'Base pas à jour : exécute fix-tournaments-teams.sql dans Supabase.', teams_search_ph: '🔍 Rechercher une équipe...',
+  teams_join_err: 'Envoi impossible pour le moment.', teams_join_rejected: 'Demande refusée par le capitaine — tu peux réessayer.', teams_need_sql: 'Base pas à jour : exécute fix-tournaments-teams.sql dans Supabase.', teams_search_ph: '🔍 Rechercher une équipe...',
   teams_requests: 'demande(s)', teams_open_spots: 'Places ouvertes aux joueurs',
   team_participations: 'Participations', team_titles: 'Titres', team_winrate: 'Victoires %',
   team_matches: 'Matchs', team_tournaments: 'Tournois disputés', team_history: 'Historique des matchs',
@@ -243,7 +243,7 @@ en: {
   teams_all: 'All', teams_empty: 'No teams registered yet.', teams_mine: 'My team',
   teams_join: 'Join', teams_msg_ph: 'Message to captain (nickname, role...)', teams_join_ok: 'Request sent to the captain!',
   teams_join_sent: 'Request sent', teams_join_already: 'Request already sent.', teams_join_own: 'This is your team.',
-  teams_join_err: 'Could not send right now.', teams_need_sql: 'Database not updated: run fix-tournaments-teams.sql in Supabase.', teams_search_ph: '🔍 Search for a team...',
+  teams_join_err: 'Could not send right now.', teams_join_rejected: 'Request declined by the captain — you can try again.', teams_need_sql: 'Database not updated: run fix-tournaments-teams.sql in Supabase.', teams_search_ph: '🔍 Search for a team...',
   teams_requests: 'request(s)', teams_open_spots: 'Open spots for players',
   team_participations: 'Appearances', team_titles: 'Titles', team_winrate: 'Win %',
   team_matches: 'Matches', team_tournaments: 'Tournaments played', team_history: 'Match history',
@@ -395,7 +395,7 @@ ar: {
   teams_all: 'الكل', teams_empty: 'لا توجد فرق مسجلة بعد.', teams_mine: 'فريقي',
   teams_join: 'انضمام', teams_msg_ph: 'رسالة للكابتن (الاسم، الدور...)', teams_join_ok: 'تم إرسال الطلب للكابتن!',
   teams_join_sent: 'تم إرسال الطلب', teams_join_already: 'الطلب مرسل مسبقاً.', teams_join_own: 'هذا فريقك.',
-  teams_join_err: 'تعذر الإرسال حالياً.', teams_need_sql: 'القاعدة غير محدثة: نفذ fix-tournaments-teams.sql في Supabase.', teams_search_ph: '🔍 ابحث عن فريق...',
+  teams_join_err: 'تعذر الإرسال حالياً.', teams_join_rejected: 'رُفض الطلب من الكابتن — يمكنك المحاولة مجدداً.', teams_need_sql: 'القاعدة غير محدثة: نفذ fix-tournaments-teams.sql في Supabase.', teams_search_ph: '🔍 ابحث عن فريق...',
   teams_requests: 'طلبات', teams_open_spots: 'أماكن مفتوحة للاعبين',
   team_participations: 'المشاركات', team_titles: 'الألقاب', team_winrate: 'نسبة الفوز',
   team_matches: 'المباريات', team_tournaments: 'البطولات', team_history: 'سجل المباريات',
