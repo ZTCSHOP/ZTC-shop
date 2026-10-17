@@ -103,6 +103,8 @@ export default function TeamDetail(){
   const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
   const canEditLogo = user && (user.isAdmin || !!myReg)
   const myReqs = myJoinReqs()
+  const alreadyMember = user && (myReg || members.some(m=> m.uid===user.id))
+  const alreadyRequested = user && myReqs.some(q=> teamRegs.some(r=> r.id===q.regId))
 
   const ask = async (r)=>{
     setInfo('')
@@ -231,6 +233,7 @@ export default function TeamDetail(){
           {logoErr && <div className="text-xs text-red-400 mt-1">{logoErr}</div>}
         </div>
         {isOwner && solo && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="ml-auto px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold">{t('tc_delete')}</button>}
+        {!isOwner && user && teamRegs.length>0 && !alreadyMember && !alreadyRequested && <button onClick={()=>ask(teamRegs[0])} className="ml-auto px-4 py-2 rounded-xl bg-emerald-500 text-black text-xs font-bold">{t('teams_join')||'Rejoindre'}</button>}
       </div>
 
       {/* Tabs */}
