@@ -1,0 +1,35 @@
+-- ════════════════════════════════════════════════════════════════════
+--  ZTC SHOP — À EXÉCUTER UNE SEULE FOIS
+--  Supabase → SQL Editor → New query → colle tout → Run
+-- ════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────
+--  PARTIE 1 : CHECK-IN ÉQUIPE (confirmation "prêt à jouer")
+-- ─────────────────────────────────────────────────────────────────────
+alter table public.tournament_regs add column if not exists checked_in boolean not null default false;
+alter table public.tournament_regs add column if not exists checked_in_at timestamptz;
+
+drop policy if exists "regs_update_own_or_admin" on public.tournament_regs;
+create policy "regs_update_own_or_admin" on public.tournament_regs
+  for update
+  using (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "regs_public_read" on public.tournament_regs;
+create policy "regs_public_read" on public.tournament_regs
+  for select using (true);
+
+-- ─────────────────────────────────────────────────────────────────────
+--  PARTIE 2 : BACKFILL DES NOMS (demandes de team sans nom → email)
+-- ─────────────────────────────────────────────────────────────────────
+update tournament_join_requests j
+set user_name = coalesce(nullif(pa.name, ''), split_part(u.email, '@', 1))
+from auth.users u
+left join profile_assets pa on pa.id = u.id
+where j.user_id = u.id
+  and (j.user_name is null or j.user_name = '');
+
+-- ─────────────────────────────────────────────────────────────────────
+--  VÉRIF (optionnel) : tu dois voir des user_name partout, plus d'ID
+-- ─────────────────────────────────────────────────────────────────────
+-- select id, user_name, status from tournament_join_requests order by created_at desc;
