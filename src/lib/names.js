@@ -5,7 +5,8 @@ const clean = (s)=> (s||'').trim()
 export const reqDisplayName = (q = {}, accounts = [])=>{
   const stored = clean(q.userName)
   if(stored && !GENERIC.test(stored)) return stored
-  const acc = (accounts||[]).find(a=> a.id===q.userId)
+  let acc = (accounts||[]).find(a=> a.id===q.userId)
+  if(!acc && q.principal) acc = (accounts||[]).find(a=> a.principal===q.principal)
   const accName = clean(acc?.name)
   if(accName && !GENERIC.test(accName)) return accName
   const email = clean(q.userEmail) || clean(acc?.email)

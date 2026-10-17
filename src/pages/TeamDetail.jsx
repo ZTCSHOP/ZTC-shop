@@ -343,20 +343,22 @@ export default function TeamDetail(){
                   </div>
                 ))}
               </div>
-              {isOwner && (
-                <div className="mt-4 rounded-xl bg-black/30 border border-white/10 p-3">
-                  <div className="text-xs font-black mb-2">📥 {t('team_join_reqs')} ({pending.length})</div>
-                  {pending.length===0 && allReqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
-                  {pending.map(q=>(
-                    <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
-                      <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate"><Link to={`/player/${q.userId}`} className="hover:text-emerald-300 hover:underline">{reqDisplayName(q, accounts)}</Link></div>
+          {user && (isOwner || members.some(m=> m.uid===user.id)) && (
+            <div className="mt-4 rounded-xl bg-black/30 border border-white/10 p-3">
+              <div className="text-xs font-black mb-2">📥 {t('team_join_reqs')} ({pending.length})</div>
+              {pending.length===0 && allReqs.length===0 && <div className="text-[11px] text-white/40">{t('team_no_reqs')}</div>}
+              {pending.map(q=>(
+                <div key={q.id} className="flex items-center gap-2 py-1.5 border-t border-white/5 first:border-0">
+                  <div className="min-w-0 flex-1"><div className="text-xs font-bold truncate"><Link to={`/player/${q.userId}`} className="hover:text-emerald-300 hover:underline">{reqDisplayName(q, accounts)}</Link></div>
                       {q.message && <div className="text-[11px] text-white/50 truncate">{q.message}</div>}</div>
-                      <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
-                      <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>
-                    </div>
-                  ))}
+                  {isOwner && <>
+                  <button onClick={()=>updateJoinReq(q.id,'accepted')} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-black text-[11px] font-black">✓ {t('team_accept')}</button>
+                  <button onClick={()=>updateJoinReq(q.id,'rejected')} className="px-2.5 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-black">✕ {t('team_reject')}</button>
+                  </>}
                 </div>
-              )}
+              ))}
+            </div>
+          )}
               {!isOwner && teamRegs.filter(r=> !(user && r.userId===user.id) && !myReqs.some(x=>x.regId===r.id)).map(r=>(
                 <div key={r.id} className="mt-3 flex gap-2">
                   <input value={joinMsg} onChange={e=>setJoinMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-xs"/>
