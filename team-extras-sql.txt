@@ -1,0 +1,23 @@
+-- ZTC SHOP : infos équipe partagées (site web, discord, youtube, instagram, localisation, à propos)
+-- + noms des demandeurs de join requests stockés et visibles par tous
+-- Copie tout ce bloc, colle-le dans Supabase > SQL Editor > New query > Run
+
+-- 1) Colonnes infos équipe sur team_assets (existe déjà si tu as exécuté partage-assets-sql.txt)
+alter table public.team_assets add column if not exists location text;
+alter table public.team_assets add column if not exists website text;
+alter table public.team_assets add column if not exists discord text;
+alter table public.team_assets add column if not exists youtube text;
+alter table public.team_assets add column if not exists instagram text;
+alter table public.team_assets add column if not exists about text;
+
+-- 2) Nom + email du demandeur sur les demandes de rejoindre une équipe
+alter table public.tournament_join_requests add column if not exists user_name text;
+alter table public.tournament_join_requests add column if not exists user_email text;
+
+-- 3) Demandes lisibles par tous (comme demandé : visibles à tous les membres, pas que l'admin/capitaine)
+drop policy if exists "join_req_select" on public.tournament_join_requests;
+drop policy if exists "join_req_select_public" on public.tournament_join_requests;
+create policy "join_req_select_public" on public.tournament_join_requests
+  for select using (true);
+
+-- 4) Realtime déjà actif sur team_assets + tournament_join_requests (rien à faire)

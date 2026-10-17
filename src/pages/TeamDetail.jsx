@@ -12,7 +12,7 @@ const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, saveTeamAsset, profileAssets } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, teamInfos, saveTeamExtras, saveTeamAsset, profileAssets } = useAuth()
   const accounts = allAccounts()
   const assetOf = (uid)=> (uid && profileAssets[uid]) || {}
   const { t } = useLang()
@@ -53,12 +53,13 @@ export default function TeamDetail(){
   const isOwner = user && (user.isAdmin || user.id===ownerId)
   const ownerName = solo?.captain || teamRegs[0]?.captain || ''
   const founded = solo?.date || teamRegs[0]?.date
-  const about = extras.about || solo?.description || ''
-  const location = extras.location || 'Tunisia'
-  const website = extras.website || ''
-  const discord = extras.discord || ''
-  const youtube = extras.youtube || ''
-  const instagram = extras.instagram || ''
+  const cloudInfo = teamInfos[name.toLowerCase()] || {}
+  const about = extras.about || cloudInfo.about || solo?.description || ''
+  const location = extras.location || cloudInfo.location || 'Tunisia'
+  const website = extras.website || cloudInfo.website || ''
+  const discord = extras.discord || cloudInfo.discord || ''
+  const youtube = extras.youtube || cloudInfo.youtube || ''
+  const instagram = extras.instagram || cloudInfo.instagram || ''
   // Bannière partagée (cloud, visible par tous) avec repli local
   const banner = teamAssets[name.toLowerCase()] || extras.banner || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
@@ -104,7 +105,7 @@ export default function TeamDetail(){
   const canEditLogo = user && (user.isAdmin || !!myReg)
   const myReqs = myJoinReqs()
   const alreadyMember = user && (myReg || members.some(m=> m.uid===user.id))
-  const alreadyRequested = user && myReqs.some(q=> teamRegs.some(r=> r.id===q.regId))
+  const alreadyRequested = user && myReqs.some(q=> q.status==='pending' && teamRegs.some(r=> r.id===q.regId))
 
   const ask = async (r)=>{
     setInfo('')
@@ -145,12 +146,17 @@ export default function TeamDetail(){
   const saveAbout = async ()=>{
     try{
       if(solo){ await updateTeamInfo(solo.id, { description: aboutDraft }) }
-      else setTeamExtras(name, { about: aboutDraft })
+      else {
+        setTeamExtras(name, { about: aboutDraft })
+        try{ await saveTeamExtras(name, { about: aboutDraft }) }catch{}
+      }
       setExtras(getTeamExtras(name)); setEditAbout(false); setInfo('✓')
     }catch{ setInfo(t('teams_join_err')) }
   }
-  const saveInfos = ()=>{
-    setTeamExtras(name, { location: locDraft||'Tunisia', website: webDraft, discord: discDraft, youtube: ytDraft, instagram: igDraft })
+  const saveInfos = async ()=>{
+    const patch = { location: locDraft||'Tunisia', website: webDraft, discord: discDraft, youtube: ytDraft, instagram: igDraft }
+    setTeamExtras(name, patch)
+    try{ await saveTeamExtras(name, patch) }catch{}
     setExtras(getTeamExtras(name)); setEditInfos(false); setInfo('✓')
   }
   const onBannerFile = (f)=>{
@@ -362,7 +368,7 @@ export default function TeamDetail(){
               ))}
             </div>
           )}
-              {!isOwner && teamRegs.filter(r=> !(user && r.userId===user.id) && !myReqs.some(x=>x.regId===r.id)).map(r=>(
+              {!isOwner && teamRegs.filter(r=> !(user && r.userId===user.id) && !myReqs.some(x=> x.regId===r.id && x.status==='pending')).map(r=>(
                 <div key={r.id} className="mt-3 flex gap-2">
                   <input value={joinMsg} onChange={e=>setJoinMsg(e.target.value)} placeholder={t('teams_msg_ph')} className="flex-1 px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-xs"/>
                   <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
