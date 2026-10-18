@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu, Gamepad2, Crown } from 'lucide-react'
+import { ShoppingCart, User, Shield, LogOut, MessageCircle, Trophy, Home, Search, Menu, Gamepad2, Crown, Globe, ChevronDown } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang, LANGS } from '../context/LanguageContext'
@@ -49,14 +49,23 @@ export default function Navbar({ onBurger }){
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c] animate-ping"/>
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c]"/>
         </Link>
-        {/* Lang switcher */}
-        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
-          {LANGS.map(l=>(
-            <button key={l.id} onClick={()=>setLang(l.id)} title={l.label}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-black ${lang===l.id?'bg-lime-400 text-black':'text-white/60 hover:text-white'}`}>
-              {l.id.toUpperCase()}
-            </button>
-          ))}
+        {/* Lang switcher : compact, se déploie au survol de la souris */}
+        <div className="relative group">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-black" aria-label={t('st_lang')}>
+            <Globe size={15} className="text-lime-400"/>
+            <span>{lang.toUpperCase()}</span>
+            <ChevronDown size={13} className="text-white/50 transition-transform group-hover:rotate-180"/>
+          </button>
+          <div className="absolute right-0 top-full z-50 pt-1.5 hidden group-hover:block">
+            <div className="flex flex-col min-w-[96px] rounded-xl border border-white/15 bg-[#141417] shadow-xl overflow-hidden">
+              {LANGS.map(l=>(
+                <button key={l.id} onClick={()=>setLang(l.id)} title={l.label}
+                  className={`text-left px-3 py-2 text-xs font-black hover:bg-white/10 ${lang===l.id ? 'text-lime-300' : 'text-white/70'}`}>
+                  {l.id.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <Link to="/cart" className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
           <ShoppingCart size={18}/>
