@@ -31,9 +31,9 @@ jobs:
           VITE_ADMIN_PASSWORD: Transcom2026*
           VITE_EMAILJS_SERVICE_ID: service_ajfqjwp
           VITE_EMAILJS_PUBLIC_KEY: tUZJqrdBgviM54-if
-          VITE_EMAILJS_TEMPLATE_WELCOME: template_4m4imt7
-          VITE_EMAILJS_TEMPLATE_RECRUTEMENT: template_4m4imt7
-          VITE_EMAILJS_TEMPLATE_SUPPORT: template_4m4imt7
+          VITE_EMAILJS_TEMPLATE_WELCOME: template_4gveo97
+          VITE_EMAILJS_TEMPLATE_RECRUTEMENT: template_4gveo97
+          VITE_EMAILJS_TEMPLATE_SUPPORT: template_4gveo97
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
