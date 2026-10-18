@@ -3,6 +3,7 @@ import { Gamepad2, Send, CheckCircle2, AlertTriangle, Copy, Plus } from 'lucide-
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase, isCloudEnabled } from '../lib/supabase'
+import { sendRecrutementEmail } from '../lib/email'
 
 const WEBHOOK = import.meta.env.VITE_DISCORD_RECRUTEMENT_WEBHOOK ||
   'https://discord.com/api/webhooks/1555575933853896855/FrBhS6dX93fbP30VPXdlyD1An_WYAu8j5rSV1it2YfHkhnMEStOfffIRc32dA0Sw3X3Q'
@@ -90,6 +91,7 @@ export default function Recrutement(){
       ok = r.ok
       if(!r.ok) err = 'Discord: ' + r.status
     }catch(ex){ err = ex.message }
+    sendRecrutementEmail(d).catch(()=>{})
     setSending(false)
     setDone({ d: { ...d, rank, role }, ok, err })
     window.scrollTo({ top: 0, behavior: 'smooth' })

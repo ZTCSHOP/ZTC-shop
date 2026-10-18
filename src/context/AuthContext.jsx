@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { initialProducts } from '../data/products'
 import { supabase, isCloudEnabled } from '../lib/supabase'
+import { sendWelcomeEmail } from '../lib/email'
 
 const AuthCtx = createContext()
 const cloud = isCloudEnabled
@@ -667,6 +668,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(error) throw new Error(error.message)
       if(!data.session) throw new Error('Compte créé ! Vérifie ton email puis connecte-toi (ou désactive « Confirm email » dans Supabase > Auth).')
       await upsertCloudProfile(data.user, name)
+      sendWelcomeEmail(name, email).catch(()=>{})
       return await buildCloudUser(data.user)
     }
     const users = readUsers()
@@ -674,7 +676,9 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const u = { id: genId('email'), name: name||email.split('@')[0], email, passwordHash: hashPw(password), provider:'email', principal: genPrincipal(), isAdmin: isOwnerEmail(email), createdAt: new Date().toISOString() }
     users.push(u); localStorage.setItem('ztc_users', JSON.stringify(users))
     const { passwordHash, ...safe } = u
-    setUser(withExtras(safe)); return withExtras(safe)
+    setUser(withExtras(safe))
+    sendWelcomeEmail(safe.name, email).catch(()=>{})
+    return withExtras(safe)
   }
   const loginWithEmail = async (email, password)=>{
     email = email.trim().toLowerCase()

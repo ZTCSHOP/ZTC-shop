@@ -4,6 +4,7 @@ import { MessageCircle, Clock, ChevronRight, Send, Image as ImageIcon, Volume2, 
 import { useLang } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
+import { sendSupportEmail } from '../lib/email'
 import PushBell from '../components/PushBell'
 
 export const isImgMsg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
@@ -39,8 +40,11 @@ export default function Support(){
     e.preventDefault()
     if(!draft.trim() || sending) return
     setSending(true)
-    try{ await sendMessage({ text: draft }); setDraft('') }catch{}
+    const first = thread.length === 0
+    const text = draft
+    try{ await sendMessage({ text }); setDraft('') }catch{}
     finally{ setSending(false) }
+    if(first) sendSupportEmail({ name: user?.name, email: user?.email, text, date: new Date().toLocaleString('fr-FR') }).catch(()=>{})
   }
 
   const handleFile = (e)=>{

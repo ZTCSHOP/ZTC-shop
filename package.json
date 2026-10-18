@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^5.0.3",
     "@supabase/supabase-js": "^2.116.0",
     "lottie-react": "^3.1.2",
     "lucide-react": "^1.47.0",
