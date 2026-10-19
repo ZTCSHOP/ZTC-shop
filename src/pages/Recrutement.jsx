@@ -8,6 +8,10 @@ import { sendRecrutementEmail } from '../lib/email'
 const WEBHOOK = import.meta.env.VITE_DISCORD_RECRUTEMENT_WEBHOOK ||
   'https://discord.com/api/webhooks/1555575933853896855/FrBhS6dX93fbP30VPXdlyD1An_WYAu8j5rSV1it2YfHkhnMEStOfffIRc32dA0Sw3X3Q'
 
+// Section recrutement visible mais candidatures fermées.
+// Remettre à true pour réactiver l'envoi.
+const RECRUTEMENT_OPEN = false
+
 const GAMES = [
   { id: 'VALORANT', icon: '🎯', ranks: ['Silver-Gold', 'Platinum-Diamond', 'Immortal', 'Radiant'],
     roles: ['Duelist', 'Initiator', 'Controller', 'Sentinel', 'Flex'],
@@ -39,6 +43,7 @@ export default function Recrutement(){
 
   const submit = async (e)=>{
     e.preventDefault()
+    if(!RECRUTEMENT_OPEN) return
     if(!game){ alert(t('rec_choose_game')); return }
     setSending(true)
     const fd = new FormData(e.target)
@@ -125,23 +130,35 @@ export default function Recrutement(){
   return (
     <div className="max-w-[900px] mx-auto px-4 py-10">
       <div className="text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600/15 border border-red-600/40 text-red-300 text-sm font-black">
-          <Gamepad2 size={16} /> {t('rec_badge')}
-        </div>
+        {RECRUTEMENT_OPEN ? (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600/15 border border-red-600/40 text-red-300 text-sm font-black">
+            <Gamepad2 size={16} /> {t('rec_badge')}
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-sm font-black">
+            🔒 {t('rec_closed_btn')}
+          </div>
+        )}
         <h1 className="text-3xl md:text-5xl font-black tracking-tight mt-4">🔥 {t('rec_title')}</h1>
         <p className="text-white/60 mt-3 max-w-2xl mx-auto">{t('rec_sub')}</p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-8">
         {GAMES.map(g => (
-          <button key={g.id} type="button" onClick={()=>setGame(g.id)}
-            className={`text-left rounded-2xl p-4 border transition ${game === g.id ? 'bg-red-600 border-red-500' : 'bg-white/[0.04] border-white/10 hover:border-red-500/50'}`}>
+          <button key={g.id} type="button" disabled={!RECRUTEMENT_OPEN} onClick={()=>setGame(g.id)}
+            className={`text-left rounded-2xl p-4 border transition disabled:opacity-50 disabled:cursor-not-allowed ${game === g.id ? 'bg-red-600 border-red-500' : 'bg-white/[0.04] border-white/10 hover:border-red-500/50'}`}>
             <div className="font-black">{g.icon} {g.id}</div>
           </button>
         ))}
       </div>
 
       <form onSubmit={submit} className="mt-6 rounded-3xl bg-white/[0.04] border border-white/10 p-5 md:p-7">
+        {!RECRUTEMENT_OPEN && (
+          <div className="mb-4 rounded-xl bg-amber-500/10 border border-amber-500/40 p-4 text-[13px] font-bold text-amber-200 flex items-center gap-2">
+            🔒 {t('rec_closed')}
+          </div>
+        )}
+        <fieldset disabled={!RECRUTEMENT_OPEN} className="contents">
         <div className="rounded-xl bg-red-950/40 border border-red-800/40 p-4 text-[13px] leading-relaxed text-red-100/90">
           <b>📋 {t('rec_exig_t')}</b><br />
           • {t('rec_exig_1')}<br />• {t('rec_exig_2')}<br />• {t('rec_exig_3')}
@@ -218,9 +235,10 @@ export default function Recrutement(){
         <div><label className={labelCls}>{t('rec_motiv')} *</label><textarea name="motivation" rows="3" required placeholder="..." className={inputCls} /></div>
         <div><label className={labelCls}>{t('rec_video')}</label><input name="video" placeholder="https://youtube.com/..." className={inputCls} /></div>
 
-        <button type="submit" disabled={sending} className="w-full mt-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 font-black disabled:opacity-60 flex items-center justify-center gap-2">
-          <Send size={18} /> {sending ? t('rec_sending') : t('rec_send')}
+        <button type="submit" disabled={sending || !RECRUTEMENT_OPEN} className="w-full mt-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 font-black disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <Send size={18} /> {sending ? t('rec_sending') : (RECRUTEMENT_OPEN ? t('rec_send') : t('rec_closed_btn'))}
         </button>
+        </fieldset>
       </form>
     </div>
   )
