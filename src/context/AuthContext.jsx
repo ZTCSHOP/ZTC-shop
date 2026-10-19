@@ -699,6 +699,24 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     setUser(withExtras(safe)); saveProfile(withExtras(safe)); return withExtras(safe)
   }
 
+  // ---- Mot de passe oublié (Supabase envoie le lien de réinitialisation) ----
+  const sendPasswordReset = async (email)=>{
+    email = (email||'').trim().toLowerCase()
+    if(!email) throw new Error('Email requis')
+    if(!cloud) throw new Error('Réinitialisation indisponible en mode hors-ligne')
+    const redirectTo = window.location.origin + (import.meta.env.BASE_URL || '/') + 'reset-password'
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    if(error) throw new Error(error.message)
+    return true
+  }
+  const updatePassword = async (password)=>{
+    if(!password || password.length < 6) throw new Error('Mot de passe trop court (min 6 caractères)')
+    if(!cloud) throw new Error('Réinitialisation indisponible en mode hors-ligne')
+    const { error } = await supabase.auth.updateUser({ password })
+    if(error) throw new Error(error.message)
+    return true
+  }
+
   // ---- Discord / Facebook (démo locale ; commandes locales) ----
   const oauthRedirect = ()=> encodeURIComponent(window.location.origin + import.meta.env.BASE_URL + 'login')
   const loginWithDiscord = ()=>{
@@ -1344,7 +1362,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   // L'admin a-t-il la vue globale cloud ? (false tant que le SQL is_admin n'est pas exécuté)
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
-  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
+  return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

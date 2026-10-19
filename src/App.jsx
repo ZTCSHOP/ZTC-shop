@@ -12,6 +12,7 @@ import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Admin from './pages/Admin'
 import Support from './pages/Support'
 import About from './pages/About'
@@ -54,6 +55,7 @@ export default function App(){
               <Route path="/orders" element={<Orders/>}/>
               <Route path="/orders/:id" element={<OrderDetail/>}/>
               <Route path="/login" element={<Login/>}/>
+              <Route path="/reset-password" element={<ResetPassword/>}/>
               <Route path="/admin" element={<Admin/>}/>
               <Route path="/support" element={<Support/>}/>
               <Route path="/about" element={<About/>}/>
