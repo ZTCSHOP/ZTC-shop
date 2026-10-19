@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { D17_NUMBER } from './Checkout'
 import { xpForActivity, levelProgress } from '../lib/level'
+import { uploadImage } from '../lib/storage'
 
 function useHashScroll(){
   const { hash } = useLocation()
@@ -91,7 +92,7 @@ function ProfileSettings(){
               : <span className="text-5xl font-black text-white/20">{(user.name||user.email||'?')[0].toUpperCase()}</span>}
           </div>
           <div className="mt-3 flex gap-2 w-[180px]">
-            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ await updateProfile({ avatar: d }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ const url = await uploadImage(d, 'avatars'); await updateProfile({ avatar: url }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
             <button onClick={async()=>{ await updateProfile({ avatar: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
           </div>
           <div className="text-[11px] text-white/40 mt-1.5">Recommended: 400x400px</div>
@@ -104,7 +105,7 @@ function ProfileSettings(){
               : <span className="text-white/20 text-sm">1600 x 500</span>}
           </div>
           <div className="mt-3 flex gap-2 max-w-[420px]">
-            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 1280, 400, async (d)=>{ try{ await updateProfile({ banner: d }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
+            <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 1280, 400, async (d)=>{ try{ const url = await uploadImage(d, 'banners'); await updateProfile({ banner: url }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
             <button onClick={async()=>{ await updateProfile({ banner: '' }); setMsg('✓') }} className={btnRm}>🗑 <span className="text-xs">Remove</span></button>
           </div>
           <div className="text-[11px] text-white/40 mt-1.5">Recommended: 1600x500px</div>

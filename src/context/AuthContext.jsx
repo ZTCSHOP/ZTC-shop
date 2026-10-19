@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { initialProducts } from '../data/products'
 import { supabase, isCloudEnabled } from '../lib/supabase'
 import { sendWelcomeEmail } from '../lib/email'
+import { isImageValue } from '../lib/storage'
 
 const AuthCtx = createContext()
 const cloud = isCloudEnabled
@@ -1268,8 +1269,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       id: genId('msg'), userId: threadUserId, orderId,
       sender: isAdminMsg ? 'admin' : 'client',
       name: targetName || user.name || user.email || 'Client',
-      // Images (data URL) gardées entières, textes limités à 1000
-      text: clean.startsWith('data:image') ? clean : clean.slice(0, 1000), isRead: false,
+      // Images (data URL ou URL Storage) gardées entières, textes limités à 1000
+      text: isImageValue(clean) ? clean : clean.slice(0, 1000), isRead: false,
       date: new Date().toISOString(), cloud: !!(cloud && (user.cloud || isAdminMsg)),
     }
     setMessages(prev=> [...prev, msg])
@@ -1283,7 +1284,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         refreshCloudMessages()
         // Notification push système (best effort : ne bloque jamais l'envoi)
         try{
-          const preview = clean.startsWith('data:image') ? '📷 Photo' : clean.slice(0, 120)
+          const preview = isImageValue(clean) ? '📷 Photo' : clean.slice(0, 120)
           supabase.functions.invoke('push-message', {
             body: isAdminMsg
               ? { senderId: user.cloud ? user.id : null, senderName: user.name || 'ZTC Shop', text: preview, targetUserId: threadUserId }

@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import PushBell from './PushBell'
+import { uploadImage, isImageValue } from '../lib/storage'
 
-const isImg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
+const isImg = isImageValue
 
 export default function ChatWidget(){
   const { user, myThread, sendMessage, refreshAll } = useAuth()
@@ -51,7 +52,10 @@ export default function ChatWidget(){
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h
         cv.getContext('2d').drawImage(img, 0, 0, w, h)
         setSending(true)
-        try{ await sendMessage({ text: cv.toDataURL('image/jpeg', 0.72) }) }catch{}
+        try{
+          const url = await uploadImage(cv.toDataURL('image/jpeg', 0.72), 'receipts')
+          await sendMessage({ text: url })
+        }catch{}
         finally{ setSending(false) }
       }finally{ URL.revokeObjectURL(objUrl); if(fileRef.current) fileRef.current.value='' }
     }

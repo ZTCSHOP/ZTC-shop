@@ -6,8 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
 import { sendSupportEmail } from '../lib/email'
 import PushBell from '../components/PushBell'
+import { uploadImage, isImageValue } from '../lib/storage'
 
-export const isImgMsg = (txt)=> typeof txt==='string' && txt.startsWith('data:image')
+export const isImgMsg = isImageValue
 
 export default function Support(){
   const { t } = useLang()
@@ -61,7 +62,7 @@ export default function Support(){
         const w = Math.max(1, Math.round(img.width*scale)), h = Math.max(1, Math.round(img.height*scale))
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h
         cv.getContext('2d').drawImage(img, 0, 0, w, h)
-        const url = cv.toDataURL('image/jpeg', 0.72)
+        const url = await uploadImage(cv.toDataURL('image/jpeg', 0.72), 'receipts')
         setSending(true)
         try{ await sendMessage({ text: url }) }catch{}
         finally{ setSending(false) }

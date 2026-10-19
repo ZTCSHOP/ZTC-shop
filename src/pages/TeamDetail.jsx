@@ -6,6 +6,7 @@ import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
 import { getTeamExtras, setTeamExtras } from '../lib/teamExtras'
 import { reqDisplayName } from '../lib/names'
+import { uploadImage } from '../lib/storage'
 
 const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
 
@@ -151,7 +152,11 @@ export default function TeamDetail(){
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-        try{ await updateTeamLogo(target.id, c.toDataURL('image/jpeg', 0.82)); setInfo(t('team_logo_ok')) }
+        try{
+          const url = await uploadImage(c.toDataURL('image/jpeg', 0.82), 'teams')
+          await updateTeamLogo(target.id, url)
+          setInfo(t('team_logo_ok'))
+        }
         catch(e){ setLogoErr(e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err')) }
       }
       img.onerror = ()=> setLogoErr(t('team_logo_bad'))
@@ -190,15 +195,17 @@ export default function TeamDetail(){
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
         const dataUrl = c.toDataURL('image/jpeg', 0.78)
+        let url = dataUrl
+        try{ url = await uploadImage(dataUrl, 'teams') }catch(e){ console.warn('team banner upload:', e) }
         try{
           console.log('Uploading team banner to cloud:', name)
-          await saveTeamAsset(name, dataUrl)
-          setTeamExtras(name, { banner: dataUrl })
+          await saveTeamAsset(name, url)
+          setTeamExtras(name, { banner: url })
           setExtras(getTeamExtras(name))
           setInfo('✓ ' + (t('pm_saved')||'Enregistré'))
         }catch(e){
           console.error('Team banner upload error:', e)
-          setTeamExtras(name, { banner: dataUrl })
+          setTeamExtras(name, { banner: url })
           setExtras(getTeamExtras(name))
           setInfo('✓ (Local) ' + (e.message || 'Erreur cloud'))
         }

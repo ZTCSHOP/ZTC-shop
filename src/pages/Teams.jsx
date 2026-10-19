@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
 import { reqDisplayName } from '../lib/names'
+import { uploadImage } from '../lib/storage'
 
 const TEAM_GAMES = ['valorant', 'lol', 'cs2', 'fc27', 'tekken8', 'other']
 
@@ -84,7 +85,8 @@ export default function Teams(){
     if(!user) return nav('/login', { state: { from: '/teams' } })
     setCreating(true)
     try{
-      await createTeam({ name: fname, game: fgame, logo: flogo, phone: fphone, description: fdesc })
+      const logoUrl = flogo ? await uploadImage(flogo, 'teams') : ''
+      await createTeam({ name: fname, game: fgame, logo: logoUrl, phone: fphone, description: fdesc })
       setFname(''); setFlogo(''); setFphone(''); setFdesc(''); setFgame('valorant')
       setInfo(t('tc_ok'))
       setTab('teams')
