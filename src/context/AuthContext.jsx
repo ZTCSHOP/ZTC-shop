@@ -164,7 +164,7 @@ export function AuthProvider({ children }){
   const refreshCloudProfiles = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('profiles').select('*').limit(500)
+      const { data, error } = await supabase.from('profiles').select('*').limit(300)
       if(error) throw error
       setCloudProfiles(data||[])
     }catch{ setCloudProfiles(null) }
@@ -422,7 +422,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshRegs = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('tournament_regs').select('*').order('created_at', { ascending: false }).limit(500)
+      const { data, error } = await supabase.from('tournament_regs').select('*').order('created_at', { ascending: false }).limit(300)
       if(error) throw error
       const mapped = (data||[]).map(mapCloudReg)
       setRegs(prev=>{
@@ -436,7 +436,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshTeams = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: false }).limit(500)
+      const { data, error } = await supabase.from('teams').select('*').order('created_at', { ascending: false }).limit(300)
       if(error) throw error
       const mapped = (data||[]).map(mapCloudTeam)
       setTeams(prev=>{
@@ -450,7 +450,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshTeamAssets = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('team_assets').select('*').limit(500)
+      const { data, error } = await supabase.from('team_assets').select('*').limit(300)
       if(error) throw error
       if(data){
         const obj = {}
@@ -476,7 +476,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshTeamInfos = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('team_assets').select('*').limit(500)
+      const { data, error } = await supabase.from('team_assets').select('*').limit(300)
       if(error) throw error
       if(data){
         const obj = {}
@@ -511,7 +511,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshProfileAssets = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('profile_assets').select('*').limit(1000)
+      const { data, error } = await supabase.from('profile_assets').select('*').limit(300)
       if(error) throw error
       if(data){
         const obj = {}
@@ -522,7 +522,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }, [])
   const refreshJoinReqs = useCallback(async ()=>{    if(!cloud) return
     try{
-      const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(500)
+      const { data, error } = await supabase.from('tournament_join_requests').select('*').order('created_at', { ascending: false }).limit(300)
       if(error) throw error
       const mapped = (data||[]).map(mapCloudJoin)
       setJoinReqs(prev=>{
@@ -537,7 +537,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const refreshCloudMessages = useCallback(async ()=>{
     if(!cloud) return
     try{
-      const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true }).limit(500)
+      const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true }).limit(300)
       if(error) throw error
       const mapped = (data||[]).map(mapCloudMessage)
       setMessages(prev=> {
@@ -579,7 +579,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=>{ refreshTeamAssets(); refreshTeamInfos() })
       .subscribe()
-    const onFocus = ()=> refreshAll()
+    let lastFocus = 0
+    const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 30000) return; lastFocus = now; refreshAll() }
     window.addEventListener('focus', onFocus)
     return ()=>{ mounted = false; sub.subscription.unsubscribe(); supabase.removeChannel(ch); window.removeEventListener('focus', onFocus) }
     // eslint-disable-next-line react-hooks/exhaustive-deps

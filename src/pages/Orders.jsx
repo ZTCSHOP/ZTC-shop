@@ -88,7 +88,7 @@ function ProfileSettings(){
           <div className="text-sm font-black mb-2">{t('pm_avatar')||'Photo de profil'}</div>
           <div className="w-[180px] h-[180px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
             {user.avatar
-              ? <img src={user.avatar} alt="" className="w-full h-full object-cover"/>
+              ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover"/>
               : <span className="text-5xl font-black text-white/20">{(user.name||user.email||'?')[0].toUpperCase()}</span>}
           </div>
           <div className="mt-3 flex gap-2 w-[180px]">
@@ -101,7 +101,7 @@ function ProfileSettings(){
           <div className="text-sm font-black mb-2">{t('pm_banner')||'Arrière-plan du profil'}</div>
           <div className="h-[180px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
             {user.banner
-              ? <img src={user.banner} alt="" className="w-full h-full object-cover"/>
+              ? <img src={user.banner} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover"/>
               : <span className="text-white/20 text-sm">1600 x 500</span>}
           </div>
           <div className="mt-3 flex gap-2 max-w-[420px]">
@@ -188,7 +188,7 @@ function MyTeam(){
         : <div className="mt-3 grid sm:grid-cols-2 gap-2">
             {mine.map(x=>(
               <Link key={'t-'+x.id} to={`/teams/${encodeURIComponent(x.name)}`} className="flex items-center gap-2.5 rounded-2xl bg-black/30 border border-white/10 p-3 hover:border-emerald-500/50">
-                {x.logo ? <img src={x.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white"/> : <span className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
+                {x.logo ? <img src={x.logo} alt="" loading="lazy" decoding="async" className="w-9 h-9 rounded-xl object-cover bg-white"/> : <span className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
                 <div className="min-w-0"><div className="font-bold text-sm truncate">{x.name}</div><div className="text-[11px] text-white/50">🎮 {x.game} • {t('tc_new')}</div></div>
               </Link>
             ))}

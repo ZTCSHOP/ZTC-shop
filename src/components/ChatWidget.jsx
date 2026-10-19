@@ -90,7 +90,7 @@ export default function ChatWidget(){
                   {thread.map(m=>(
                     <div key={m.id} className={`max-w-[90%] px-2.5 py-1.5 rounded-2xl text-[13px] ${m.sender==='admin' ? 'bg-emerald-600/20 border border-emerald-500/30 mr-auto' : 'bg-lime-400 text-black ml-auto'}`}>
                       {isImg(m.text)
-                        ? <img src={m.text} alt="reçu" className="max-w-full rounded-lg max-h-40 object-contain"/>
+                        ? <img src={m.text} alt="reçu" loading="lazy" decoding="async" className="max-w-full rounded-lg max-h-40 object-contain"/>
                         : <div className="leading-snug">{m.text}</div>}
                     </div>
                   ))}

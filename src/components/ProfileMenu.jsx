@@ -36,7 +36,7 @@ export default function ProfileMenu(){
     <div className="relative hidden lg:block" onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)}>
       <button onClick={()=>setOpen(o=>!o)} className="flex items-center gap-2 hover:bg-white/5 rounded-xl px-1 py-1">
         {user.avatar
-          ? <img src={user.avatar} alt="" className="w-8 h-8 rounded-full object-cover"/>
+          ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover"/>
           : <div className={`w-8 h-8 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-sm text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
         <div className="text-xs leading-tight text-left">
           <div className="text-white font-bold truncate max-w-[120px] flex items-center gap-1">
@@ -49,11 +49,11 @@ export default function ProfileMenu(){
       {open && (
         <div className="absolute right-0 top-full pt-2 w-[280px] z-50">
           <div className="rounded-2xl overflow-hidden bg-[#121214] border border-white/10 shadow-2xl">
-            {user.banner && <img src={user.banner} alt="" className="w-full h-[70px] object-cover"/>}
+            {user.banner && <img src={user.banner} alt="" loading="lazy" decoding="async" className="w-full h-[70px] object-cover"/>}
             <div className="p-4 bg-gradient-to-b from-white/5 to-transparent">
               <div className="flex items-center gap-3">
                 {user.avatar
-                  ? <img src={user.avatar} alt="" className="w-11 h-11 rounded-full object-cover"/>
+                  ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-11 h-11 rounded-full object-cover"/>
                   : <div className={`w-11 h-11 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-lg text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
                 <div className="min-w-0">
                   <div className="font-black truncate">{user.name || 'Joueur'}</div>

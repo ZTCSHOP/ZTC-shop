@@ -102,7 +102,7 @@ export default function Support(){
                 <div key={m.id} className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${m.sender==='admin' ? 'bg-emerald-600/20 border border-emerald-500/30 mr-auto' : 'bg-lime-400 text-black ml-auto'}`}>
                   {m.sender==='admin' && <div className="text-[10px] font-black text-emerald-300">ZTC ✓</div>}
                   {isImgMsg(m.text)
-                    ? <button type="button" onClick={()=>setLightbox(m.text)}><img src={m.text} alt="reçu" className="max-w-full rounded-xl max-h-64 object-contain"/></button>
+                    ? <button type="button" onClick={()=>setLightbox(m.text)}><img src={m.text} alt="reçu" loading="lazy" decoding="async" className="max-w-full rounded-xl max-h-64 object-contain"/></button>
                     : <div className="leading-snug">{m.text}</div>}
                   <div className="text-[10px] opacity-60 mt-0.5">{m.date ? new Date(m.date).toLocaleString([], {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
                 </div>

@@ -234,7 +234,7 @@ export default function TeamDetail(){
       {/* Bannière équipe */}
       <div className="mt-4 rounded-3xl overflow-hidden border border-white/10 bg-white/5 relative">
         {banner
-          ? <img src={banner} alt="" className="w-full h-44 md:h-56 object-cover"/>
+          ? <img src={banner} alt="" loading="lazy" decoding="async" className="w-full h-44 md:h-56 object-cover"/>
           : <div className="w-full h-28 md:h-36 flex items-center justify-center text-white/20 text-sm">1600 x 500</div>}
         {isOwner && (
           <div className="absolute bottom-3 right-3 flex gap-2">
@@ -250,7 +250,7 @@ export default function TeamDetail(){
       <div className="mt-4 flex items-center gap-4">
         <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
           {teamLogo
-            ? <img src={teamLogo} alt="" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+            ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
             : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
           {canEditLogo && <>
             <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300"><Pencil size={11}/></span>
@@ -282,7 +282,7 @@ export default function TeamDetail(){
         <div className="space-y-4">
           <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-4 flex items-center gap-3">
             {teamLogo
-              ? <img src={teamLogo} alt="" className="w-10 h-10 rounded-xl object-cover bg-white"/>
+              ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover bg-white"/>
               : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-700 flex items-center justify-center">🎮</div>}
             <div className="font-black capitalize">{game}</div>
           </div>
@@ -338,7 +338,7 @@ export default function TeamDetail(){
                   {members.slice(0,4).map((m,i)=>(
                     <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
                       {memberAvatar(m)
-                        ? <img src={memberAvatar(m)} alt="" className="w-10 h-10 rounded-full object-cover"/>
+                        ? <img src={memberAvatar(m)} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover"/>
                         : <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>}
                       <div className="min-w-0"><div className="font-bold truncate flex items-center gap-2">
                         {m.uid ? <Link to={`/player/${m.uid}`} className="hover:text-emerald-300 hover:underline">{m.name}</Link> : m.name}
@@ -363,7 +363,7 @@ export default function TeamDetail(){
                 {members.map((m,i)=>(
                   <div key={i} className="rounded-xl bg-black/30 border border-white/10 px-4 py-3 flex items-center gap-3">
                     {memberAvatar(m)
-                      ? <img src={memberAvatar(m)} alt="" className="w-10 h-10 rounded-full object-cover"/>
+                      ? <img src={memberAvatar(m)} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-full object-cover"/>
                       : <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-black">{(m.name||'?')[0].toUpperCase()}</div>}
                     <div className="min-w-0 flex-1"><div className="font-bold truncate flex items-center gap-2">
                       {m.uid ? <Link to={`/player/${m.uid}`} className="hover:text-emerald-300 hover:underline">{m.name}</Link> : m.name}

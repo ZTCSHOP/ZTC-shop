@@ -30,11 +30,11 @@ export default function PlayerProfile(){
       <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
       <div className="mt-4 rounded-3xl overflow-hidden bg-white/[0.04] border border-white/10">
         {banner
-          ? <img src={banner} alt="" className="w-full h-44 md:h-56 object-cover"/>
+          ? <img src={banner} alt="" loading="lazy" decoding="async" className="w-full h-44 md:h-56 object-cover"/>
           : <div className="w-full h-24 bg-gradient-to-r from-emerald-900/40 to-teal-900/20"/>}
         <div className="p-5 flex items-center gap-4 -mt-10">
           {avatar
-            ? <img src={avatar} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-[#121214]"/>
+            ? <img src={avatar} alt="" loading="lazy" decoding="async" className="w-20 h-20 rounded-full object-cover border-4 border-[#121214]"/>
             : <div className="w-20 h-20 rounded-full bg-lime-600 flex items-center justify-center font-black text-3xl text-black border-4 border-[#121214]">{(name||'?')[0].toUpperCase()}</div>}
           <div>
             <h1 className="text-2xl md:text-3xl font-black">{name}</h1>

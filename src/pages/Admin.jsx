@@ -446,7 +446,7 @@ export default function Admin(){
                   {threadMessages.map(m=>(
                     <div key={m.id} className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${m.sender==='admin' ? 'bg-lime-400 text-black ml-auto' : 'bg-white/10 border border-white/10 mr-auto'}`}>
                       {isImageValue(m.text)
-                        ? <button type="button" onClick={()=>setLightbox(m.text)}><img src={m.text} alt="reçu" className="max-w-full rounded-xl max-h-72 object-contain"/></button>
+                        ? <button type="button" onClick={()=>setLightbox(m.text)}><img src={m.text} alt="reçu" loading="lazy" decoding="async" className="max-w-full rounded-xl max-h-72 object-contain"/></button>
                         : <div className="leading-snug">{m.text}</div>}
                       <div className="text-[10px] opacity-60 mt-0.5">{m.date ? new Date(m.date).toLocaleString('fr-FR') : ''}</div>
                     </div>

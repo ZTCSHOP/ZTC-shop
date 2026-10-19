@@ -225,7 +225,7 @@ export default function Teams(){
             <span className="font-black text-base">{medal(i)}</span>
             <Link to={`/teams/${encodeURIComponent(e.team)}`} className="flex items-center gap-2 font-bold truncate hover:text-emerald-300">
               {e.logo
-                ? <img src={e.logo} alt="" className="w-7 h-7 rounded-lg object-cover bg-white border border-white/10 shrink-0"/>
+                ? <img src={e.logo} alt="" loading="lazy" decoding="async" className="w-7 h-7 rounded-lg object-cover bg-white border border-white/10 shrink-0"/>
                 : <span className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sm shrink-0">🛡️</span>}
               <span className="truncate">{e.team}</span>
               {e.titles>0 && <Medal size={13} className="text-emerald-300 shrink-0"/>}
@@ -262,7 +262,7 @@ export default function Teams(){
             <div key={r.id} className="rounded-2xl bg-white/5 border border-white/10 p-4">
               <div className="flex items-center gap-2">
                 {r.logo
-                  ? <img src={r.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
+                  ? <img src={r.logo} alt="" loading="lazy" decoding="async" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
                   : <span className="text-lg w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
                 <Link to={`/teams/${encodeURIComponent(r.team)}`} className="font-black truncate hover:text-emerald-300">{r.team}</Link>
                 {mine && <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold">{t('teams_mine')}</span>}
@@ -314,7 +314,7 @@ export default function Teams(){
             <div key={'st-'+x.id} className="rounded-2xl bg-emerald-500/[0.06] border border-emerald-500/25 p-4">
               <div className="flex items-center gap-2">
                 {x.logo
-                  ? <img src={x.logo} alt="" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
+                  ? <img src={x.logo} alt="" loading="lazy" decoding="async" className="w-9 h-9 rounded-xl object-cover bg-white border border-white/10"/>
                   : <span className="text-lg w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">🛡️</span>}
                 <Link to={`/teams/${encodeURIComponent(x.name)}`} className="font-black truncate hover:text-emerald-300">{x.name}</Link>
                 <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold shrink-0">{t('tc_new')}</span>

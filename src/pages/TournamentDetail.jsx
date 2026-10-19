@@ -134,7 +134,7 @@ export default function TournamentDetail(){
               return (
                 <div key={r.id} className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
                   <Link to={`/teams/${encodeURIComponent(r.team)}`} className="flex items-center gap-1.5 font-bold text-sm hover:text-amber-300 min-w-0">
-                    {r.logo ? <img src={r.logo} alt="" className="w-6 h-6 rounded-full object-cover bg-white shrink-0"/> : <span className="shrink-0">🛡️</span>}
+                    {r.logo ? <img src={r.logo} alt="" loading="lazy" decoding="async" className="w-6 h-6 rounded-full object-cover bg-white shrink-0"/> : <span className="shrink-0">🛡️</span>}
                     <span className="truncate">{r.team}</span>
                   </Link>
                   <span className="ml-auto flex items-center gap-2 shrink-0">
@@ -215,7 +215,7 @@ export default function TournamentDetail(){
               )}
               <div className="flex items-center gap-3 rounded-xl bg-black/30 border border-white/10 px-3 py-2.5">
                 {chosen?.logo
-                  ? <img src={chosen.logo} alt="" className="w-10 h-10 rounded-xl object-cover bg-white"/>
+                  ? <img src={chosen.logo} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover bg-white"/>
                   : <span className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-lg">🛡️</span>}
                 <div className="min-w-0">
                   <div className="font-black text-sm truncate">{chosen?.name}</div>
