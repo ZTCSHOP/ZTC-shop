@@ -10,7 +10,7 @@ import { uploadImage, isImageValue } from '../lib/storage'
 const isImg = isImageValue
 
 export default function ChatWidget(){
-  const { user, myThread, sendMessage, refreshAll } = useAuth()
+  const { user, myThread, sendMessage, refreshMessages } = useAuth()
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -25,7 +25,7 @@ export default function ChatWidget(){
   useEffect(()=>{ if(open) bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [thread.length, open])
   useEffect(()=>{
     if(!open || !user) return
-    const id = setInterval(()=>{ try{ refreshAll() }catch{} }, 10000)
+    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 30000)
     return ()=>clearInterval(id)
   }, [open, user])
 

@@ -12,7 +12,7 @@ export const isImgMsg = isImageValue
 
 export default function Support(){
   const { t } = useLang()
-  const { user, myThread, sendMessage, refreshAll } = useAuth()
+  const { user, myThread, sendMessage, refreshMessages } = useAuth()
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [lightbox, setLightbox] = useState(null)
@@ -27,7 +27,7 @@ export default function Support(){
   // Polling de sécurité : nouveaux messages admin en direct même si realtime coupé
   useEffect(()=>{
     if(!user) return
-    const id = setInterval(()=>{ try{ refreshAll() }catch{} }, 10000)
+    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 30000)
     return ()=>clearInterval(id)
   }, [user])
 
