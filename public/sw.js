@@ -1,5 +1,5 @@
 /* ZTC Shop — Service Worker (PWA offline de base) */
-const CACHE = 'ztc-v1'
+const CACHE = 'ztc-v2'
 const SHELL = ['./', './index.html', './manifest.webmanifest', './logo.jpg']
 
 self.addEventListener('install', (e)=>{
