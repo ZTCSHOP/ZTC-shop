@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { initialProducts, categories } from '../data/products'
-import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX, Shield, Crown, Coins } from 'lucide-react'
+import { Plus, Trash2, Phone, Check, Truck, X, Users, Search, RefreshCw, MessageCircle, Send, Trophy, Volume2, VolumeX, Shield, Crown, Coins, Gift } from 'lucide-react'
 import TournamentManager from '../components/TournamentManager'
 import { sortTournaments } from '../lib/bracket'
 import { useIncomingSound, useSoundToggle } from '../lib/sound'
@@ -19,7 +19,7 @@ export default function Admin(){
     try{ setHeroVideo(heroUrl); alert('Vidéo accueil mise à jour ✓') }
     catch{ alert('Lien YouTube invalide') }
   }
-  const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge } = useAuth()
+  const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge, rewardClaims, decideReward } = useAuth()
   const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'', elimination:'single', final_format:'BO1' }
   const [trnForm, setTrnForm] = useState(EMPTY_TRN)
   const [editingTrId, setEditingTrId] = useState(null)
@@ -260,6 +260,7 @@ export default function Admin(){
         <button onClick={()=>setTab('teams')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='teams'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Shield size={15}/> {t('adm_teams')} ({regs.length + teams.length}) {redBadge(newTeams + pendingJoins)}</button>
         <button onClick={()=>setTab('vip')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='vip'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Crown size={15}/> VIP ({pendingVip}) {redBadge(pendingVip)}</button>
         <button onClick={()=>setTab('wallet')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='wallet'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Coins size={15}/> Wallet ({pendingWallet}) {redBadge(pendingWallet)}</button>
+        <button onClick={()=>setTab('rewards')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='rewards'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Gift size={15}/> XP ({rewardClaims.filter(c=>c.status==='pending').length}) {redBadge(rewardClaims.filter(c=>c.status==='pending').length)}</button>
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>
 
@@ -644,6 +645,40 @@ export default function Admin(){
                   <span className="font-black">{(allAccounts().find(a=>a.id===r.userId)?.name)||r.userId?.slice(0,8)}</span>
                   <span className="text-white/60">+{r.coins} 🪙 • {Number(r.amount).toFixed(2)} TND</span>
                   <span className="ml-auto text-emerald-300 font-bold">{r.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {tab==='rewards' && (
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl bg-purple-500/[0.06] border border-purple-500/25 p-4">
+            <h3 className="font-black text-sm mb-2">🎁 Demandes de récompense ({rewardClaims.filter(c=>c.status==='pending').length})</h3>
+            <div className="space-y-1.5">
+              {rewardClaims.filter(c=>c.status==='pending').length===0 && <div className="text-xs text-white/40">—</div>}
+              {rewardClaims.filter(c=>c.status==='pending').map(c=>(
+                <div key={c.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{(allAccounts().find(a=>a.id===c.user_id)?.name)||c.user_id?.slice(0,8)}</span>
+                  <span className="text-purple-300 font-black">{c.tier==='xp_1000'?'🥉':c.tier==='xp_10000'?'🥈':'🥇'} {Number(c.xp).toLocaleString('fr-FR')} XP</span>
+                  <span className="text-white/50">{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span>
+                  <span className="ml-auto flex gap-1.5">
+                    <button onClick={async()=>{ try{ await decideReward(c.id, 'approved') }catch(e){ alert(e.message) } }} className="px-2.5 py-1 rounded-lg bg-purple-400 text-black font-bold">Valider</button>
+                    <button onClick={async()=>{ try{ await decideReward(c.id, 'rejected') }catch(e){ alert(e.message) } }} className="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 font-bold">✕</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <h3 className="font-black text-sm mb-2">📜 Historique ({rewardClaims.filter(c=>c.status!=='pending').length})</h3>
+            <div className="space-y-1.5">
+              {rewardClaims.filter(c=>c.status!=='pending').length===0 && <div className="text-xs text-white/40">—</div>}
+              {rewardClaims.filter(c=>c.status!=='pending').slice(0,20).map(c=>(
+                <div key={c.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
+                  <span className="font-black">{(allAccounts().find(a=>a.id===c.user_id)?.name)||c.user_id?.slice(0,8)}</span>
+                  <span className="text-white/60">{Number(c.xp).toLocaleString('fr-FR')} XP</span>
+                  <span className={`ml-auto font-bold ${c.status==='approved'?'text-emerald-300':'text-red-300'}`}>{c.status==='approved'?'Validé':'Refusé'}</span>
                 </div>
               ))}
             </div>

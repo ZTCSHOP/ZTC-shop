@@ -1,0 +1,171 @@
+-- ════════════════════════════════════════════════════════════════════
+--  ZTC SHOP — SYSTÈME XP / NIVEAUX / RÉCOMPENSES
+--  À exécuter dans : Supabase > SQL Editor > New query > Run
+--  (à lancer UNE fois, idempotent)
+-- ════════════════════════════════════════════════════════════════════
+
+-- 1) Colonnes XP sur les profils
+alter table public.profiles add column if not exists xp integer not null default 0;
+alter table public.profiles add column if not exists referred_by uuid;
+
+-- 2) Historique des actions (logs XP)
+create table if not exists public.xp_logs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null,
+  action     text not null,      -- tournament_reg | team_create | avatar_update | checkin | referral
+  xp         integer not null,
+  ref        text,               -- id tournoi / équipe / filleul / mois
+  created_at timestamptz not null default now()
+);
+create index if not exists xp_logs_user_idx on public.xp_logs(user_id, created_at desc);
+
+-- Anti-doublon (1 seule récompense par action/ref)
+create unique index if not exists xp_logs_uniq_tournament on public.xp_logs(user_id, ref) where action = 'tournament_reg';
+create unique index if not exists xp_logs_uniq_checkin    on public.xp_logs(user_id, ref) where action = 'checkin';
+create unique index if not exists xp_logs_uniq_team       on public.xp_logs(user_id)      where action = 'team_create';
+create unique index if not exists xp_logs_uniq_avatar     on public.xp_logs(user_id, ref) where action = 'avatar_update';
+create unique index if not exists xp_logs_uniq_referral   on public.xp_logs(user_id, ref) where action = 'referral';
+
+-- 3) Demandes de cadeaux (claim)
+create table if not exists public.reward_claims (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null,
+  tier       text not null,      -- xp_1000 | xp_10000 | xp_20000
+  xp         integer not null,
+  status     text not null default 'pending',  -- pending | approved | rejected
+  created_at timestamptz not null default now(),
+  decided_at timestamptz,
+  unique(user_id, tier)
+);
+
+-- 4) RLS
+alter table public.xp_logs       enable row level security;
+alter table public.reward_claims enable row level security;
+
+drop policy if exists "xp_logs_read_own_or_admin" on public.xp_logs;
+create policy "xp_logs_read_own_or_admin" on public.xp_logs
+  for select using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "reward_claims_read_own_or_admin" on public.reward_claims;
+create policy "reward_claims_read_own_or_admin" on public.reward_claims
+  for select using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "reward_claims_admin_update" on public.reward_claims;
+create policy "reward_claims_admin_update" on public.reward_claims
+  for update using (public.is_admin()) with check (public.is_admin());
+
+-- 5) RPC : ajouter de l'XP (barème fixé côté serveur, anti-triche + anti-doublon)
+create or replace function public.award_xp(p_action text, p_ref text default null)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_xp  integer;
+  v_ref text := nullif(p_ref, '');
+  v_cur integer;
+begin
+  if v_uid is null then return null; end if;
+
+  v_xp := case p_action
+    when 'tournament_reg' then 100
+    when 'team_create'    then 250
+    when 'avatar_update'  then 20
+    when 'checkin'        then 150
+    when 'referral'       then 50
+    else 0 end;
+  if v_xp = 0 then
+    return (select xp from public.profiles where id = v_uid);
+  end if;
+
+  -- Photo de profil : max 1 fois par mois
+  if p_action = 'avatar_update' then
+    v_ref := to_char(now(), 'YYYY-MM');
+  end if;
+
+  begin
+    insert into public.xp_logs(user_id, action, xp, ref)
+    values (v_uid, p_action, v_xp, v_ref);
+  exception when unique_violation then
+    return (select xp from public.profiles where id = v_uid);  -- déjà attribué
+  end;
+
+  update public.profiles set xp = coalesce(xp, 0) + v_xp
+    where id = v_uid
+    returning xp into v_cur;
+
+  return v_cur;
+end $$;
+
+grant execute on function public.award_xp(text, text) to authenticated;
+
+-- 6) RPC : parrainage (appelé par le NOUVEAU membre → crédite le parrain)
+create or replace function public.claim_referral()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_ref uuid;
+begin
+  if v_uid is null then return; end if;
+
+  select referred_by into v_ref from public.profiles where id = v_uid;
+  if v_ref is null or v_ref = v_uid then return; end if;
+  if not exists (select 1 from public.profiles where id = v_ref) then return; end if;
+
+  begin
+    insert into public.xp_logs(user_id, action, xp, ref)
+    values (v_ref, 'referral', 50, v_uid::text);
+  exception when unique_violation then
+    return;  -- filleul déjà compté
+  end;
+
+  update public.profiles set xp = coalesce(xp, 0) + 50 where id = v_ref;
+end $$;
+
+grant execute on function public.claim_referral() to authenticated;
+
+-- 7) RPC : réclamer un cadeau (vérifie le palier XP)
+create or replace function public.claim_reward(p_tier text)
+returns public.reward_claims
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_need integer;
+  v_row  public.reward_claims;
+begin
+  if v_uid is null then raise exception 'auth required'; end if;
+
+  v_need := case p_tier
+    when 'xp_1000'  then 1000
+    when 'xp_10000' then 10000
+    when 'xp_20000' then 20000
+    else null end;
+  if v_need is null then raise exception 'bad tier'; end if;
+
+  if (select coalesce(xp, 0) from public.profiles where id = v_uid) < v_need then
+    raise exception 'not enough xp';
+  end if;
+
+  begin
+    insert into public.reward_claims(user_id, tier, xp) values (v_uid, p_tier, v_need)
+      returning * into v_row;
+  exception when unique_violation then
+    select * into v_row from public.reward_claims where user_id = v_uid and tier = p_tier;
+  end;
+
+  return v_row;
+end $$;
+
+grant execute on function public.claim_reward(text) to authenticated;
+
+-- Le propriétaire admin : s'assurer qu'il a le rôle (optionnel, à adapter)
+-- update public.profiles set is_admin = true where email = 'apatchegaming@gmail.com';

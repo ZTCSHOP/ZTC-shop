@@ -170,6 +170,8 @@ fr: {
   pending_title: 'En attente de confirmation admin', codes_locked: 'Codes verrouillés',
   pending_desc: "Ta commande est bien reçue ! L'admin va la vérifier puis tes codes seront révélés ici. Reviens dans quelques minutes.",
   confirmed_hint: 'Commande confirmée par l’admin — clique pour révéler tes codes.',
+  xp_title: 'XP & Récompenses', xp_invite: 'Invite un ami → +50 XP', pm_xp: 'XP & Récompenses',
+  rw_bronze: 'Cadeau Bronze', rw_silver: 'Cadeau Argent', rw_gold: 'Cadeau Or',
 },
 en: {
   catalog: 'Catalog', cart: 'Cart', orders: 'Orders', login: 'Login', logout: 'Logout',
@@ -333,6 +335,8 @@ en: {
   pending_title: 'Waiting for admin confirmation', codes_locked: 'Locked codes',
   pending_desc: 'Order received! The admin will verify it, then your codes will be revealed here. Check back in a few minutes.',
   confirmed_hint: 'Order confirmed by admin — click to reveal your codes.',
+  xp_title: 'XP & Rewards', xp_invite: 'Invite a friend → +50 XP', pm_xp: 'XP & Rewards',
+  rw_bronze: 'Bronze Gift', rw_silver: 'Silver Gift', rw_gold: 'Gold Gift',
 },
 ar: {
   catalog: 'المتجر', cart: 'السلة', orders: 'طلباتي', login: 'تسجيل الدخول', logout: 'تسجيل الخروج',
@@ -496,6 +500,8 @@ ar: {
   pending_title: 'بانتظار تأكيد الإدارة', codes_locked: 'أكواد مقفلة',
   pending_desc: 'تم استلام طلبك! ستتحقق الإدارة منه ثم ستظهر أكوادك هنا. عد بعد بضع دقائق.',
   confirmed_hint: 'تم تأكيد الطلب من الإدارة — اضغط لكشف أكوادك.',
+  xp_title: 'XP والمكافآت', xp_invite: 'ادعُ صديقاً → +50 XP', pm_xp: 'XP والمكافآت',
+  rw_bronze: 'هدية برونزية', rw_silver: 'هدية فضية', rw_gold: 'هدية ذهبية',
 }
 }
 

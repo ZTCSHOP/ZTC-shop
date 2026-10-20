@@ -4,6 +4,7 @@ import { Smartphone, Copy, Check, Lock, Coins } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
+import { levelFor } from '../lib/level'
 
 function genCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<16;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s.match(/.{1,4}/g).join('-') }
 
@@ -15,7 +16,10 @@ export default function Checkout(){
   const { t } = useLang()
   const nav = useNavigate()
   const vip = isVipActive()
-  const total = vip ? Math.round(rawTotal * (1 - VIP_DISCOUNT) * 100) / 100 : rawTotal
+  const level = levelFor(Number(user?.xp || 0))
+  const XP_DISCOUNT = level >= 2 ? 0.01 : 0
+  const discountRate = (vip ? VIP_DISCOUNT : 0) + XP_DISCOUNT
+  const total = Math.round(rawTotal * (1 - discountRate) * 100) / 100
   const [method, setMethod] = useState('d17')
   const balance = Number(user?.balance || 0)
   const walletOk = balance >= total && total > 0
@@ -132,7 +136,8 @@ export default function Checkout(){
         <div className="mt-3 space-y-2">
           {cart.map(i=> <div key={i.key} className="flex justify-between text-sm"><span className="text-white/70">{i.name} ×{i.qty} <span className="text-white/40">({i.variantLabel})</span></span><span className="font-semibold">{(i.price*i.qty).toFixed(2)} TND</span></div>)}
           <div className="flex justify-between font-black border-t border-white/10 pt-2"><span>{t('total')}</span><span className="text-lime-400">{total.toFixed(2)} TND</span></div>
-          {vip && <div className="flex justify-between text-xs font-bold text-amber-300 pt-1"><span>👑 VIP -{Math.round(VIP_DISCOUNT*100)}%</span><span>-{(rawTotal - total).toFixed(2)} TND</span></div>}
+          {vip && <div className="flex justify-between text-xs font-bold text-amber-300 pt-1"><span>👑 VIP -{Math.round(VIP_DISCOUNT*100)}%</span><span>-{(rawTotal * VIP_DISCOUNT).toFixed(2)} TND</span></div>}
+          {XP_DISCOUNT > 0 && <div className="flex justify-between text-xs font-bold text-emerald-300 pt-1"><span>⭐ Niveau {level} -1%</span><span>-{(rawTotal * XP_DISCOUNT).toFixed(2)} TND</span></div>}
         </div>
         <div className="mt-4 text-xs text-white/40">En confirmant, tes codes seront générés et visibles dans “Mes commandes”.</div>
       </div>

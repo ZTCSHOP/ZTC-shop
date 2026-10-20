@@ -6,6 +6,7 @@ import { useLang } from '../context/LanguageContext'
 import { D17_NUMBER } from './Checkout'
 import { xpForActivity, levelProgress } from '../lib/level'
 import { uploadImage } from '../lib/storage'
+import XpRewards from '../components/XpRewards'
 
 function useHashScroll(){
   const { hash } = useLocation()
@@ -271,6 +272,7 @@ export default function Orders(){
       <p className="text-white/60 text-sm mt-1">{t('no_orders_d')}</p>
       <Link to="/catalog" className="inline-block mt-4 px-6 py-3 rounded-xl bg-lime-400 text-black font-black">{t('go_catalog')}</Link>
       <div className="text-left mt-6"><VipCard /></div>
+      <div className="text-left"><XpRewards /></div>
       <div className="text-left"><MyTournaments /></div>
       <div className="text-left"><MyTeam /></div>
       <div className="text-left"><Wallet /></div>
@@ -282,6 +284,7 @@ export default function Orders(){
       <h1 className="font-display text-4xl font-bold uppercase tracking-wide">{t('profile')}</h1>
       <p className="text-sm text-white/50">{user.provider}{user.email? ` • ${user.email}`: user.principal? ` • ${user.principal}`:''}</p>
       <VipCard />
+      <XpRewards />
       <MyTournaments />
       <MyTeam />
       <Wallet />

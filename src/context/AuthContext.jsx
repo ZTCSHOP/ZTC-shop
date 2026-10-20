@@ -549,9 +549,69 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }catch(e){ console.warn('cloud messages:', e.message) }
   }, [])
 
+  // ---- XP / récompenses ----
+  const [xpLogs, setXpLogs] = useState([])
+  const [rewardClaims, setRewardClaims] = useState([])
+  const xpOf = (id)=> Number(((cloudProfiles||[]).find(p=>p.id===id)||{}).xp || 0)
+  const refreshXp = useCallback(async ()=>{
+    if(!cloud) return
+    const uid = sbUserId.current
+    if(uid){
+      try{
+        const { data } = await supabase.from('xp_logs').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100)
+        setXpLogs(data||[])
+      }catch(e){ console.warn('xp logs:', e.message) }
+    }
+    try{
+      const { data } = await supabase.from('reward_claims').select('*').order('created_at', { ascending: false }).limit(300)
+      setRewardClaims(data||[])
+    }catch(e){ console.warn('reward claims:', e.message) }
+  }, [cloud])
+
+  const awardXp = async (action, ref=null)=>{
+    if(!cloud || !user?.cloud) return null
+    try{
+      const { data, error } = await supabase.rpc('award_xp', { p_action: action, p_ref: ref ? String(ref) : null })
+      if(error) throw error
+      if(data!=null){
+        setUser(u=> u ? { ...u, xp: Number(data) } : u)
+        refreshXp()
+      }
+      return data
+    }catch(e){ console.warn('award_xp:', e.message); return null }
+  }
+
+  const claimReward = async (tier)=>{
+    if(!cloud || !user?.cloud) throw new Error('login')
+    const { error } = await supabase.rpc('claim_reward', { p_tier: tier })
+    if(error) throw new Error(error.message)
+    await refreshXp()
+    return true
+  }
+
+  const decideReward = async (id, status)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const { error } = await supabase.from('reward_claims')
+      .update({ status, decided_at: new Date().toISOString() }).eq('id', id)
+    if(error) throw new Error(error.message)
+    await refreshXp()
+  }
+
+  const inviteLink = user?.cloud
+    ? `${window.location.origin}${import.meta.env.BASE_URL || '/'}login?ref=${user.id}`
+    : ''
+
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp])
+
+  // Capture du parrainage : ?ref=<user_id> → stocké jusqu'à l'inscription
+  useEffect(()=>{
+    try{
+      const r = new URLSearchParams(window.location.search).get('ref')
+      if(r && /^[0-9a-f-]{36}$/i.test(r)) localStorage.setItem('ztc_ref', r)
+    }catch{}
+  }, [])
 
   // Session cloud au démarrage + realtime + refresh au focus
   useEffect(()=>{
@@ -578,6 +638,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recharges' }, ()=> refreshRecharges())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_join_requests' }, ()=> refreshJoinReqs())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=>{ refreshTeamAssets(); refreshTeamInfos() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'xp_logs' }, ()=> refreshXp())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_claims' }, ()=> refreshXp())
       .subscribe()
     let lastFocus = 0
     const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 120000) return; lastFocus = now; refreshAll() }
@@ -597,6 +659,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         isAdmin: !!(prof?.is_admin || isOwnerEmail(email)),
         isVip: !!prof?.is_vip, vipUntil: prof?.vip_until || null,
         balance: Number(prof?.ztc_balance || 0),
+        xp: Number(prof?.xp || 0),
+        referredBy: prof?.referred_by || null,
         createdAt: prof?.created_at || new Date().toISOString(),
         ...readLocalExtras(sbUser.id),
       }
@@ -616,10 +680,10 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       const email = (sbUser.email||'').toLowerCase()
       // SECURITE : on n'envoie JAMAIS is_admin depuis l'appli.
       // Le rôle admin se donne uniquement via SQL Editor / service_role.
-      await supabase.from('profiles').upsert(
-        { id: sbUser.id, email, name: name || sbUser.user_metadata?.name || email.split('@')[0], provider: 'email' },
-        { onConflict: 'id' }
-      )
+      const ref = sbUser.user_metadata?.ref
+      const patch = { id: sbUser.id, email, name: name || sbUser.user_metadata?.name || email.split('@')[0], provider: 'email' }
+      if(ref) patch.referred_by = ref
+      await supabase.from('profiles').upsert(patch, { onConflict: 'id' })
     }catch{}
   }
 
@@ -666,10 +730,16 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(!email || !password) throw new Error('Email et mot de passe requis')
     if(password.length<4) throw new Error('Mot de passe trop court (min 4)')
     if(cloud){
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name: name||email.split('@')[0] } } })
+      let ref = null
+      try{ ref = localStorage.getItem('ztc_ref') }catch{}
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name: name||email.split('@')[0], ...(ref ? { ref } : {}) } } })
       if(error) throw new Error(error.message)
       if(!data.session) throw new Error('Compte créé ! Vérifie ton email puis connecte-toi (ou désactive « Confirm email » dans Supabase > Auth).')
       await upsertCloudProfile(data.user, name)
+      if(ref){
+        try{ await supabase.rpc('claim_referral') }catch{}
+        try{ localStorage.removeItem('ztc_ref') }catch{}
+      }
       sendWelcomeEmail(name, email).catch(()=>{})
       return await buildCloudUser(data.user)
     }
@@ -794,6 +864,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(birthdate!==undefined) next.birthdate = birthdate
     if(gender!==undefined) next.gender = gender
     setUser(next)
+    if(avatar!==undefined && avatar && avatar !== user.avatar) awardXp('avatar_update')
     writeExtrasById(user.id, { ...(next.avatar?{avatar:next.avatar}:{}), ...(next.banner?{banner:next.banner}:{}), ...(next.phone?{phone:next.phone}:{}), ...(next.birthdate?{birthdate:next.birthdate}:{}), ...(next.gender?{gender:next.gender}:{}) })
     // Partage cloud (photo+bannière visibles par tous) — best effort
     if(cloud && user.cloud){
@@ -981,9 +1052,10 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         user_id: sbUserId.current || user.id,
       }).select()
       if(error) throw error
-      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); return mapCloudReg(data[0]) }
+      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); awardXp('tournament_reg', tournamentId); return mapCloudReg(data[0]) }
     }
     setRegs(prev=> [reg, ...prev])
+    awardXp('tournament_reg', tournamentId)
     return reg
   }
   const deleteReg = async (id)=>{
@@ -1048,7 +1120,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           user_id: sbUserId.current || user.id,
         }).select()
         if(error) throw error
-        if(data?.[0]) { const m = mapCloudTeam(data[0]); setTeams(prev=> [m, ...prev]); refreshTeams(); return m }
+        if(data?.[0]) { const m = mapCloudTeam(data[0]); setTeams(prev=> [m, ...prev]); refreshTeams(); awardXp('team_create'); return m }
       }catch(e){
         if(e.message==='taken') throw e
         if(e.code==='23505' || /duplicate/i.test(String(e.message || ''))) throw new Error('taken')
@@ -1059,6 +1131,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       }
     }
     setTeams(prev=> [team, ...prev])
+    awardXp('team_create')
     return team
   }
   const deleteTeam = async (id)=>{
@@ -1123,6 +1196,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       }
       refreshRegs()
     }
+    if(checked) awardXp('checkin', target.tournament_id)
     return true
   }
   const myRegs = (u=user)=>{
@@ -1160,9 +1234,10 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         user_id: sbUserId.current || user.id,
       }).select()
       if(error) throw error
-      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); return mapCloudReg(data[0]) }
+      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); awardXp('tournament_reg', tournamentId); return mapCloudReg(data[0]) }
     }
     setRegs(prev=> [reg, ...prev])
+    awardXp('tournament_reg', tournamentId)
     return reg
   }
   // ---- Demandes pour rejoindre une équipe (player avec compte) ----
@@ -1331,8 +1406,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const map = new Map()
     readUsers().forEach(r=> map.set(r.id, { ...r, phones: [], ordersCount: 0, totalSpent: 0, lastOrder: null, orderIds: [] }))
     ;(cloudProfiles||[]).forEach(p=>{
-      if(!map.has(p.id)) map.set(p.id, { id: p.id, name: p.name||'', email: p.email||'', provider: p.provider||'email', principal: '', isAdmin: !!p.is_admin, createdAt: p.created_at, lastSeen: p.created_at, phones: [], ordersCount: 0, totalSpent: 0, lastOrder: null, orderIds: [] })
-      else { const a = map.get(p.id); a.isAdmin = a.isAdmin || !!p.is_admin; if(p.name) a.name = p.name; if(p.email) a.email = p.email }
+      if(!map.has(p.id)) map.set(p.id, { id: p.id, name: p.name||'', email: p.email||'', provider: p.provider||'email', principal: '', isAdmin: !!p.is_admin, cloud: true, xp: Number(p.xp||0), createdAt: p.created_at, lastSeen: p.created_at, phones: [], ordersCount: 0, totalSpent: 0, lastOrder: null, orderIds: [] })
+      else { const a = map.get(p.id); a.isAdmin = a.isAdmin || !!p.is_admin; a.cloud = true; a.xp = Number(p.xp||0); if(p.name) a.name = p.name; if(p.email) a.email = p.email }
     })
     // Photos/bannières profils cloud (partagées) : donnent aussi le nom public
     Object.entries(profileAssets||{}).forEach(([pid, a])=>{
@@ -1365,6 +1440,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts}}>{children}</AuthCtx.Provider>
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

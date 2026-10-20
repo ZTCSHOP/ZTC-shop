@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown } from 'lucide-react'
+import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { xpForActivity, levelProgress } from '../lib/level'
@@ -17,7 +17,7 @@ export default function ProfileMenu(){
   const regs = myRegs()
   const owTeams = myTeams()
   const teamNames = new Set([...owTeams.map(x=>x.name), ...regs.map(r=>r.team)].filter(Boolean))
-  const xp = xpForActivity({ orders: orders.length, regs: regs.length, teams: owTeams.length })
+  const xp = user.xp != null ? Number(user.xp) : xpForActivity({ orders: orders.length, regs: regs.length, teams: owTeams.length })
   const { level, cur, need } = levelProgress(xp)
   const phone = user.phone || orders[0]?.customer?.phone || ''
   const pct = Math.min(100, Math.round((cur / need) * 100))
@@ -27,6 +27,7 @@ export default function ProfileMenu(){
     { to:'/orders#mytournaments', icon:<Trophy size={16}/>, label: t('pm_mytournaments')||'Mes Tournois', badge: regs.length||null },
     { to:'/orders#myteam', icon:<Shield size={16}/>, label: t('pm_myteam')||'Mon Équipe', badge: teamNames.size||null },
     { to:'/orders#wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },
+    { to:'/orders#xp', icon:<Gift size={16}/>, label: t('pm_xp')||'XP & Récompenses', badge: `${xp}` },
     { to:'/orders#orders', icon:<ShoppingBag size={16}/>, label: t('pm_orders')||'Commandes', badge: orders.length||null },
     { to:'/orders#settings', icon:<Settings size={16}/>, label: t('pm_settings')||'Paramètres' },
     { to:'/support', icon:<Flag size={16}/>, label: t('pm_bug')||'Signaler un bug' },

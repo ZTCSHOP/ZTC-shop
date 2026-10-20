@@ -6,7 +6,7 @@ import { xpForActivity, levelProgress } from '../lib/level'
 
 export default function PlayerProfile(){
   const { id } = useParams()
-  const { allAccounts, profileAssets, regs, teams, tournaments, orders } = useAuth()
+  const { allAccounts, profileAssets, regs, teams, tournaments, orders, xpOf } = useAuth()
   const { t } = useLang()
   const accounts = allAccounts()
   const acc = accounts.find(a=> a.id===id)
@@ -18,7 +18,7 @@ export default function PlayerProfile(){
   const myOwnTeams = teams.filter(x=> x.userId===id)
   const teamNames = [...new Set([...myOwnTeams.map(x=>x.name), ...myRegs.map(r=>r.team)].filter(Boolean))]
   const myOrders = orders.filter(o=> o.userId===id)
-  const xp = xpForActivity({ orders: myOrders.length, regs: myRegs.length, teams: myOwnTeams.length })
+  const xp = acc?.cloud ? xpOf(id) : xpForActivity({ orders: myOrders.length, regs: myRegs.length, teams: myOwnTeams.length })
   const { level, cur, need } = levelProgress(xp)
 
   if(!acc && !asset.name && myRegs.length===0 && myOwnTeams.length===0){
