@@ -10,6 +10,8 @@ const ACTION_LABEL = {
   avatar_update: 'Changement d’avatar',
   checkin: 'Check-in tournoi',
   referral: 'Parrainage',
+  purchase: 'Achat sur le site',
+  wallet_topup: 'Recharge wallet (30 DT+)',
 }
 
 const STATUS = {

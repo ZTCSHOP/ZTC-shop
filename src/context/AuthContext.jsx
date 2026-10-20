@@ -175,9 +175,9 @@ export function AuthProvider({ children }){
   })
   useEffect(()=> localStorage.setItem('ztc_messages', JSON.stringify(messages.filter(m=>!m.cloud))), [messages])
 
-  // ---- VIP Membership (29.99 TND/mois, -10% marketplace) ----
+  // ---- VIP Membership (29.99 TND/mois, -5% marketplace) ----
   const VIP_PRICE = 29.99
-  const VIP_DISCOUNT = 0.10
+  const VIP_DISCOUNT = 0.05
   const isVipActive = (u=user)=>{
     if(!u) return false
     if(u.vipUntil && new Date(u.vipUntil) <= new Date()) return false
@@ -558,6 +558,10 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const uid = sbUserId.current
     if(uid){
       try{
+        const { data } = await supabase.from('profiles').select('xp').eq('id', uid).single()
+        if(data) setUser(u=> u ? { ...u, xp: Number(data.xp || 0) } : u)
+      }catch{}
+      try{
         const { data } = await supabase.from('xp_logs').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100)
         setXpLogs(data||[])
       }catch(e){ console.warn('xp logs:', e.message) }
@@ -921,6 +925,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           items: full.items||[], total: full.total||0, method: full.method||'card', status: full.status,
         })
         refreshCloudOrders()
+        refreshXp() // +1000 XP achat (trigger serveur)
       }catch(e){
         console.warn('cloud insert order:', e.message)
         setOrders(prev=> prev.map(x=> x.id===full.id ? {...x, syncError:true} : x))

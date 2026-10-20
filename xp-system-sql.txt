@@ -169,3 +169,69 @@ grant execute on function public.claim_reward(text) to authenticated;
 
 -- Le propriétaire admin : s'assurer qu'il a le rôle (optionnel, à adapter)
 -- update public.profiles set is_admin = true where email = 'apatchegaming@gmail.com';
+
+-- ════════════════════════════════════════════════════════════════════
+--  BONUS (v2) : achat = +1000 XP, recharge wallet >= 30 DT = +2500 XP
+--  Automatique côté serveur (anti-triche) — exécuter après le bloc ci-dessus
+-- ════════════════════════════════════════════════════════════════════
+
+-- Anti-doublon
+create unique index if not exists xp_logs_uniq_purchase     on public.xp_logs(user_id, ref) where action = 'purchase';
+create unique index if not exists xp_logs_uniq_wallet_topup on public.xp_logs(user_id, ref) where action = 'wallet_topup';
+
+-- Achat d'une commande -> +1000 XP (1 fois par commande)
+create or replace function public.on_order_xp()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.user_id is null then return new; end if;
+  begin
+    insert into public.xp_logs(user_id, action, xp, ref)
+    values (new.user_id, 'purchase', 1000, new.id::text);
+  exception when unique_violation then
+    return new;
+  end;
+  update public.profiles set xp = coalesce(xp, 0) + 1000 where id = new.user_id;
+  return new;
+end $$;
+
+drop trigger if exists trg_order_xp on public.orders;
+create trigger trg_order_xp after insert on public.orders
+  for each row execute function public.on_order_xp();
+
+-- Recharge wallet validée (>= 30 DT) -> +2500 XP (1 fois par recharge)
+create or replace function public.on_recharge_xp()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'approved'
+     and coalesce(old.status, '') <> 'approved'
+     and coalesce(new.amount_tnd, 0) >= 30
+     and new.user_id is not null then
+    begin
+      insert into public.xp_logs(user_id, action, xp, ref)
+      values (new.user_id, 'wallet_topup', 2500, new.id::text);
+    exception when unique_violation then
+      return new;
+    end;
+    update public.profiles set xp = coalesce(xp, 0) + 2500 where id = new.user_id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_recharge_xp on public.recharges;
+create trigger trg_recharge_xp after update on public.recharges
+  for each row execute function public.on_recharge_xp();
+
+-- Temps réel (mise à jour XP instantanée dans l'interface)
+do $$
+begin
+  begin alter publication supabase_realtime add table public.xp_logs;      exception when others then null; end;
+  begin alter publication supabase_realtime add table public.reward_claims; exception when others then null; end;
+end $$;

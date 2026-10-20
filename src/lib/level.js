@@ -9,6 +9,8 @@ export const XP_ACTIONS = {
   avatar_update:  20,
   checkin:        150,
   referral:       50,
+  purchase:       1000,
+  wallet_topup:   2500,
 }
 
 // Palier XP cumulé pour atteindre un niveau (niveau 1 = 0 XP)
