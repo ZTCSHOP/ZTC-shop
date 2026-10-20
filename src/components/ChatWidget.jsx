@@ -25,7 +25,7 @@ export default function ChatWidget(){
   useEffect(()=>{ if(open) bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [thread.length, open])
   useEffect(()=>{
     if(!open || !user) return
-    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 30000)
+    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 60000)
     return ()=>clearInterval(id)
   }, [open, user])
 

@@ -580,7 +580,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=>{ refreshTeamAssets(); refreshTeamInfos() })
       .subscribe()
     let lastFocus = 0
-    const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 30000) return; lastFocus = now; refreshAll() }
+    const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 120000) return; lastFocus = now; refreshAll() }
     window.addEventListener('focus', onFocus)
     return ()=>{ mounted = false; sub.subscription.unsubscribe(); supabase.removeChannel(ch); window.removeEventListener('focus', onFocus) }
     // eslint-disable-next-line react-hooks/exhaustive-deps

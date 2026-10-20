@@ -27,7 +27,7 @@ export default function Support(){
   // Polling de sécurité : nouveaux messages admin en direct même si realtime coupé
   useEffect(()=>{
     if(!user) return
-    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 30000)
+    const id = setInterval(()=>{ try{ refreshMessages() }catch{} }, 60000)
     return ()=>clearInterval(id)
   }, [user])
 
