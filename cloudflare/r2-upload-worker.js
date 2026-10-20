@@ -11,7 +11,11 @@
 //                puis Settings > Bindings > R2 Bucket = BUCKET -> ztc-media
 // ============================================================
 
-const ALLOWED_ORIGINS = ['https://ztcshop.github.io']
+const ALLOWED_ORIGINS = [
+  'https://ztcshop.github.io',
+  'https://ztc-shop.tn',
+  'https://www.ztc-shop.tn',
+]
 
 function cors(origin){
   const allow = !origin || ALLOWED_ORIGINS.includes(origin) ? (origin || '*') : ALLOWED_ORIGINS[0]

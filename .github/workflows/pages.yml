@@ -34,6 +34,8 @@ jobs:
           VITE_EMAILJS_TEMPLATE_WELCOME: template_4gveo97
           VITE_EMAILJS_TEMPLATE_RECRUTEMENT: template_4gveo97
           VITE_EMAILJS_TEMPLATE_SUPPORT: template_4gveo97
+          VITE_R2_WORKER_URL: https://ztc-upload.apatchegaming.workers.dev
+          VITE_R2_PUBLIC_URL: https://pub-dd87ee2e732e4faaa0bc57d229af368f.r2.dev
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
