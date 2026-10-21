@@ -3,6 +3,7 @@ import { initialProducts } from '../data/products'
 import { supabase, isCloudEnabled } from '../lib/supabase'
 import { sendWelcomeEmail } from '../lib/email'
 import { isImageValue } from '../lib/storage'
+import { fetchRiotStats } from '../lib/riot'
 
 const AuthCtx = createContext()
 const cloud = isCloudEnabled
@@ -665,6 +666,13 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         balance: Number(prof?.ztc_balance || 0),
         xp: Number(prof?.xp || 0),
         referredBy: prof?.referred_by || null,
+        riot: prof?.riot_puuid ? {
+          puuid: prof.riot_puuid,
+          game: prof.riot_game || 'lol',
+          region: prof.riot_region || 'euw',
+          name: prof.riot_game_name || '',
+          tag: prof.riot_tag_line || '',
+        } : null,
         createdAt: prof?.created_at || new Date().toISOString(),
         ...readLocalExtras(sbUser.id),
       }
@@ -888,6 +896,41 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(/quota|exceed/i.test(String(e?.message||e?.name||e))) throw new Error('quota')
     }
     return next
+  }
+
+  // ---- Liaison Riot (LoL / Valorant) ----
+  const linkRiot = async ({ game, region, name, tag })=>{
+    if(!user) throw new Error('login')
+    if(!(cloud && user.cloud)) throw new Error('cloud_only')
+    const clean = String(name||'').trim()
+    const tagClean = String(tag||'').trim().replace(/^#/, '')
+    if(!clean || !tagClean) throw new Error('missing_riot_id')
+    const info = await fetchRiotStats({ game, region, name: clean, tag: tagClean })
+    const patch = {
+      riot_puuid: info.puuid || null,
+      riot_game_name: info.name || clean,
+      riot_tag_line: info.tag || tagClean,
+      riot_region: region,
+      riot_game: game,
+      riot_linked_at: new Date().toISOString(),
+    }
+    const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
+    if(error) throw error
+    const next = { ...user, riot: { puuid: patch.riot_puuid, game, region, name: patch.riot_game_name, tag: patch.riot_tag_line } }
+    setUser(next); saveProfile(next)
+    return info
+  }
+  const unlinkRiot = async ()=>{
+    if(!user) throw new Error('login')
+    if(cloud && user.cloud){
+      const { error } = await supabase.from('profiles').update({
+        riot_puuid: null, riot_game_name: null, riot_tag_line: null,
+        riot_region: null, riot_game: null, riot_linked_at: null,
+      }).eq('id', user.id)
+      if(error) throw error
+    }
+    const next = { ...user, riot: null }
+    setUser(next); saveProfile(next)
   }
 
   // ---- Suppressions admin (local + cloud) ----
@@ -1446,6 +1489,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
-    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp}}>{children}</AuthCtx.Provider>
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

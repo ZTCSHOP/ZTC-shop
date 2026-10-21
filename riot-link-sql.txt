@@ -1,0 +1,18 @@
+-- ════════════════════════════════════════════════════════════════════
+--  ZTC SHOP — LIAISON COMPTE RIOT (LoL / Valorant)
+--  À exécuter dans : Supabase > SQL Editor > New query > Run (idempotent)
+-- ════════════════════════════════════════════════════════════════════
+
+alter table public.profiles add column if not exists riot_puuid   text;
+alter table public.profiles add column if not exists riot_game_name text;
+alter table public.profiles add column if not exists riot_tag_line  text;
+alter table public.profiles add column if not exists riot_region    text;
+alter table public.profiles add column if not exists riot_game      text;      -- lol | valorant
+alter table public.profiles add column if not exists riot_linked_at timestamptz;
+
+-- La policy "profiles_update_own" existante suffit pour enregistrer ces colonnes.
+-- (id = auth.uid() → l'utilisateur ne modifie que son profil)
+
+-- Optionnel : exposer la carte Riot publiquement (lecture par tous)
+-- Les profils sont privés par défaut ; on peut publier un sous-ensemble
+-- dans profile_assets si tu veux l'afficher sur le profil public du joueur.

@@ -7,6 +7,7 @@ import { D17_NUMBER } from './Checkout'
 import { xpForActivity, levelProgress } from '../lib/level'
 import { uploadImage } from '../lib/storage'
 import XpRewards from '../components/XpRewards'
+import RiotCard from '../components/RiotCard'
 
 function useHashScroll(){
   const { hash } = useLocation()
@@ -273,6 +274,7 @@ export default function Orders(){
       <Link to="/catalog" className="inline-block mt-4 px-6 py-3 rounded-xl bg-lime-400 text-black font-black">{t('go_catalog')}</Link>
       <div className="text-left mt-6"><VipCard /></div>
       <div className="text-left"><XpRewards /></div>
+      <div className="text-left"><RiotCard /></div>
       <div className="text-left"><MyTournaments /></div>
       <div className="text-left"><MyTeam /></div>
       <div className="text-left"><Wallet /></div>
@@ -285,6 +287,7 @@ export default function Orders(){
       <p className="text-sm text-white/50">{user.provider}{user.email? ` • ${user.email}`: user.principal? ` • ${user.principal}`:''}</p>
       <VipCard />
       <XpRewards />
+      <RiotCard />
       <MyTournaments />
       <MyTeam />
       <Wallet />
