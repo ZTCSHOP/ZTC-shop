@@ -342,3 +342,51 @@ begin
 end $$;
 
 grant execute on function public.decide_reward(uuid, text) to authenticated;
+
+-- ════════════════════════════════════════════════════════════════════
+--  v4) PROFIL PUBLIC — tout membre peut consulter le profil d'un autre
+--  Expose UNIQUEMENT : nom, XP, VIP, Riot (pseudo/tag/région), badges validés.
+--  Jamais : email, téléphone, solde, commandes, logs XP.
+--  Le nom + avatar + bannière restent dans profile_assets (déjà public).
+-- ════════════════════════════════════════════════════════════════════
+
+create or replace function public.public_player(p_id uuid)
+returns json
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_badges json := '[]'::json;
+  v_out json;
+begin
+  if to_regclass('public.reward_claims') is not null then
+    select coalesce(json_agg(tier order by decided_at nulls last), '[]'::json)
+      into v_badges
+      from public.reward_claims
+      where user_id = p_id and status = 'approved';
+  end if;
+
+  select json_build_object(
+    'id', p.id,
+    'name', coalesce(pa.name, p.name),
+    'xp', coalesce(p.xp, 0),
+    'is_vip', coalesce(p.is_vip, false),
+    'vip_until', p.vip_until,
+    'riot_game', p.riot_game,
+    'riot_game_name', p.riot_game_name,
+    'riot_tag_line', p.riot_tag_line,
+    'riot_region', p.riot_region,
+    'riot_linked_at', p.riot_linked_at,
+    'badges', v_badges,
+    'created_at', p.created_at
+  ) into v_out
+  from public.profiles p
+  left join public.profile_assets pa on pa.id = p.id
+  where p.id = p_id;
+
+  return v_out;
+end $$;
+
+grant execute on function public.public_player(uuid) to anon, authenticated;
