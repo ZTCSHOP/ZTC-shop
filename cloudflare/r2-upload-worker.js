@@ -136,7 +136,7 @@ async function handleValorant({ name, tag, region }, env){
   const peak = d.highest_rank || {}
 
   let account = null
-  const ac = await henrik(`/valorant/v1/account/${q}`, env.HENRIK_API_KEY)
+  const ac = await henrik(`/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, env.HENRIK_API_KEY)
   if(ac.data?.data) account = ac.data.data
 
   let recent = []
