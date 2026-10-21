@@ -1,17 +1,14 @@
 // ============================================================
 //  ZTC Shop — Cloudflare Worker
-//  1) POST /upload  → upload d'images vers R2
-//  2) GET  /riot    → Riot ID → stats LoL (API officielle) / Valorant (HenrikDev)
+//  1) POST /upload       → upload d'images vers R2
+//  2) GET  /img?u=URL    → proxy + cache R2 des images (Valorant/LoL)
+//  3) GET  /riot         → Riot ID → stats LoL / Valorant
 //  ------------------------------------------------------------
 //  Bindings / Variables :
 //    R2      : BUCKET = ztc-media
 //    Var     : PUBLIC_BASE = URL publique du bucket
 //    Secret  : RIOT_API_KEY   (developer.riotgames.com)
-//    Secret  : HENRIK_API_KEY (api.henrikdev.xyz — optionnel pour Valorant)
-//  ------------------------------------------------------------
-//  Déploiement : Workers & Pages > ton worker > Edit code > Deploy
-//                Settings > Variables and Secrets > ajoute les secrets
-//                Settings > Bindings > R2 Bucket BUCKET -> ztc-media
+//    Secret  : HENRIK_API_KEY (api.henrikdev.xyz)
 // ============================================================
 
 const ALLOWED_ORIGINS = [
@@ -38,7 +35,6 @@ function json(obj, status, origin){
 }
 
 // ---------- Régions ----------
-// platform = serveur LoL (summoner/league) ; routing = compte Riot (ACCOUNT-V1)
 const REGIONS = {
   euw:  { platform: 'euw1', routing: 'europe',   valo: 'eu' },
   eune: { platform: 'eun1', routing: 'europe',   valo: 'eu' },
@@ -54,11 +50,12 @@ const REGIONS = {
 }
 
 const LOL_ICON = (id)=> `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${id}.jpg`
+const LOL_CHAMP = (id)=> `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${id}.png`
+const LOL_EMBLEM = (tier)=> `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${String(tier||'').toLowerCase()}.png`
 
 const LOL_TIERS = {
   IRON:'Iron', BRONZE:'Bronze', SILVER:'Silver', GOLD:'Gold', PLATINUM:'Platinum',
-  EMERALD:'Emerald', DIAMOND:'Diamond', MASTER:'Master', GRANDMASTER:'Grandmaster',
-  CHALLENGER:'Challenger',
+  EMERALD:'Emerald', DIAMOND:'Diamond', MASTER:'Master', GRANDMASTER:'Grandmaster', CHALLENGER:'Challenger',
 }
 
 async function riotFetch(url, key){
@@ -68,6 +65,46 @@ async function riotFetch(url, key){
   return { data: await r.json() }
 }
 
+// ---------- /img : proxy + stockage R2 ----------
+const IMG_HOSTS = new Set([
+  'media.valorant-api.com',
+  'raw.communitydragon.org',
+  'ddragon.leagueoflegends.com',
+])
+
+async function handleImg(url, env, origin){
+  const raw = url.searchParams.get('u')
+  if(!raw) return json({ error: 'missing_u' }, 400, origin)
+  let u
+  try{ u = new URL(raw) }catch{ return json({ error: 'bad_u' }, 400, origin) }
+  if(u.protocol !== 'https:' || !IMG_HOSTS.has(u.host)) return json({ error: 'host_not_allowed' }, 403, origin)
+
+  const key = `img/${u.host}${u.pathname}`.replace(/[^a-zA-Z0-9._/-]/g, '_')
+
+  const cached = await env.BUCKET.get(key)
+  if(cached){
+    return new Response(cached.body, {
+      headers: {
+        'Content-Type': cached.httpMetadata?.contentType || 'image/png',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        ...cors(origin),
+      },
+    })
+  }
+
+  const r = await fetch(u.toString())
+  if(!r.ok) return json({ error: `img_${r.status}` }, 502, origin)
+  const ct = r.headers.get('content-type') || 'image/png'
+  const buf = await r.arrayBuffer()
+  await env.BUCKET.put(key, buf, {
+    httpMetadata: { contentType: ct, cacheControl: 'public, max-age=31536000, immutable' },
+  })
+  return new Response(buf, {
+    headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=31536000, immutable', ...cors(origin) },
+  })
+}
+
+// ---------- LoL ----------
 async function handleLol({ name, tag, region }, env){
   if(!env.RIOT_API_KEY) return { status: 500, body: { error: 'riot_key_missing' } }
   const cfg = REGIONS[region]
@@ -86,7 +123,6 @@ async function handleLol({ name, tag, region }, env){
   if(sum.error) return { status: 502, body: { error: sum.error } }
 
   let ranked = null
-  // LEAGUE-V4 : les entrées par summonerId ont été retirées → on utilise puuid
   const lg = await riotFetch(
     `https://${cfg.platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`,
     env.RIOT_API_KEY)
@@ -101,7 +137,24 @@ async function handleLol({ name, tag, region }, env){
       wins: solo.wins || 0,
       losses: solo.losses || 0,
       winrate: games ? Math.round((solo.wins / games) * 100) : 0,
+      emblem: LOL_EMBLEM(solo.tier),
+      tierKey: solo.tier,
     }
+  }
+
+  let champions = []
+  const cm = await riotFetch(
+    `https://${cfg.platform}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=4`,
+    env.RIOT_API_KEY)
+  if(Array.isArray(cm.data)){
+    const total = cm.data.reduce((s,c)=> s + (c.championPoints||0), 0) || 1
+    champions = cm.data.map(c=> ({
+      id: c.championId,
+      points: c.championPoints || 0,
+      level: c.championLevel || 0,
+      pct: Math.round(((c.championPoints||0) / total) * 100),
+      icon: LOL_CHAMP(c.championId),
+    }))
   }
 
   return { status: 200, body: {
@@ -109,10 +162,11 @@ async function handleLol({ name, tag, region }, env){
     name: acc.data.gameName, tag: acc.data.tagLine,
     region, level: sum.data?.summonerLevel || null,
     icon: sum.data?.profileIconId ? LOL_ICON(sum.data.profileIconId) : null,
-    ranked,
+    ranked, champions,
   } }
 }
 
+// ---------- Valorant (HenrikDev) ----------
 async function henrik(path, key){
   if(!key) return { error: 'henrik_key_missing' }
   const r = await fetch(`https://api.henrikdev.xyz${path}`, { headers: { Authorization: key } })
@@ -125,39 +179,78 @@ async function handleValorant({ name, tag, region }, env){
   const cfg = REGIONS[region]
   if(!cfg) return { status: 400, body: { error: 'bad_region' } }
   const vr = cfg.valo
-  const q = `${vr}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`
+  const n = encodeURIComponent(name)
+  const t = encodeURIComponent(tag)
 
-  const mmr = await henrik(`/valorant/v2/mmr/${q}`, env.HENRIK_API_KEY)
+  const mmr = await henrik(`/valorant/v2/mmr/${vr}/${n}/${t}`, env.HENRIK_API_KEY)
   if(mmr.error) return { status: 502, body: { error: mmr.error } }
   if(mmr.notFound) return { status: 404, body: { error: 'not_found' } }
 
   const d = mmr.data?.data || {}
   const cur = d.current_data || {}
-  const peak = d.highest_rank || {}
+  const peakAllTime = d.highest_rank || {}
 
-  let account = null
-  const ac = await henrik(`/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, env.HENRIK_API_KEY)
-  if(ac.data?.data) account = ac.data.data
+  const ac = await henrik(`/valorant/v1/account/${n}/${t}`, env.HENRIK_API_KEY)
+  const account = ac.data?.data || null
 
-  let recent = []
-  const ms = await henrik(`/valorant/v3/matches/${q}?size=5`, env.HENRIK_API_KEY)
-  if(Array.isArray(ms.data?.data)){
-    recent = ms.data.data.slice(0, 5).map(m=>{
-      const me = (m.players?.all_players || []).find(p=>
-        (p.name||'').toLowerCase() === name.toLowerCase() && (p.tag||'').toLowerCase() === tag.toLowerCase())
-      const s = me?.stats
-      const k = s?.kills || 0, dd = s?.deaths || 0, a = s?.assists || 0
-      return {
-        map: m.metadata?.map || '',
-        result: (me?.team || '').toLowerCase() === 'red'
-          ? ((m.teams?.red?.has_won) ? 'W' : 'L')
-          : ((m.teams?.blue?.has_won) ? 'W' : 'L'),
-        agent: me?.character || '',
-        kills: k, deaths: dd, assists: a,
-        kd: dd ? +(k / dd).toFixed(2) : k,
+  // Peak sur 90 jours (mmr history, 20 dernières parties)
+  const hist = await henrik(`/valorant/v1/mmr-history/${vr}/${n}/${t}`, env.HENRIK_API_KEY)
+  const cutoff = Math.floor(Date.now() / 1000) - 90 * 86400
+  const histRows = (Array.isArray(hist.data?.data) ? hist.data.data : [])
+    .filter(h=> (h.date_raw || 0) >= cutoff)
+  let peak90 = null
+  for(const h of histRows){
+    if(!peak90 || (h.currenttier || 0) > (peak90.tierId || 0)){
+      peak90 = {
+        tier: h.currenttierpatched || '',
+        tierId: h.currenttier || 0,
+        image: h.images?.large || '',
       }
+    }
+  }
+
+  // Derniers matchs (10 max via Henrik) → stats globales + agents
+  const ms = await henrik(`/valorant/v3/matches/${vr}/${n}/${t}?size=10`, env.HENRIK_API_KEY)
+  const matches = Array.isArray(ms.data?.data) ? ms.data.data : []
+
+  let k = 0, dd = 0, a = 0, hs = 0, bs = 0, ls = 0, wins = 0
+  const agentsMap = new Map()
+  const recent = []
+  const nameLc = name.toLowerCase(), tagLc = tag.toLowerCase()
+
+  for(const m of matches){
+    const me = (m.players?.all_players || []).find(p=>
+      (p.name || '').toLowerCase() === nameLc && (p.tag || '').toLowerCase() === tagLc)
+    if(!me) continue
+    const s = me.stats || {}
+    k += s.kills || 0; dd += s.deaths || 0; a += s.assists || 0
+    hs += s.headshots || 0; bs += s.bodyshots || 0; ls += s.legshots || 0
+    const team = (me.team || '').toLowerCase()
+    const won = team === 'red' ? !!m.teams?.red?.has_won : !!m.teams?.blue?.has_won
+    if(won) wins++
+
+    const agent = me.character || '—'
+    const icon = me.assets?.agent?.small || ''
+    const key = agent.toLowerCase()
+    if(!agentsMap.has(key)) agentsMap.set(key, { name: agent, icon, count: 0 })
+    agentsMap.get(key).count++
+
+    recent.push({
+      map: m.metadata?.map || '',
+      agent,
+      icon,
+      result: won ? 'W' : 'L',
+      kills: s.kills || 0, deaths: s.deaths || 0, assists: s.assists || 0,
+      kd: s.deaths ? +((s.kills || 0) / s.deaths).toFixed(2) : (s.kills || 0),
     })
   }
+
+  const total = matches.length
+  const shots = hs + bs + ls
+  const agents = [...agentsMap.values()]
+    .sort((x, y)=> y.count - x.count)
+    .slice(0, 4)
+    .map(x=> ({ ...x, pct: total ? Math.round((x.count / total) * 100) : 0 }))
 
   return { status: 200, body: {
     game: 'valorant',
@@ -169,11 +262,23 @@ async function handleValorant({ name, tag, region }, env){
     icon: account?.card?.small || null,
     ranked: cur.currenttierpatched ? {
       tier: cur.currenttierpatched,
+      tierId: cur.currenttier || 0,
       rr: cur.ranking_in_tier || 0,
       lastChange: cur.mmr_change_to_last_game || 0,
-      peak: peak.patched_tier || null,
+      image: cur.images?.large || '',
+      peakAllTime: peakAllTime.patched_tier || null,
     } : null,
-    recent,
+    peak90,
+    stats: {
+      matches: total,
+      wins,
+      winrate: total ? Math.round((wins / total) * 100) : 0,
+      kd: dd ? +(k / dd).toFixed(2) : k,
+      hs: shots ? Math.round((hs / shots) * 100) : 0,
+      kills: k, deaths: dd, assists: a,
+    },
+    agents,
+    recent: recent.slice(0, 5),
   } }
 }
 
@@ -191,7 +296,6 @@ async function handleRiot(url, env, ctx, origin){
   const cacheKey = new Request(url.toString(), { method: 'GET' })
   const hit = await cache.match(cacheKey)
   if(hit){
-    // On réapplique le CORS selon l'origine courante (le cache est partagé)
     const body = await hit.text()
     return new Response(body, {
       status: 200,
@@ -224,9 +328,8 @@ export default {
 
     const url = new URL(request.url)
 
-    if(url.pathname === '/riot' && request.method === 'GET'){
-      return handleRiot(url, env, ctx, origin)
-    }
+    if(url.pathname === '/riot' && request.method === 'GET') return handleRiot(url, env, ctx, origin)
+    if(url.pathname === '/img' && request.method === 'GET') return handleImg(url, env, origin)
 
     if(url.pathname !== '/upload' || request.method !== 'POST'){
       return json({ error: 'not found' }, 404, origin)

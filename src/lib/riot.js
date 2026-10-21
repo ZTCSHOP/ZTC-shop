@@ -1,5 +1,12 @@
 const WORKER = (import.meta.env.VITE_R2_WORKER_URL || '').replace(/\/$/, '')
 
+// Toutes les images (rank, agents, champions) passent par le Worker -> R2 (Cloudflare)
+export const imgUrl = (remote)=>{
+  if(!remote) return ''
+  if(!WORKER) return remote
+  return `${WORKER}/img?u=${encodeURIComponent(remote)}`
+}
+
 export const RIOT_GAMES = [
   { v: 'lol', label: 'League of Legends' },
   { v: 'valorant', label: 'Valorant' },
@@ -19,8 +26,7 @@ export const RIOT_REGIONS = [
   { v: 'oce', label: 'OCE — Océanie' },
 ]
 
-export async function fetchRiotStats({ game, region, name, tag }){
-  if(!WORKER) throw new Error('worker_missing')
+export async function fetchRiotStats({ game, region, name, tag }){  if(!WORKER) throw new Error('worker_missing')
   const qs = new URLSearchParams({ game, region, name, tag: String(tag).replace(/^#/, '') })
   let r
   try{ r = await fetch(`${WORKER}/riot?${qs}`) }
