@@ -588,17 +588,23 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   const claimReward = async (tier)=>{
     if(!cloud || !user?.cloud) throw new Error('login')
-    const { error } = await supabase.rpc('claim_reward', { p_tier: tier })
-    if(error) throw new Error(error.message)
+    const { data, error } = await supabase.rpc('claim_reward', { p_tier: tier })
+    if(error) throw error
     await refreshXp()
-    return true
+    return data
   }
 
   const decideReward = async (id, status)=>{
     if(!user?.isAdmin) throw new Error('login')
-    const { error } = await supabase.from('reward_claims')
-      .update({ status, decided_at: new Date().toISOString() }).eq('id', id)
-    if(error) throw new Error(error.message)
+    // RPC : refuse + rembourse l'XP débité (fallback direct si le SQL v3 n'est pas exécuté)
+    const { error } = await supabase.rpc('decide_reward', { p_id: id, p_status: status })
+    if(error){
+      const missing = error.code === 'PGRST202' || /Could not find the function|schema cache/i.test(String(error.message || ''))
+      if(!missing) throw error
+      const { error: e2 } = await supabase.from('reward_claims')
+        .update({ status, decided_at: new Date().toISOString() }).eq('id', id)
+      if(e2) throw e2
+    }
     await refreshXp()
   }
 

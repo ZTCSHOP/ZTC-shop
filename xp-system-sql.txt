@@ -235,3 +235,110 @@ begin
   begin alter publication supabase_realtime add table public.xp_logs;      exception when others then null; end;
   begin alter publication supabase_realtime add table public.reward_claims; exception when others then null; end;
 end $$;
+
+-- ════════════════════════════════════════════════════════════════════
+--  v3) RÉCOMPENSES : coût en XP + remboursement si l'admin refuse
+--  Bronze  : 0 XP dépensé (badge)
+--  Argent  : −9 000 XP (badge + 1 tournoi offert)
+--  Or      : −19 000 XP (badge + cadeau Riot €/Steam…)
+--  (Le seuil pour réclamer reste 1 000 / 10 000 / 20 000 XP)
+--  À exécuter après le bloc v2 ci-dessus.
+-- ════════════════════════════════════════════════════════════════════
+
+alter table public.reward_claims add column if not exists cost integer not null default 0;
+alter table public.reward_claims add column if not exists refunded boolean not null default false;
+
+create or replace function public.claim_reward(p_tier text)
+returns public.reward_claims
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_need integer;
+  v_cost integer;
+  v_cur  integer;
+  v_row  public.reward_claims;
+begin
+  if v_uid is null then raise exception 'auth required'; end if;
+
+  v_need := case p_tier
+    when 'xp_1000'  then 1000
+    when 'xp_10000' then 10000
+    when 'xp_20000' then 20000
+    else null end;
+  if v_need is null then raise exception 'bad tier'; end if;
+
+  v_cost := case p_tier
+    when 'xp_1000'  then 0
+    when 'xp_10000' then 9000
+    when 'xp_20000' then 19000
+    else 0 end;
+
+  select coalesce(xp, 0) into v_cur from public.profiles where id = v_uid for update;
+  if v_cur is null then raise exception 'profile not found'; end if;
+  if v_cur < v_need then raise exception 'not enough xp'; end if;
+
+  select * into v_row from public.reward_claims
+    where user_id = v_uid and tier = p_tier for update;
+
+  if found then
+    -- Déjà en attente ou validé : aucun second débit
+    if v_row.status in ('pending', 'approved') then
+      return v_row;
+    end if;
+    -- Refusé : nouvelle demande autorisée (on redébite, le remboursement précédent est annulé)
+    update public.reward_claims
+      set status = 'pending', cost = v_cost, refunded = false, decided_at = null, created_at = now()
+      where id = v_row.id
+      returning * into v_row;
+    update public.profiles set xp = greatest(0, coalesce(xp, 0) - v_cost) where id = v_uid;
+    return v_row;
+  end if;
+
+  insert into public.reward_claims(user_id, tier, xp, cost)
+    values (v_uid, p_tier, v_need, v_cost)
+    returning * into v_row;
+
+  update public.profiles set xp = greatest(0, coalesce(xp, 0) - v_cost) where id = v_uid;
+
+  return v_row;
+
+exception when unique_violation then
+  select * into v_row from public.reward_claims where user_id = v_uid and tier = p_tier;
+  return v_row;
+end $$;
+
+grant execute on function public.claim_reward(text) to authenticated;
+
+-- Décision admin : approuve/refuse et rembourse l'XP si la demande passe de pending -> rejected
+create or replace function public.decide_reward(p_id uuid, p_status text)
+returns public.reward_claims
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row public.reward_claims;
+begin
+  if not public.is_admin() then raise exception 'admin only'; end if;
+  if p_status not in ('approved', 'rejected') then raise exception 'bad status'; end if;
+
+  select * into v_row from public.reward_claims where id = p_id for update;
+  if not found then raise exception 'not found'; end if;
+
+  if p_status = 'rejected' and v_row.status = 'pending' and not v_row.refunded then
+    update public.profiles set xp = coalesce(xp, 0) + coalesce(v_row.cost, 0) where id = v_row.user_id;
+    update public.reward_claims set refunded = true where id = p_id;
+  end if;
+
+  update public.reward_claims
+    set status = p_status, decided_at = now()
+    where id = p_id
+    returning * into v_row;
+
+  return v_row;
+end $$;
+
+grant execute on function public.decide_reward(uuid, text) to authenticated;

@@ -165,3 +165,40 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 .slide-zoom-a { animation: kenburns-a 7s ease-out forwards; }
 .slide-zoom-b { animation: kenburns-b 7s ease-out forwards; }
+
+/* ─── Barre XP : dégradé animé + reflet ─── */
+@keyframes xp-slide { to { background-position: 300% 0; } }
+.xp-track { position: relative; overflow: hidden; }
+.xp-track::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+  transform: translateX(-100%);
+  animation: xp-track-sheen 2.6s ease-in-out infinite;
+}
+@keyframes xp-track-sheen { 0% { transform: translateX(-100%); } 65%,100% { transform: translateX(100%); } }
+.xp-fill {
+  background-image: linear-gradient(90deg,#f472b6,#a855f7,#6366f1,#22d3ee,#a855f7,#f472b6);
+  background-size: 300% 100%;
+  animation: xp-slide 3s linear infinite;
+  box-shadow: 0 0 12px rgba(168,85,247,.8), inset 0 0 4px rgba(255,255,255,.55);
+  transition: width .9s cubic-bezier(.22,1,.36,1);
+}
+
+/* ─── Révélation du cadeau XP ─── */
+@keyframes gift-float { 0%,100% { transform: translateY(0) rotate(-5deg) scale(1); } 50% { transform: translateY(-10px) rotate(5deg) scale(1.06); } }
+.gift-float { animation: gift-float 1.15s ease-in-out infinite; }
+@keyframes gift-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,.55), 0 0 48px -8px rgba(168,85,247,.95); }
+  50% { box-shadow: 0 0 0 20px rgba(168,85,247,0), 0 0 80px 2px rgba(236,72,153,.85); }
+}
+.gift-glow { animation: gift-glow 1.2s ease-in-out infinite; }
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+.ring-spin { animation: ring-spin 2.4s linear infinite; }
+@keyframes claim-bar { from { width: 100%; } to { width: 0%; } }
+.claim-bar { animation: claim-bar 3s linear forwards; }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.6) translateY(16px); } 60% { opacity: 1; transform: scale(1.06) translateY(0); } 100% { transform: scale(1); } }
+.pop-in { animation: pop-in .5s cubic-bezier(.22,1,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-fill, .xp-track::after, .gift-float, .gift-glow, .ring-spin, .claim-bar, .pop-in { animation: none !important; }
+}

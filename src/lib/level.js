@@ -27,10 +27,24 @@ export const levelProgress = (xp) => {
 }
 
 // Paliers cadeaux (réclamés par le joueur, validés par l'admin)
+// xp   = seuil requis pour réclamer
+// cost = XP débités au moment de la réclamation (remboursés si l'admin refuse)
 export const REWARDS = [
-  { tier: 'xp_1000',  xp: 1000,  emoji: '🥉', key: 'rw_bronze' },
-  { tier: 'xp_10000', xp: 10000, emoji: '🥈', key: 'rw_silver' },
-  { tier: 'xp_20000', xp: 20000, emoji: '🥇', key: 'rw_gold' },
+  {
+    tier: 'xp_1000', xp: 1000, cost: 0, emoji: '🥉', key: 'rw_bronze',
+    label: 'Badge Bronze',
+    prize: 'Badge Bronze exclusif affiché sur ton profil',
+  },
+  {
+    tier: 'xp_10000', xp: 10000, cost: 9000, emoji: '🥈', key: 'rw_silver',
+    label: 'Badge Argent + tournoi offert',
+    prize: 'Badge Argent + inscription gratuite à ton prochain tournoi',
+  },
+  {
+    tier: 'xp_20000', xp: 20000, cost: 19000, emoji: '🥇', key: 'rw_gold',
+    label: 'Badge Or + cadeau',
+    prize: 'Badge Or + cadeau au choix (Riot €, Steam 10 €, …)',
+  },
 ]
 
 // Compatibilité : estimation locale (mode hors-ligne) — le vrai XP vient de profiles.xp

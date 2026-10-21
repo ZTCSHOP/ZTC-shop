@@ -661,6 +661,7 @@ export default function Admin(){
                 <div key={c.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
                   <span className="font-black">{(allAccounts().find(a=>a.id===c.user_id)?.name)||c.user_id?.slice(0,8)}</span>
                   <span className="text-purple-300 font-black">{c.tier==='xp_1000'?'🥉':c.tier==='xp_10000'?'🥈':'🥇'} {Number(c.xp).toLocaleString('fr-FR')} XP</span>
+                  {Number(c.cost||0) > 0 && <span className="text-pink-300">−{Number(c.cost).toLocaleString('fr-FR')} XP dépensés</span>}
                   <span className="text-white/50">{c.created_at ? new Date(c.created_at).toLocaleString() : ''}</span>
                   <span className="ml-auto flex gap-1.5">
                     <button onClick={async()=>{ try{ await decideReward(c.id, 'approved') }catch(e){ alert(e.message) } }} className="px-2.5 py-1 rounded-lg bg-purple-400 text-black font-bold">Valider</button>
@@ -678,6 +679,7 @@ export default function Admin(){
                 <div key={c.id} className="text-xs flex flex-wrap items-center gap-x-3 gap-y-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
                   <span className="font-black">{(allAccounts().find(a=>a.id===c.user_id)?.name)||c.user_id?.slice(0,8)}</span>
                   <span className="text-white/60">{Number(c.xp).toLocaleString('fr-FR')} XP</span>
+                  {Number(c.cost||0) > 0 && <span className="text-pink-300/70">−{Number(c.cost).toLocaleString('fr-FR')} XP</span>}
                   <span className={`ml-auto font-bold ${c.status==='approved'?'text-emerald-300':'text-red-300'}`}>{c.status==='approved'?'Validé':'Refusé'}</span>
                 </div>
               ))}
