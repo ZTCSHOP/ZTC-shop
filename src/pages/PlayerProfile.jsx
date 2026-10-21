@@ -13,6 +13,7 @@ export default function PlayerProfile(){
   const { allAccounts, profileAssets, regs, teams, tournaments, orders, xpOf, cloud } = useAuth()
   const { t } = useLang()
   const [pub, setPub] = useState(undefined) // undefined = chargement, null = introuvable
+  const [pubErr, setPubErr] = useState('')
   const [riotStats, setRiotStats] = useState(null)
   const [riotLoading, setRiotLoading] = useState(false)
   const [riotErr, setRiotErr] = useState('')
@@ -20,12 +21,12 @@ export default function PlayerProfile(){
   // Profil public (nom, XP, VIP, Riot, badges) — lisible par tous les membres
   useEffect(()=>{
     let alive = true
-    setRiotStats(null); setRiotErr('')
+    setRiotStats(null); setRiotErr(''); setPubErr('')
     if(!cloud || !supabase){ setPub(null); return }
     setPub(undefined)
     supabase.rpc('public_player', { p_id: id }).then(({ data, error })=>{
       if(!alive) return
-      if(error){ console.warn('public_player:', error.message); setPub(null) }
+      if(error){ console.warn('public_player:', error.message); setPubErr(error.message); setPub(null) }
       else setPub(data || null)
     })
     return ()=>{ alive = false }
@@ -107,6 +108,12 @@ export default function PlayerProfile(){
         </div>
       </div>
 
+      {pubErr && (
+        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+          ⚠️ Certaines infos publiques (XP, VIP, Riot) sont indisponibles. Admin : exécute <b>xp-system-sql.txt</b> dans Supabase.
+        </div>
+      )}
+
       <h2 className="font-black mt-6 mb-2 flex items-center gap-2"><Sparkles size={15} className="text-purple-300"/> XP & Récompenses</h2>
       <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/5 border border-purple-500/20 p-4">
         <div className="flex items-center justify-between text-xs text-white/60">
@@ -136,7 +143,9 @@ export default function PlayerProfile(){
         </div>
       </div>
 
-      {riot && <PlayerRiotCard riot={riot} stats={riotStats} loading={riotLoading} error={riotErr}/>}
+      {riot
+        ? <PlayerRiotCard riot={riot} stats={riotStats} loading={riotLoading} error={riotErr}/>
+        : <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/40">🎮 Compte Riot non lié par ce membre.</div>}
 
       <h2 className="font-black mt-6 mb-2 flex items-center gap-2"><Shield size={15}/> Équipes</h2>
       {teamNames.length===0

@@ -390,3 +390,6 @@ begin
 end $$;
 
 grant execute on function public.public_player(uuid) to anon, authenticated;
+
+-- Recharge le cache de l'API Supabase (PostgREST) pour que la nouvelle fonction soit visible tout de suite
+notify pgrst, 'reload schema';
