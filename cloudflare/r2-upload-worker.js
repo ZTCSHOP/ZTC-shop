@@ -86,21 +86,21 @@ async function handleLol({ name, tag, region }, env){
   if(sum.error) return { status: 502, body: { error: sum.error } }
 
   let ranked = null
-  if(sum.data?.id){
-    const lg = await riotFetch(
-      `https://${cfg.platform}.api.riotgames.com/lol/league/v4/entries/by-summoner/${sum.data.id}`,
-      env.RIOT_API_KEY)
-    const solo = (lg.data || []).find(e=> e.queueType === 'RANKED_SOLO_5x5')
-    if(solo){
-      const games = (solo.wins||0) + (solo.losses||0)
-      ranked = {
-        tier: LOL_TIERS[solo.tier] || solo.tier,
-        division: solo.rank || '',
-        lp: solo.leaguePoints || 0,
-        wins: solo.wins || 0,
-        losses: solo.losses || 0,
-        winrate: games ? Math.round((solo.wins / games) * 100) : 0,
-      }
+  // LEAGUE-V4 : les entrées par summonerId ont été retirées → on utilise puuid
+  const lg = await riotFetch(
+    `https://${cfg.platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`,
+    env.RIOT_API_KEY)
+  const entries = Array.isArray(lg.data) ? lg.data : []
+  const solo = entries.find(e=> e.queueType === 'RANKED_SOLO_5x5')
+  if(solo){
+    const games = (solo.wins||0) + (solo.losses||0)
+    ranked = {
+      tier: LOL_TIERS[solo.tier] || solo.tier,
+      division: solo.rank || '',
+      lp: solo.leaguePoints || 0,
+      wins: solo.wins || 0,
+      losses: solo.losses || 0,
+      winrate: games ? Math.round((solo.wins / games) * 100) : 0,
     }
   }
 

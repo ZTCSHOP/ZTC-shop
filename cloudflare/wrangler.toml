@@ -1,0 +1,18 @@
+name = "ztc-upload"
+main = "r2-upload-worker.js"
+compatibility_date = "2026-10-20"
+workers_dev = true
+preview_urls = false
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+
+[vars]
+PUBLIC_BASE = "https://pub-dd87ee2e732e4faaa0bc57d229af368f.r2.dev"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ztc-media"
