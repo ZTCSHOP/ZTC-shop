@@ -95,7 +95,7 @@ export default function XpRewards(){
               <div className={`text-[10px] font-bold ${r.cost > 0 ? 'text-lime-300/90' : 'text-emerald-300/80'}`}>
                 {r.cost > 0 ? `− ${r.cost.toLocaleString('fr-FR')} XP` : 'Gratuit en XP'}
               </div>
-              <div className="text-[10px] text-white/40 mt-0.5 leading-snug line-clamp-2">{r.prize}</div>
+              <div className="text-[10px] text-white/40 mt-0.5 leading-snug break-words">{r.prize}</div>
               <div className="mt-2 space-y-1.5">
                 {st && <span className={`inline-flex items-center gap-1 text-[11px] font-bold border rounded-full px-2 py-1 ${st.cls}`}><st.Icon size={12}/> {st.label}</span>}
                 {canClaim && (reached

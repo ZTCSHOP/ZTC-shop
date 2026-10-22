@@ -1,14 +1,12 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowRight, CalendarDays, Coins, Crown, Gamepad2, Gift, LogOut, Package,
-  Settings, Shield, ShoppingBag, Swords, Trophy, User, Users, Wallet,
+  ArrowRight, CalendarDays, Coins, Gamepad2, Gift, Package, User, Users, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { levelProgress, xpForActivity } from '../lib/level'
-
-const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
+import { xpForActivity } from '../lib/level'
+import MemberSidebar from '../components/MemberSidebar'
 
 const CARD_STYLES = {
   gold: {
@@ -62,7 +60,7 @@ const CARD_STYLES = {
 }
 
 export default function MemberDashboard(){
-  const { user, logout, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance } = useAuth()
+  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance } = useAuth()
   const { t } = useLang()
   useEffect(()=>{ try{ refreshMyBalance() }catch{} }, [])
   if(!user) return (
@@ -77,95 +75,23 @@ export default function MemberDashboard(){
   const owTeams = myTeams()
   const teamNames = new Set([...owTeams.map(x=>x.name), ...regs.map(r=>r.team)].filter(Boolean))
   const xp = user.xp != null ? Number(user.xp) : xpForActivity({ orders: orders.length, regs: regs.length, teams: owTeams.length })
-  const { level, cur, need } = levelProgress(xp)
-  const pct = Math.min(100, Math.round((cur / need) * 100))
   const balance = Number(user.balance || 0)
-  const vip = isVipActive()
   const riotLabel = user.riot ? (user.riot.game === 'lol' ? 'LoL' : 'Valorant') : null
 
-  const nav = [
-    { to:'/profile', icon:User, label:t('pm_profile')||'Profil', active:true },
-    { to:'/orders#mytournaments', icon:Trophy, label:t('pm_mytournaments')||'Mes Tournois', badge:regs.length||null },
-    { to:'/orders#myteam', icon:Shield, label:t('pm_myteam')||'Mon Équipe', badge:teamNames.size||null },
-    { to:'/orders#wallet', icon:Wallet, label:t('pm_wallet')||'Portefeuille', badge:balance||null },
-    { to:'/orders#xp', icon:Gift, label:t('pm_xp')||'XP & Récompenses', badge:xp },
-    { to:'/orders#riot', icon:Gamepad2, label:'Compte Riot', badge:riotLabel },
-    { to:'/orders#orders', icon:Package, label:t('pm_orders')||'Commandes', badge:orders.length||null },
-    { to:'/orders#settings', icon:Settings, label:t('pm_settings')||'Paramètres' },
-    { to:'/catalog', icon:ShoppingBag, label:'Boutique', outside:true },
-    { to:'/tournaments', icon:Swords, label:'Tournois', outside:true },
-  ]
-
   const cards = [
-    { to:'/orders#wallet', icon:Coins, color:'gold', title:t('pm_coins')||'Coins', desc:t('dash_coins_d'), stat:balance },
-    { to:'/tournaments', icon:Trophy, color:'red', title:t('pm_tournaments')||'Tournois', desc:t('dash_tournaments_d') },
-    { to:'/orders#mytournaments', icon:CalendarDays, color:'violet', title:t('pm_mytournaments')||'Mes Tournois', desc:t('dash_mytournaments_d'), stat:regs.length },
-    { to:'/orders#myteam', icon:Users, color:'teal', title:t('pm_myteam')||'Mon Équipe', desc:t('dash_myteam_d'), stat:teamNames.size },
-    { to:'/orders#wallet', icon:Wallet, color:'orange', title:t('pm_wallet')||'Portefeuille', desc:t('dash_wallet_d'), stat:`${balance}` },
-    { to:'/orders#xp', icon:Gift, color:'pink', title:t('pm_xp')||'XP & Récompenses', desc:t('dash_xp_d'), stat:`${xp} XP` },
-    { to:'/orders#riot', icon:Gamepad2, color:'rose', title:'Compte Riot', desc:t('dash_riot_d'), stat:riotLabel },
-    { to:'/orders#orders', icon:Package, color:'sky', title:t('pm_orders')||'Commandes', desc:t('dash_orders_d'), stat:orders.length },
+    { to:'/profile/wallet', icon:Coins, color:'gold', title:t('pm_coins')||'Coins', desc:t('dash_coins_d'), stat:balance },
+    { to:'/tournaments', icon:CalendarDays, color:'red', title:t('pm_tournaments')||'Tournois', desc:t('dash_tournaments_d') },
+    { to:'/profile/mytournaments', icon:CalendarDays, color:'violet', title:t('pm_mytournaments')||'Mes Tournois', desc:t('dash_mytournaments_d'), stat:regs.length },
+    { to:'/profile/myteam', icon:Users, color:'teal', title:t('pm_myteam')||'Mon Équipe', desc:t('dash_myteam_d'), stat:teamNames.size },
+    { to:'/profile/wallet', icon:Wallet, color:'orange', title:t('pm_wallet')||'Portefeuille', desc:t('dash_wallet_d'), stat:`${balance}` },
+    { to:'/profile/xp', icon:Gift, color:'pink', title:t('pm_xp')||'XP & Récompenses', desc:t('dash_xp_d'), stat:`${xp} XP` },
+    { to:'/profile/riot', icon:Gamepad2, color:'rose', title:'Compte Riot', desc:t('dash_riot_d'), stat:riotLabel },
+    { to:'/profile/orders', icon:Package, color:'sky', title:t('pm_orders')||'Commandes', desc:t('dash_orders_d'), stat:orders.length },
   ]
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-8 grid lg:grid-cols-[280px_1fr] gap-6 items-start">
-      <aside className="lg:sticky lg:top-20 w-full">
-        <div className="rounded-3xl overflow-hidden bg-[#0c0d13]/90 backdrop-blur border border-white/10">
-          {user.banner && <img src={user.banner} alt="" loading="lazy" decoding="async" className="w-full h-20 object-cover"/>}
-          <div className={`px-5 pb-4 text-center ${user.banner ? '-mt-10' : 'pt-6'}`}>
-            <div className="relative w-20 h-20 mx-auto">
-              {user.avatar
-                ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-20 h-20 rounded-full object-cover ring-2 ring-lime-400/70 ring-offset-2 ring-offset-[#0c0d13]"/>
-                : <div className={`w-20 h-20 rounded-full ring-2 ring-lime-400/70 ring-offset-2 ring-offset-[#0c0d13] ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-2xl text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
-              <span className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0c0d13]"/>
-            </div>
-            <div className="mt-2 font-black text-lg truncate flex items-center justify-center gap-1.5">
-              {user.name || user.email || 'Joueur'}
-              {vip && <Crown size={15} className="text-amber-300 shrink-0"/>}
-            </div>
-            <div className="mt-1.5">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${vip ? 'border-amber-400/50 bg-amber-400/10 text-amber-300' : 'border-white/15 bg-white/5 text-white/60'}`}>
-                {vip ? 'VIP' : (t('dash_member')||'Membre')}
-              </span>
-            </div>
-            <div className="mt-4 text-left">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="px-2 py-0.5 rounded-md bg-lime-400 text-black font-black">Niv.{level}</span>
-                <span className="text-white/50">{cur} / {need} XP</span>
-              </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-royal-500 to-lime-400 transition-all duration-700" style={{ width: `${pct}%` }}/>
-              </div>
-            </div>
-          </div>
-          <nav className="px-2 pb-2">
-            {nav.map(item=>{
-              const Icon = item.icon
-              if(item.active) return (
-                <div key={item.label} className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-lime-400/15 to-transparent">
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-full bg-lime-400"/>
-                  <Icon size={16} className="text-lime-300"/>{item.label}
-                </div>
-              )
-              return (
-                <Link key={item.label} to={item.to} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition hover:bg-white/5 hover:text-white ${item.outside ? 'mt-1 text-white/50' : 'text-white/65'}`}>
-                  <Icon size={16} className="text-white/40"/>{item.label}
-                  {item.badge!=null && <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-white/10 font-bold text-white/70">{item.badge}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-          <div className="p-2 border-t border-white/10 space-y-1">
-            <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 font-bold">
-              <LogOut size={16}/>{t('logout')}
-            </button>
-          </div>
-        </div>
-        <div className="mt-3 rounded-2xl border border-white/10 bg-[#0c0d13]/80 p-4 text-center">
-          <p className="font-display text-xl tracking-wide text-white/80">YOU ARE NOT SOLO.</p>
-          <p className="font-display text-xl tracking-wide text-lime-300">WE ARE ZTC.</p>
-        </div>
-      </aside>
+      <MemberSidebar active="profile"/>
 
       <section className="min-w-0">
         <div className="flex items-start gap-3 mb-6">

@@ -69,7 +69,7 @@ export default function Sidebar({ mobileOpen, onClose }){
     </div>
   )
 
-  if(pathname === '/profile') return null
+  if(pathname === '/profile' || pathname.startsWith('/profile/')) return null
 
   return (
     <>

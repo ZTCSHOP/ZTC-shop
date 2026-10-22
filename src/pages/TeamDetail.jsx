@@ -229,7 +229,10 @@ export default function TeamDetail(){
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
-      <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
+      <div className="flex items-center gap-4">
+        <Link to="/teams" className="text-sm text-white/60 hover:text-white">← {t('teams')}</Link>
+        {isOwner && <Link to="/profile/myteam" className="text-sm text-white/60 hover:text-lime-300">← {t('dash_title')||'Mon Espace Membre'}</Link>}
+      </div>
 
       {/* Bannière équipe */}
       <div className="mt-4 rounded-3xl overflow-hidden border border-white/10 bg-white/5 relative">

@@ -24,13 +24,13 @@ export default function ProfileMenu(){
 
   const rows = [
     { to:'/profile', icon:<User size={16}/>, label: t('pm_profile')||'Profil' },
-    { to:'/orders#mytournaments', icon:<Trophy size={16}/>, label: t('pm_mytournaments')||'Mes Tournois', badge: regs.length||null },
-    { to:'/orders#myteam', icon:<Shield size={16}/>, label: t('pm_myteam')||'Mon Équipe', badge: teamNames.size||null },
-    { to:'/orders#wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },
-    { to:'/orders#xp', icon:<Gift size={16}/>, label: t('pm_xp')||'XP & Récompenses', badge: `${xp}` },
-    { to:'/orders#riot', icon:<Gamepad2 size={16}/>, label: 'Compte Riot', badge: user.riot ? (user.riot.game==='lol'?'LoL':'Valo') : null },
-    { to:'/orders#orders', icon:<ShoppingBag size={16}/>, label: t('pm_orders')||'Commandes', badge: orders.length||null },
-    { to:'/orders#settings', icon:<Settings size={16}/>, label: t('pm_settings')||'Paramètres' },
+    { to:'/profile/mytournaments', icon:<Trophy size={16}/>, label: t('pm_mytournaments')||'Mes Tournois', badge: regs.length||null },
+    { to:'/profile/myteam', icon:<Shield size={16}/>, label: t('pm_myteam')||'Mon Équipe', badge: teamNames.size||null },
+    { to:'/profile/wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },
+    { to:'/profile/xp', icon:<Gift size={16}/>, label: t('pm_xp')||'XP & Récompenses', badge: `${xp}` },
+    { to:'/profile/riot', icon:<Gamepad2 size={16}/>, label: 'Compte Riot', badge: user.riot ? (user.riot.game==='lol'?'LoL':'Valo') : null },
+    { to:'/profile/orders', icon:<ShoppingBag size={16}/>, label: t('pm_orders')||'Commandes', badge: orders.length||null },
+    { to:'/profile/settings', icon:<Settings size={16}/>, label: t('pm_settings')||'Paramètres' },
     { to:'/support', icon:<Flag size={16}/>, label: t('pm_bug')||'Signaler un bug' },
   ]
 
