@@ -573,6 +573,39 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }catch(e){ console.warn('reward claims:', e.message) }
   }, [cloud])
 
+  // ---- Notifications ----
+  const [notifications, setNotifications] = useState([])
+  const [notifReady, setNotifReady] = useState(true)
+  const refreshNotifications = useCallback(async ()=>{
+    if(!cloud) return
+    const uid = sbUserId.current
+    if(!uid){ setNotifications([]); return }
+    try{
+      const { data, error } = await supabase.from('notifications').select('*')
+        .eq('user_id', uid).order('created_at', { ascending: false }).limit(60)
+      if(error) throw error
+      setNotifications(data || [])
+      setNotifReady(true)
+    }catch(e){
+      console.warn('notifications:', e.message)
+      setNotifReady(false)
+    }
+  }, [cloud])
+  const markNotifRead = async (id)=>{
+    const now = new Date().toISOString()
+    setNotifications(list=> list.map(n=> n.id===id ? { ...n, read_at: n.read_at || now } : n))
+    if(!cloud || !sbUserId.current) return
+    try{ await supabase.from('notifications').update({ read_at: now }).eq('id', id) }catch{}
+  }
+  const markAllNotifsRead = async ()=>{
+    const now = new Date().toISOString()
+    setNotifications(list=> list.map(n=> n.read_at ? n : { ...n, read_at: now }))
+    const uid = sbUserId.current
+    if(!cloud || !uid) return
+    try{ await supabase.from('notifications').update({ read_at: now }).eq('user_id', uid).is('read_at', null) }catch{}
+  }
+  const unreadNotifications = notifications.filter(n=> !n.read_at).length
+
   const awardXp = async (action, ref=null)=>{
     if(!cloud || !user?.cloud) return null
     try{
@@ -613,7 +646,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     : ''
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp()
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp(); refreshNotifications()
   }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp])
 
   // Capture du parrainage : ?ref=<user_id> → stocké jusqu'à l'inscription
@@ -651,6 +684,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=>{ refreshTeamAssets(); refreshTeamInfos() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'xp_logs' }, ()=> refreshXp())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_claims' }, ()=> refreshXp())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, ()=> refreshNotifications())
       .subscribe()
     let lastFocus = 0
     const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 120000) return; lastFocus = now; refreshAll() }
@@ -1495,6 +1529,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
-    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot}}>{children}</AuthCtx.Provider>
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

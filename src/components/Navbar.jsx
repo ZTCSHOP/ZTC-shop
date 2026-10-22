@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLang, LANGS } from '../context/LanguageContext'
 import { useState } from 'react'
 import ProfileMenu from './ProfileMenu'
+import NotificationBell from './NotificationBell'
 
 const providerLabel = { email:'Email', discord:'Discord', facebook:'Facebook', 'Internet Identity':'Internet Identity' }
 const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
@@ -67,6 +68,7 @@ export default function Navbar({ onBurger }){
             </div>
           </div>
         </div>
+        <NotificationBell />
         <Link to="/cart" className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
           <ShoppingCart size={18}/>
           {count>0 && <span key={count} className="badge-pop absolute -top-1.5 -right-1.5 bg-lime-400 text-black text-[11px] font-bold rounded-full min-w-5 h-5 flex items-center justify-center px-1">{count}</span>}

@@ -1,13 +1,14 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Gamepad2, Gift, Package, Settings, Shield, Trophy, Wallet as WalletIcon } from 'lucide-react'
+import { Bell, Gamepad2, Gift, Package, Settings, Shield, SlidersHorizontal, Trophy, UserPlus, Wallet as WalletIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import MemberSidebar from '../components/MemberSidebar'
 import XpRewards from '../components/XpRewards'
 import RiotCard from '../components/RiotCard'
 import { MyTournaments, MyTeam, ProfileSettings, VipCard, Wallet, OrdersList } from '../components/member/MemberPanels'
+import { NotificationList, PreferencesPanel, ReferralPanel } from '../components/member/MemberExtras'
 
-const ICONS = { orders:Package, mytournaments:Trophy, myteam:Shield, wallet:WalletIcon, xp:Gift, riot:Gamepad2, settings:Settings }
+const ICONS = { orders:Package, mytournaments:Trophy, myteam:Shield, wallet:WalletIcon, xp:Gift, riot:Gamepad2, settings:Settings, notifications:Bell, referral:UserPlus, preferences:SlidersHorizontal }
 
 export default function MemberSection(){
   const { section } = useParams()
@@ -31,6 +32,9 @@ export default function MemberSection(){
     xp:             { title:t('pm_xp')||'XP & Récompenses',         desc:t('dash_xp_d') },
     riot:           { title:'Compte Riot',                          desc:t('dash_riot_d') },
     settings:       { title:t('pm_settings_title')||'Paramètres du profil', desc:t('pm_settings_sub') },
+    notifications:  { title:'Notifications', desc:'Toutes les mises à jour de ton compte, tes commandes et tes tournois.' },
+    referral:       { title:'Parrainage', desc:"Invite tes amis et gagne de l'XP à chaque inscription." },
+    preferences:    { title:'Préférences', desc:"Langue, notifications et confort d'utilisation." },
   }
 
   if(!META[section]) return <Navigate to="/profile" replace/>
@@ -61,6 +65,9 @@ export default function MemberSection(){
         {section==='xp' && <XpRewards/>}
         {section==='riot' && <RiotCard/>}
         {section==='settings' && <ProfileSettings hideHeader/>}
+        {section==='notifications' && <NotificationList/>}
+        {section==='referral' && <ReferralPanel/>}
+        {section==='preferences' && <PreferencesPanel/>}
       </section>
     </div>
   )

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Crown, Gamepad2, Gift, LogOut, Package, Settings, Shield, ShoppingBag, Swords, Trophy, User, Wallet } from 'lucide-react'
+import { Bell, Crown, Gamepad2, Gift, LogOut, Package, Settings, Shield, ShoppingBag, SlidersHorizontal, Swords, Trophy, User, UserPlus, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { levelProgress, xpForActivity } from '../lib/level'
@@ -7,7 +7,7 @@ import { levelProgress, xpForActivity } from '../lib/level'
 const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
 
 export default function MemberSidebar({ active = 'profile' }){
-  const { user, logout, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance } = useAuth()
+  const { user, logout, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications } = useAuth()
   const { t } = useLang()
   if(!user) return null
 
@@ -30,7 +30,10 @@ export default function MemberSidebar({ active = 'profile' }){
     { key:'wallet', to:'/profile/wallet', icon:Wallet, label:t('pm_wallet')||'Portefeuille', badge:balance||null },
     { key:'xp', to:'/profile/xp', icon:Gift, label:t('pm_xp')||'XP & Récompenses', badge:xp },
     { key:'riot', to:'/profile/riot', icon:Gamepad2, label:'Compte Riot', badge:riotLabel },
+    { key:'notifications', to:'/profile/notifications', icon:Bell, label:'Notifications', badge:unreadNotifications||null },
+    { key:'referral', to:'/profile/referral', icon:UserPlus, label:'Parrainage' },
     { key:'settings', to:'/profile/settings', icon:Settings, label:t('pm_settings')||'Paramètres' },
+    { key:'preferences', to:'/profile/preferences', icon:SlidersHorizontal, label:'Préférences' },
     { key:'catalog', to:'/catalog', icon:ShoppingBag, label:'Boutique', outside:true },
     { key:'tournaments', to:'/tournaments', icon:Swords, label:'Tournois', outside:true },
   ]

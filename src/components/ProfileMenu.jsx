@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift, Gamepad2 } from 'lucide-react'
+import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift, Gamepad2, Bell, UserPlus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { xpForActivity, levelProgress } from '../lib/level'
@@ -8,7 +8,7 @@ import { xpForActivity, levelProgress } from '../lib/level'
 const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
 
 export default function ProfileMenu(){
-  const { user, logout, myOrders, myRegs, myTeams, isVipActive } = useAuth()
+  const { user, logout, myOrders, myRegs, myTeams, isVipActive, unreadNotifications } = useAuth()
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   if(!user) return null
@@ -30,6 +30,8 @@ export default function ProfileMenu(){
     { to:'/profile/xp', icon:<Gift size={16}/>, label: t('pm_xp')||'XP & Récompenses', badge: `${xp}` },
     { to:'/profile/riot', icon:<Gamepad2 size={16}/>, label: 'Compte Riot', badge: user.riot ? (user.riot.game==='lol'?'LoL':'Valo') : null },
     { to:'/profile/orders', icon:<ShoppingBag size={16}/>, label: t('pm_orders')||'Commandes', badge: orders.length||null },
+    { to:'/profile/notifications', icon:<Bell size={16}/>, label:'Notifications', badge: unreadNotifications||null },
+    { to:'/profile/referral', icon:<UserPlus size={16}/>, label:'Parrainage' },
     { to:'/profile/settings', icon:<Settings size={16}/>, label: t('pm_settings')||'Paramètres' },
     { to:'/support', icon:<Flag size={16}/>, label: t('pm_bug')||'Signaler un bug' },
   ]

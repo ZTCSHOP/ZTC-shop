@@ -12,6 +12,7 @@ import { reqDisplayName, reqContact } from '../lib/names'
 import { getHeroVideoRaw, setHeroVideo } from '../lib/site'
 import { isImageValue } from '../lib/storage'
 import PushBell from '../components/PushBell'
+import AdminApplications from '../components/AdminApplications'
 
 export default function Admin(){
   const [heroUrl, setHeroUrl] = useState(()=> getHeroVideoRaw())
@@ -261,6 +262,7 @@ export default function Admin(){
         <button onClick={()=>setTab('vip')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='vip'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Crown size={15}/> VIP ({pendingVip}) {redBadge(pendingVip)}</button>
         <button onClick={()=>setTab('wallet')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='wallet'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Coins size={15}/> Wallet ({pendingWallet}) {redBadge(pendingWallet)}</button>
         <button onClick={()=>setTab('rewards')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='rewards'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Gift size={15}/> XP ({rewardClaims.filter(c=>c.status==='pending').length}) {redBadge(rewardClaims.filter(c=>c.status==='pending').length)}</button>
+        <button onClick={()=>setTab('applications')} className={`px-4 py-2 rounded-xl text-sm font-bold border flex items-center gap-1.5 ${tab==='applications'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}><Users size={15}/> Candidatures</button>
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>
 
@@ -687,6 +689,7 @@ export default function Admin(){
           </div>
         </div>
       )}
+      {tab==='applications' && <AdminApplications/>}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowRight, CalendarDays, Coins, Gamepad2, Gift, Package, User, Users, Wallet,
+  ArrowRight, Bell, CalendarDays, Coins, Gamepad2, Gift, Package, User, UserPlus, Users, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -60,7 +60,7 @@ const CARD_STYLES = {
 }
 
 export default function MemberDashboard(){
-  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance } = useAuth()
+  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications } = useAuth()
   const { t } = useLang()
   useEffect(()=>{ try{ refreshMyBalance() }catch{} }, [])
   if(!user) return (
@@ -87,6 +87,8 @@ export default function MemberDashboard(){
     { to:'/profile/xp', icon:Gift, color:'pink', title:t('pm_xp')||'XP & Récompenses', desc:t('dash_xp_d'), stat:`${xp} XP` },
     { to:'/profile/riot', icon:Gamepad2, color:'rose', title:'Compte Riot', desc:t('dash_riot_d'), stat:riotLabel },
     { to:'/profile/orders', icon:Package, color:'sky', title:t('pm_orders')||'Commandes', desc:t('dash_orders_d'), stat:orders.length },
+    { to:'/profile/notifications', icon:Bell, color:'gold', title:'Notifications', desc:'Commandes, tournois, récompenses et VIP — tout au même endroit.', stat:unreadNotifications||null },
+    { to:'/profile/referral', icon:UserPlus, color:'teal', title:'Parrainage', desc:"Invite tes amis et gagne de l'XP à chaque inscription." },
   ]
 
   return (

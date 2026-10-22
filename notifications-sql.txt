@@ -1,0 +1,169 @@
+-- ============================================================
+-- ZTC SHOP — Centre de notifications
+-- Supabase > SQL Editor > New query > coller TOUT ce fichier > Run
+-- Idempotent : peut être relancé sans casser l'existant.
+-- ============================================================
+
+create table if not exists public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  type       text not null default 'info',   -- order | tournament | reward | wallet | vip | team | support | info
+  title      text not null,
+  body       text,
+  link       text,
+  read_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_user_idx on public.notifications(user_id, created_at desc);
+create index if not exists notifications_unread_idx on public.notifications(user_id) where read_at is null;
+
+alter table public.notifications enable row level security;
+
+drop policy if exists "notifications_read_own_or_admin" on public.notifications;
+create policy "notifications_read_own_or_admin" on public.notifications
+  for select using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "notifications_update_own" on public.notifications;
+create policy "notifications_update_own" on public.notifications
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "notifications_delete_own" on public.notifications;
+create policy "notifications_delete_own" on public.notifications
+  for delete using (user_id = auth.uid() or public.is_admin());
+
+-- ---------- Helper interne ----------
+create or replace function public.notify_user(
+  p_user uuid, p_type text, p_title text, p_body text default null, p_link text default null
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_user is null then return; end if;
+  insert into public.notifications(user_id, type, title, body, link)
+  values (p_user, coalesce(p_type,'info'), p_title, p_body, p_link);
+end;
+$$;
+
+-- ---------- Commandes ----------
+create or replace function public.trg_notify_order()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if TG_OP = 'INSERT' then
+    perform public.notify_user(NEW.user_id, 'order', 'Commande reçue',
+      'Ta commande ' || NEW.id || ' a bien été enregistrée.', '/profile/orders');
+  elsif TG_OP = 'UPDATE' and NEW.status is distinct from OLD.status then
+    perform public.notify_user(NEW.user_id, 'order', 'Commande mise à jour',
+      NEW.id || ' → ' || coalesce(NEW.status,''), '/profile/orders');
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_order on public.orders;
+create trigger notify_order after insert or update on public.orders
+  for each row execute function public.trg_notify_order();
+
+-- ---------- Récompenses XP ----------
+create or replace function public.trg_notify_reward()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if NEW.status is distinct from OLD.status then
+    perform public.notify_user(NEW.user_id, 'reward',
+      case NEW.status when 'approved' then 'Récompense validée' when 'rejected' then 'Récompense refusée' else 'Récompense mise à jour' end,
+      'Palier ' || NEW.tier, '/profile/xp');
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_reward on public.reward_claims;
+create trigger notify_reward after update on public.reward_claims
+  for each row execute function public.trg_notify_reward();
+
+-- ---------- Demandes pour rejoindre une équipe / tournoi ----------
+create or replace function public.trg_notify_join()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if NEW.status is distinct from OLD.status then
+    perform public.notify_user(NEW.user_id, 'team',
+      case NEW.status when 'accepted' then 'Demande acceptée' when 'rejected' then 'Demande refusée' else 'Demande mise à jour' end,
+      'Tournoi ' || coalesce(NEW.tournament_id,''), '/profile/mytournaments');
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_join on public.tournament_join_requests;
+create trigger notify_join after update on public.tournament_join_requests
+  for each row execute function public.trg_notify_join();
+
+-- ---------- Recharges wallet ----------
+create or replace function public.trg_notify_recharge()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if NEW.status is distinct from OLD.status then
+    perform public.notify_user(NEW.user_id, 'wallet',
+      case NEW.status when 'approved' then 'Recharge approuvée' when 'rejected' then 'Recharge refusée' else 'Recharge mise à jour' end,
+      coalesce(NEW.amount::text,'') || ' TND', '/profile/wallet');
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_recharge on public.recharges;
+create trigger notify_recharge after update on public.recharges
+  for each row execute function public.trg_notify_recharge();
+
+-- ---------- VIP ----------
+create or replace function public.trg_notify_vip()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if NEW.status is distinct from OLD.status then
+    perform public.notify_user(NEW.user_id, 'vip',
+      case NEW.status when 'active' then 'ZTC VIP activé' when 'rejected' then 'Demande VIP refusée' else 'Demande VIP mise à jour' end,
+      'Statut : ' || coalesce(NEW.status,''), '/profile/wallet');
+  end if;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_vip on public.vip_subs;
+create trigger notify_vip after update on public.vip_subs
+  for each row execute function public.trg_notify_vip();
+
+-- ---------- Inscription tournoi ----------
+create or replace function public.trg_notify_reg()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify_user(NEW.user_id, 'tournament', 'Inscription enregistrée',
+    'Ton équipe ' || coalesce(NEW.team,'') || ' est inscrite.', '/profile/mytournaments');
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_reg on public.tournament_regs;
+create trigger notify_reg after insert on public.tournament_regs
+  for each row execute function public.trg_notify_reg();
+
+-- ---------- Nouveau tournoi (diffusion) ----------
+create or replace function public.trg_notify_tournament()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notifications(user_id, type, title, body, link)
+  select p.id, 'tournament', 'Nouveau tournoi', coalesce(NEW.title,''), '/tournaments/' || NEW.id
+  from public.profiles p
+  where p.id is not null;
+  return NEW;
+end;
+$$;
+drop trigger if exists notify_tournament on public.tournaments;
+create trigger notify_tournament after insert on public.tournaments
+  for each row execute function public.trg_notify_tournament();
+
+-- ---------- Realtime (optionnel) ----------
+do $$
+begin
+  alter publication supabase_realtime add table public.notifications;
+exception when duplicate_object then null;
+end;
+$$;
+
+-- ---------- Recharge le cache PostgREST ----------
+notify pgrst, 'reload schema';
