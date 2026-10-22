@@ -22,8 +22,7 @@ import Recrutement from './pages/Recrutement'
 import Teams from './pages/Teams'
 import TeamDetail from './pages/TeamDetail'
 import PlayerProfile from './pages/PlayerProfile'
-import AnimatedBackground from './components/AnimatedBackground'
-import VideoBackground from './components/VideoBackground'
+import CircuitBackground from './components/CircuitBackground'
 import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
 import MusicPlayer from './components/MusicPlayer'
@@ -39,8 +38,7 @@ export default function App(){
     <AuthProvider>
       <CartProvider>
         <BrowserRouter basename={basename}>
-          <VideoBackground/>
-          <AnimatedBackground/>
+          <CircuitBackground/>
           <div className="relative z-[1] min-h-screen">
             <Navbar onBurger={()=>setSideOpen(true)}/>
             <div className="max-w-[1800px] mx-auto lg:flex lg:gap-6 lg:px-4">
