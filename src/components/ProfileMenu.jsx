@@ -67,7 +67,7 @@ export default function ProfileMenu(){
                 <span className="text-white/50">{cur} / {need} XP</span>
               </div>
               <div className="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{ width: `${pct}%` }}/>
+                <div className="h-full rounded-full bg-gradient-to-r from-royal-500 to-lime-400" style={{ width: `${pct}%` }}/>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-black/40 border border-white/10 py-2"><div className="font-black text-amber-300">{Number(user.balance||0)}</div><div className="text-[10px] text-white/50">{t('pm_coins')||'Pièces'}</div></div>

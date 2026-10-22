@@ -115,7 +115,7 @@ export default function PlayerProfile(){
       )}
 
       <h2 className="font-black mt-6 mb-2 flex items-center gap-2"><Sparkles size={15} className="text-purple-300"/> XP & Récompenses</h2>
-      <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/5 border border-purple-500/20 p-4">
+      <div className="rounded-2xl bg-gradient-to-br from-lime-500/10 to-royal-500/5 border border-lime-500/20 p-4">
         <div className="flex items-center justify-between text-xs text-white/60">
           <span>{cur} / {need} XP vers le niveau {level + 1}</span>
           <span className="font-bold text-purple-200">{xp.toLocaleString('fr-FR')} XP au total</span>

@@ -82,7 +82,7 @@ export default function RiotCard(){
           <div className="flex gap-2">
             <input value={riotId} onChange={e=>setRiotId(e.target.value)} placeholder="Riot ID — ex: Faker#EUW"
               className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-sky-500"/>
-            <button disabled={linking} className="px-4 rounded-xl bg-sky-400 hover:bg-sky-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60">
+            <button disabled={linking} className="px-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60">
               {linking ? <Loader2 size={15} className="animate-spin"/> : <Link2 size={15}/>} Lier
             </button>
           </div>

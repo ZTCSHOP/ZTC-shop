@@ -85,7 +85,7 @@ export default function Catalog(){
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <span className="font-black text-lime-400">{t('from')} {minPrice(p).toFixed(2)} TND</span>
-                <span className="text-xs px-3 py-1.5 rounded-xl bg-white text-black font-bold">{t('see')}</span>
+                <span className="text-xs px-3 py-1.5 rounded-xl bg-lime-400 text-black font-bold">{t('see')}</span>
               </div>
             </div>
           </Link>

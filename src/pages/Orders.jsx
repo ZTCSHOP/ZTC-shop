@@ -116,7 +116,7 @@ function ProfileSettings(){
       <div className="mt-5">
         <div className="flex items-center justify-between text-xs"><span className="font-black">Niveau {level}</span><span className="text-white/50">{cur} / {need} XP</span></div>
         <div className="mt-1 h-2 rounded-full bg-white/10 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-500" style={{ width: `${Math.min(100, Math.round((cur/need)*100))}%` }}/>
+          <div className="h-full rounded-full bg-gradient-to-r from-royal-500 to-lime-400" style={{ width: `${Math.min(100, Math.round((cur/need)*100))}%` }}/>
         </div>
       </div>
       <form onSubmit={save} className="mt-5 grid sm:grid-cols-2 gap-3">

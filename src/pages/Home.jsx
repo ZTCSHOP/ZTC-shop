@@ -69,7 +69,7 @@ export default function Home(){
             <p className="text-sm text-white/60">{t('promo27_sub')}</p>
             <div className="flex flex-wrap gap-2.5 mt-2">
               <Link to="/product/fc27-pc" className="px-5 py-3 rounded-xl bg-lime-500 hover:bg-lime-400 text-black font-black text-sm">{t('promo27_std')} • 130 TND</Link>
-              <Link to="/product/fc27-pc" className="px-5 py-3 rounded-xl bg-white text-black hover:bg-white/85 font-black text-sm">{t('promo27_ult')} • 240 TND</Link>
+              <Link to="/product/fc27-pc" className="px-5 py-3 rounded-xl bg-lime-400 text-black hover:bg-lime-300 font-black text-sm">{t('promo27_ult')} • 240 TND</Link>
             </div>
           </div>
         </div>

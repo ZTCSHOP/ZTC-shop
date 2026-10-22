@@ -120,7 +120,7 @@ export default function Recrutement(){
           {ok ? <><CheckCircle2 size={16} /> {t('rec_discord_ok')}</> : <><AlertTriangle size={16} /> {t('rec_discord_ko')} ({err})</>}
         </p>
         <div className="mt-6 space-y-3">
-          <button onClick={copyCand} className="w-full py-3.5 rounded-xl bg-white text-black font-black flex items-center justify-center gap-2"><Copy size={17} /> {t('rec_copy')}</button>
+          <button onClick={copyCand} className="w-full py-3.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black flex items-center justify-center gap-2"><Copy size={17} /> {t('rec_copy')}</button>
           <button onClick={()=>{ setDone(null); setGame('') }} className="w-full py-3.5 rounded-xl bg-white/5 border border-white/15 font-bold flex items-center justify-center gap-2"><Plus size={17} /> {t('rec_new')}</button>
         </div>
       </div>
@@ -235,7 +235,7 @@ export default function Recrutement(){
         <div><label className={labelCls}>{t('rec_motiv')} *</label><textarea name="motivation" rows="3" required placeholder="..." className={inputCls} /></div>
         <div><label className={labelCls}>{t('rec_video')}</label><input name="video" placeholder="https://youtube.com/..." className={inputCls} /></div>
 
-        <button type="submit" disabled={sending || !RECRUTEMENT_OPEN} className="w-full mt-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 font-black disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        <button type="submit" disabled={sending || !RECRUTEMENT_OPEN} className="w-full mt-6 py-4 rounded-xl bg-lime-400 text-black hover:bg-lime-300 font-black disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
           <Send size={18} /> {sending ? t('rec_sending') : (RECRUTEMENT_OPEN ? t('rec_send') : t('rec_closed_btn'))}
         </button>
         </fieldset>

@@ -13,10 +13,10 @@
   --color-lime-50: #fbf6e6;
   --color-lime-100: #f7ecc4;
   --color-lime-200: #f0da8e;
-  --color-lime-300: #e9c258;
-  --color-lime-400: #dfae35;
-  --color-lime-500: #c4911b;
-  --color-lime-600: #9a6b11;
+  --color-lime-300: #f0d488;
+  --color-lime-400: #e6bb46;
+  --color-lime-500: #cfa02a;
+  --color-lime-600: #a87a12;
   --color-lime-700: #7a530f;
   --color-lime-800: #634310;
   --color-lime-900: #523813;
@@ -30,27 +30,27 @@
   --color-royal-600: #2f42c9;
   --color-royal-700: #2635a3;
 
-  /* Vert → violet éclatant */
-  --color-emerald-50: #f9edff;
-  --color-emerald-100: #f1d9ff;
-  --color-emerald-200: #e3b3ff;
-  --color-emerald-300: #cf80ff;
-  --color-emerald-400: #b64dff;
-  --color-emerald-500: #9524e0;
-  --color-emerald-600: #7c12bd;
-  --color-emerald-700: #640b98;
-  --color-emerald-800: #500978;
-  --color-emerald-900: #400a5f;
-  --color-emerald-950: #28053d;
-  --color-teal-300: #d78bff;
-  --color-teal-400: #c25dff;
-  --color-teal-500: #a72ee6;
-  --color-teal-600: #8a1fd4;
-  --color-teal-700: #6f13ae;
+  /* Vert / violet → or (boutons dorés) */
+  --color-emerald-50: #fbf6e6;
+  --color-emerald-100: #f7ecc4;
+  --color-emerald-200: #f0da8e;
+  --color-emerald-300: #f0d488;
+  --color-emerald-400: #e6bb46;
+  --color-emerald-500: #cfa02a;
+  --color-emerald-600: #a87a12;
+  --color-emerald-700: #7a530f;
+  --color-emerald-800: #634310;
+  --color-emerald-900: #523813;
+  --color-emerald-950: #2f1f08;
+  --color-teal-300: #f0d488;
+  --color-teal-400: #e6bb46;
+  --color-teal-500: #cfa02a;
+  --color-teal-600: #a87a12;
+  --color-teal-700: #7a530f;
 }
 
-/* Les boutons pleins verts passent en violet : texte blanc lisible */
-.bg-emerald-400, .bg-emerald-500, .bg-emerald-600 { color: #fff; }
+/* Boutons pleins : texte sombre lisible sur l'or */
+.bg-emerald-400, .bg-emerald-500, .bg-emerald-600 { color: #0b0a06; }
 
 * { scrollbar-width: thin; scrollbar-color: #c4911b #0d0c14; }
 ::selection { background: #dfae35; color: #0b0a06; }

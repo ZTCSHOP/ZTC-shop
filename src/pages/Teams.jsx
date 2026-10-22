@@ -160,7 +160,7 @@ export default function Teams(){
       <div className="mt-4 flex gap-2 flex-wrap">
         <button onClick={()=>setTab('teams')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='teams'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Shield size={13}/> {t('teams')}</button>
         <button onClick={()=>setTab('ranking')} className={`text-xs px-4 py-2 rounded-full border font-bold flex items-center gap-1.5 ${tab==='ranking'?'bg-emerald-500 text-black border-emerald-500':'bg-white/5 border-white/10 text-white/70'}`}><Trophy size={13}/> {t('ranking')}</button>
-        <button id="create-team-tab" onClick={()=>setTab('create')} className={`text-sm px-5 py-2 rounded-full font-black flex items-center gap-1.5 btn-rgb ${deepCreate ? 'rgb-arrive' : ''} ${tab==='create'?'bg-emerald-500 text-black':'bg-black/60 text-white'}`}><Plus size={14}/> {t('tab_create')}</button>
+        <button id="create-team-tab" onClick={()=>setTab('create')} className={`text-sm px-5 py-2 rounded-full font-black flex items-center gap-1.5 bg-lime-400 text-black hover:bg-lime-300 ${deepCreate ? 'rgb-arrive' : ''}`}><Plus size={14}/> {t('tab_create')}</button>
       </div>
 
       {tab==='create' ? (
@@ -198,7 +198,7 @@ export default function Teams(){
               try{ setFlogo(await fileToLogo(e.target.files?.[0])) }
               catch(err){ setFerr(err.message==='big' ? t('team_logo_big') : t('team_logo_bad')) }
               e.target.value = ''
-            }} className="text-xs text-white/60 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-emerald-500 file:text-white file:text-xs file:font-black"/>
+            }} className="text-xs text-white/60 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-emerald-500 file:text-black file:text-xs file:font-black"/>
           </div>
           <label className="block text-[13px] font-bold mt-3 mb-1.5 text-white/80">{t('tc_desc')}</label>
           <textarea value={fdesc} onChange={e=>setFdesc(e.target.value)} rows="2" placeholder={t('tc_desc_ph')} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
