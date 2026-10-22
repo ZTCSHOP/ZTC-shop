@@ -33,18 +33,18 @@ export default function Navbar({ onBurger }){
         </form>
         <div className="flex-1 md:hidden" />
         {/* Tournois + Équipes + Support */}
-        <Link to="/teams" title={t('teams')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-300 text-sm font-bold">
-          <Shield size={16}/> {t('teams')}
+        <Link to="/teams" title={t('teams')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Shield size={16} className="text-[#f6e2a6]"/> {t('teams')}
         </Link>
-        <Link to="/tournaments" title={t('tournaments')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 text-sm font-bold">
-          <Trophy size={16}/> {t('tournaments')}
+        <Link to="/tournaments" title={t('tournaments')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Trophy size={16} className="text-[#f6e2a6]"/> {t('tournaments')}
         </Link>
-        <Link to="/recrutement" title={t('recrutement')} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 hover:bg-red-600/25 text-red-300 text-sm font-bold">
-          <Gamepad2 size={16}/> {t('recrutement')}
+        <Link to="/recrutement" title={t('recrutement')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Gamepad2 size={16} className="text-[#f6e2a6]"/> {t('recrutement')}
         </Link>
         <Link to="/support" title={t('support')}
-          className="relative flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:brightness-110 text-white text-sm font-black animate-support-ring">
-          <MessageCircle size={17} className="animate-support-bounce"/>
+          className="nav-gold relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-black">
+          <MessageCircle size={17} className="text-[#f6e2a6] animate-support-bounce"/>
           <span className="hidden sm:inline">{t('support')}</span>
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c] animate-ping"/>
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c]"/>
@@ -93,14 +93,14 @@ export default function Navbar({ onBurger }){
       {/* Accès rapide mobile : Équipes + Tournois + Recrutement (comme sur PC) */}
       <div className="sm:hidden border-t border-white/10">
         <div className="px-4 py-2 flex gap-2 overflow-x-auto">
-          <Link to="/teams" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black whitespace-nowrap">
-            <Shield size={14}/> {t('teams')}
+          <Link to="/teams" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
+            <Shield size={14} className="text-[#f6e2a6]"/> {t('teams')}
           </Link>
-          <Link to="/tournaments" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black whitespace-nowrap">
-            <Trophy size={14}/> {t('tournaments')}
+          <Link to="/tournaments" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
+            <Trophy size={14} className="text-[#f6e2a6]"/> {t('tournaments')}
           </Link>
-          <Link to="/recrutement" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 text-red-300 text-xs font-black whitespace-nowrap">
-            <Gamepad2 size={14}/> {t('recrutement')}
+          <Link to="/recrutement" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
+            <Gamepad2 size={14} className="text-[#f6e2a6]"/> {t('recrutement')}
           </Link>
         </div>
       </div>
