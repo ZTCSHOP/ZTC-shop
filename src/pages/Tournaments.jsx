@@ -97,7 +97,7 @@ export default function Tournaments(){
             <input placeholder={t('tr_max')} type="number" value={form.max_teams} onChange={e=>setForm({...form,max_teams:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_rules')} value={form.rules} onChange={e=>setForm({...form,rules:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
             <input placeholder={t('tr_video_ph')} value={form.video} onChange={e=>setForm({...form,video:e.target.value})} className="px-3 py-3 rounded-xl bg-black/30 border border-white/10"/>
-            <button className="btn-shine sm:col-span-2 py-3.5 rounded-xl bg-lime-600 hover:bg-lime-500 font-black">{t('tr_submit')}</button>
+            <button className="btn-shine sm:col-span-2 py-3.5 rounded-xl bg-lime-600 hover:bg-lime-500 text-black font-black">{t('tr_submit')}</button>
           </form>
         )}
         {mine.length>0 && (

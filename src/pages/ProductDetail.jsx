@@ -75,7 +75,7 @@ export default function ProductDetail(){
           </div>
         </div>
 
-        <button onClick={handleAdd} disabled={!variant} className="mt-4 w-full py-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black flex items-center justify-center gap-2 text-white disabled:opacity-50">
+        <button onClick={handleAdd} disabled={!variant} className="mt-4 w-full py-4 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black flex items-center justify-center gap-2 disabled:opacity-50">
           <ShoppingCart size={18}/> {t('add_cart')}
         </button>
         </>

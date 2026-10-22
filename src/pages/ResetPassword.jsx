@@ -54,7 +54,7 @@ export default function ResetPassword(){
   return (
     <div className="max-w-[520px] mx-auto px-4 py-14">
       <div className="rounded-3xl bg-white/5 border border-white/10 p-6 sm:p-8 text-center">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center text-black">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-royal-400 to-royal-700 flex items-center justify-center text-white">
           <Lock size={24}/>
         </div>
         <h1 className="text-2xl font-black mt-4">{t('reset_title')}</h1>

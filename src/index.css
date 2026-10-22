@@ -2,17 +2,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #7c3aed;
-  --color-primary-dark: #5b21b6;
+  --color-primary: #2f42c9;
+  --color-primary-dark: #2635a3;
   --color-dark: #0f0f12;
   --color-card: #1a1a1f;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --color-lime-glow: #a3e635;
+
+  /* Accent principal : or */
+  --color-lime-50: #fbf6e6;
+  --color-lime-100: #f7ecc4;
+  --color-lime-200: #f0da8e;
+  --color-lime-300: #e9c258;
+  --color-lime-400: #dfae35;
+  --color-lime-500: #c4911b;
+  --color-lime-600: #9a6b11;
+  --color-lime-700: #7a530f;
+  --color-lime-800: #634310;
+  --color-lime-900: #523813;
+  --color-lime-950: #2f1f08;
+  --color-lime-glow: #dfae35;
+
+  /* Accent secondaire : bleu royal */
+  --color-royal-300: #9db2ff;
+  --color-royal-400: #6f8bff;
+  --color-royal-500: #4c68ff;
+  --color-royal-600: #2f42c9;
+  --color-royal-700: #2635a3;
 }
 
-* { scrollbar-width: thin; scrollbar-color: #65a30d #10130c; }
-::selection { background: #a3e635; color: #0b0e0a; }
+* { scrollbar-width: thin; scrollbar-color: #c4911b #0d0c14; }
+::selection { background: #dfae35; color: #0b0a06; }
+
+/* Accents interactifs bleu royal (survols, focus) */
+.hover\:text-lime-400:hover,
+.hover\:text-lime-300:hover { color: #8ea2ff !important; }
+.hover\:border-lime-400\/40:hover,
+.hover\:border-lime-400\/50:hover,
+.hover\:border-lime-400\/60:hover { border-color: rgba(92,116,255,.65) !important; }
+.focus\:border-lime-400\/60:focus,
+.focus\:border-lime-500\/50:focus,
+.focus\:border-lime-500:focus { border-color: rgba(92,116,255,.65) !important; box-shadow: 0 0 0 3px rgba(47,66,201,.22); }
 body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #060509; color: #e5e7eb; }
 .font-display { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; }
 
@@ -34,12 +64,12 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 .animate-eq { animation: eq 0.9s ease-in-out infinite; transform-origin: bottom; }
 
-/* Halo discret derrière les photos produits (style pro, monochrome lime) */
+/* Halo discret derrière les photos produits (bleu royal) */
 .anim-glow { position: relative; border-radius: 14px; }
 .anim-glow::before {
   content: ''; position: absolute; inset: -1px; border-radius: 15px; z-index: 0;
-  background: linear-gradient(135deg, rgba(163,230,53,.35), transparent 60%);
-  filter: blur(8px); opacity: .25;
+  background: linear-gradient(135deg, rgba(92,116,255,.45), transparent 60%);
+  filter: blur(8px); opacity: .3;
 }
 .anim-glow > * { position: relative; z-index: 1; }
 
@@ -177,10 +207,10 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 @keyframes xp-track-sheen { 0% { transform: translateX(-100%); } 65%,100% { transform: translateX(100%); } }
 .xp-fill {
-  background-image: linear-gradient(90deg,#f472b6,#a855f7,#6366f1,#22d3ee,#a855f7,#f472b6);
+  background-image: linear-gradient(90deg,#2f42c9,#4c68ff,#9db2ff,#dfae35,#f0da8e,#dfae35);
   background-size: 300% 100%;
   animation: xp-slide 3s linear infinite;
-  box-shadow: 0 0 12px rgba(168,85,247,.8), inset 0 0 4px rgba(255,255,255,.55);
+  box-shadow: 0 0 12px rgba(92,116,255,.7), inset 0 0 4px rgba(255,255,255,.55);
   transition: width .9s cubic-bezier(.22,1,.36,1);
 }
 
@@ -188,8 +218,8 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 @keyframes gift-float { 0%,100% { transform: translateY(0) rotate(-5deg) scale(1); } 50% { transform: translateY(-10px) rotate(5deg) scale(1.06); } }
 .gift-float { animation: gift-float 1.15s ease-in-out infinite; }
 @keyframes gift-glow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(168,85,247,.55), 0 0 48px -8px rgba(168,85,247,.95); }
-  50% { box-shadow: 0 0 0 20px rgba(168,85,247,0), 0 0 80px 2px rgba(236,72,153,.85); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(223,174,53,.55), 0 0 48px -8px rgba(223,174,53,.95); }
+  50% { box-shadow: 0 0 0 20px rgba(223,174,53,0), 0 0 80px 2px rgba(92,116,255,.85); }
 }
 .gift-glow { animation: gift-glow 1.2s ease-in-out infinite; }
 @keyframes ring-spin { to { transform: rotate(360deg); } }

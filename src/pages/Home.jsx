@@ -27,8 +27,8 @@ export default function Home(){
   return (
     <div>
       <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(163,230,53,.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(163,230,53,.06)_1px,transparent_1px)] bg-[size:44px_44px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0b0e0a]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(92,116,255,.09)_1px,transparent_1px),linear-gradient(to_bottom,rgba(92,116,255,.09)_1px,transparent_1px)] bg-[size:44px_44px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#060509]" />
         <div className="relative max-w-[1760px] mx-auto px-4 py-14 md:py-20 grid md:grid-cols-2 gap-8 items-center">
           <div className="reveal">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-lime-400/10 border border-lime-400/30 text-xs text-lime-300 mb-4 font-bold uppercase tracking-widest">
@@ -36,7 +36,7 @@ export default function Home(){
             </div>
             <h1 className="font-display text-6xl md:text-8xl font-bold leading-[0.85] tracking-tight uppercase">
               ZTC Shop<br/>
-              <span className="text-lime-400">gift cards</span><br/>
+              <span className="bg-gradient-to-r from-[#b9c7ff] via-[#6f8bff] to-[#3f56e8] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(76,104,255,.35)]">gift cards</span><br/>
               gaming & streaming
             </h1>
             <p className="text-white/60 mt-4 text-base max-w-lg">{t('home_sub')}</p>
@@ -51,7 +51,7 @@ export default function Home(){
             </div>
           </div>
           <div className="reveal">
-            <div className="relative rounded-2xl overflow-hidden border border-lime-400/30 bg-black aspect-video shadow-[0_0_60px_-15px_rgba(163,230,53,0.4)]">
+            <div className="relative rounded-2xl overflow-hidden border border-royal-400/40 bg-black aspect-video shadow-[0_0_60px_-15px_rgba(76,104,255,0.5)]">
               <iframe src={`https://www.youtube.com/embed/${HERO_VIDEO_ID}?rel=0&autoplay=1&mute=1&playsinline=1`} title="ZTC Presentation" className="w-full h-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
             </div>
             <div className="mt-2 flex items-center justify-center gap-3 text-xs text-white/50">🎬 {t('home_video')} <a href={`https://www.youtube.com/watch?v=${HERO_VIDEO_ID}`} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-500">▶ YouTube</a></div>
@@ -61,7 +61,7 @@ export default function Home(){
 
       {/* Affiche FC27 PC Steam */}
       <section className="max-w-[1760px] mx-auto px-4 -mt-2 mb-2">
-        <div className="reveal rounded-3xl overflow-hidden border border-lime-500/30 bg-gradient-to-r from-lime-900/40 via-[#141417] to-[#141417] grid md:grid-cols-[220px_1fr] items-stretch">
+        <div className="reveal rounded-3xl overflow-hidden border border-royal-500/35 bg-gradient-to-r from-royal-700/35 via-[#141417] to-[#141417] grid md:grid-cols-[220px_1fr] items-stretch">
           <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhc6Hl7O2D2ZMM5mGE1Ou40bK_4_xPxWdJW8VsQ7faUHqHInv68ByFjCMH&s=10" alt="EA FC 27 PC" className="w-full h-44 md:h-full object-cover"/>
           <div className="p-5 md:p-6 flex flex-col justify-center gap-2">
             <span className="w-fit text-[11px] font-black px-2.5 py-1 rounded-full bg-lime-500 text-black">{t('promo27_badge')}</span>
@@ -78,7 +78,7 @@ export default function Home(){
       <div className="overflow-hidden border-y border-white/10 bg-black/40 py-3 select-none" dir="ltr">
         <div className="max-w-[1760px] mx-auto px-4 flex gap-8 items-center overflow-x-auto text-xs font-black tracking-widest text-white/50 whitespace-nowrap">
           {['VALORANT','LEAGUE OF LEGENDS','FC 27','PUBG','WARZONE','RAINBOW SIX','ROBLOX','STEAM','NETFLIX'].map((s,i)=>(
-            <span key={i} className="flex items-center gap-8 whitespace-nowrap">{s}<span className="text-lime-500">/</span></span>
+            <span key={i} className="flex items-center gap-8 whitespace-nowrap">{s}<span className="text-royal-400">/</span></span>
           ))}
         </div>
       </div>
