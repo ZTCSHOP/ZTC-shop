@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Home, Gamepad2, KeyRound, User, Gift, Crown, Sparkles, Monitor, X, LayoutGrid, Trophy, MessageCircle, Info, ChevronDown } from 'lucide-react'
 import { MENUS, initialProducts, categories } from '../data/products'
 import { useAuth } from '../context/AuthContext'
@@ -8,6 +8,7 @@ import { useLang } from '../context/LanguageContext'
 const MENU_ICONS = { Gamepad2, KeyRound, User, Gift, Crown, Sparkles, Monitor }
 
 export default function Sidebar({ mobileOpen, onClose }){
+  const { pathname } = useLocation()
   const { products: dbProducts } = useAuth()
   const { lang } = useLang()
   const allProds = dbProducts || initialProducts
@@ -67,6 +68,8 @@ export default function Sidebar({ mobileOpen, onClose }){
       </div>
     </div>
   )
+
+  if(pathname === '/profile') return null
 
   return (
     <>

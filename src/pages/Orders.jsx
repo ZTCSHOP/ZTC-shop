@@ -269,6 +269,7 @@ export default function Orders(){
   }
   if(list.length===0) return (
     <div className="max-w-[800px] mx-auto px-4 py-16 text-center">
+      <Link to="/profile" className="inline-block mb-3 text-xs font-bold text-white/50 hover:text-lime-300">← {t('dash_title')||'Mon Espace Membre'}</Link>
       <h2 className="text-xl font-black">{t('no_orders')}</h2>
       <p className="text-white/60 text-sm mt-1">{t('no_orders_d')}</p>
       <Link to="/catalog" className="inline-block mt-4 px-6 py-3 rounded-xl bg-lime-400 text-black font-black">{t('go_catalog')}</Link>
@@ -283,6 +284,7 @@ export default function Orders(){
   )
   return (
     <div className="max-w-[1000px] mx-auto px-4 py-8">
+      <Link to="/profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-lime-300 mb-2">← {t('dash_title')||'Mon Espace Membre'}</Link>
       <h1 className="font-display text-4xl font-bold uppercase tracking-wide">{t('profile')}</h1>
       <p className="text-sm text-white/50">{user.provider}{user.email? ` • ${user.email}`: user.principal? ` • ${user.principal}`:''}</p>
       <VipCard />

@@ -23,7 +23,7 @@ export default function ProfileMenu(){
   const pct = Math.min(100, Math.round((cur / need) * 100))
 
   const rows = [
-    { to:'/orders#settings', icon:<User size={16}/>, label: t('pm_profile')||'Profil' },
+    { to:'/profile', icon:<User size={16}/>, label: t('pm_profile')||'Profil' },
     { to:'/orders#mytournaments', icon:<Trophy size={16}/>, label: t('pm_mytournaments')||'Mes Tournois', badge: regs.length||null },
     { to:'/orders#myteam', icon:<Shield size={16}/>, label: t('pm_myteam')||'Mon Équipe', badge: teamNames.size||null },
     { to:'/orders#wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },

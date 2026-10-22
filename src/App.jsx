@@ -22,6 +22,7 @@ import Recrutement from './pages/Recrutement'
 import Teams from './pages/Teams'
 import TeamDetail from './pages/TeamDetail'
 import PlayerProfile from './pages/PlayerProfile'
+import MemberDashboard from './pages/MemberDashboard'
 import CircuitBackground from './components/CircuitBackground'
 import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
@@ -50,6 +51,7 @@ export default function App(){
               <Route path="/product/:id" element={<ProductDetail/>}/>
               <Route path="/cart" element={<Cart/>}/>
               <Route path="/checkout" element={<Checkout/>}/>
+              <Route path="/profile" element={<MemberDashboard/>}/>
               <Route path="/orders" element={<Orders/>}/>
               <Route path="/orders/:id" element={<OrderDetail/>}/>
               <Route path="/login" element={<Login/>}/>

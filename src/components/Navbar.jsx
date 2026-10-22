@@ -75,7 +75,7 @@ export default function Navbar({ onBurger }){
           <div className="flex items-center gap-2">
             {user.isAdmin && <Link to="/admin" className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400"><Shield size={18}/></Link>}
             <button onClick={logout} title={t('logout')} className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10"><LogOut size={16}/></button>
-            <Link to="/orders" title={t('profile')} className="lg:hidden p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10"><User size={18}/></Link>
+            <Link to="/profile" title={t('profile')} className="lg:hidden p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10"><User size={18}/></Link>
             <ProfileMenu />
           </div>
         ) : (
