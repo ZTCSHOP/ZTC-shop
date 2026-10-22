@@ -29,7 +29,28 @@
   --color-royal-500: #4c68ff;
   --color-royal-600: #2f42c9;
   --color-royal-700: #2635a3;
+
+  /* Vert → violet éclatant */
+  --color-emerald-50: #f9edff;
+  --color-emerald-100: #f1d9ff;
+  --color-emerald-200: #e3b3ff;
+  --color-emerald-300: #cf80ff;
+  --color-emerald-400: #b64dff;
+  --color-emerald-500: #9524e0;
+  --color-emerald-600: #7c12bd;
+  --color-emerald-700: #640b98;
+  --color-emerald-800: #500978;
+  --color-emerald-900: #400a5f;
+  --color-emerald-950: #28053d;
+  --color-teal-300: #d78bff;
+  --color-teal-400: #c25dff;
+  --color-teal-500: #a72ee6;
+  --color-teal-600: #8a1fd4;
+  --color-teal-700: #6f13ae;
 }
+
+/* Les boutons pleins verts passent en violet : texte blanc lisible */
+.bg-emerald-400, .bg-emerald-500, .bg-emerald-600 { color: #fff; }
 
 * { scrollbar-width: thin; scrollbar-color: #c4911b #0d0c14; }
 ::selection { background: #dfae35; color: #0b0a06; }
@@ -66,9 +87,9 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 
 /* Bouton support : anneau pulsant + flottement pour attirer l'œil */
 @keyframes support-ring {
-  0% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); }
-  70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
-  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  0% { box-shadow: 0 0 0 0 rgba(149,36,224,.55); }
+  70% { box-shadow: 0 0 0 12px rgba(149,36,224,0); }
+  100% { box-shadow: 0 0 0 0 rgba(149,36,224,0); }
 }
 .animate-support-ring { animation: support-ring 2s infinite; }
 @keyframes support-bounce {

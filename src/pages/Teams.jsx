@@ -198,7 +198,7 @@ export default function Teams(){
               try{ setFlogo(await fileToLogo(e.target.files?.[0])) }
               catch(err){ setFerr(err.message==='big' ? t('team_logo_big') : t('team_logo_bad')) }
               e.target.value = ''
-            }} className="text-xs text-white/60 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-emerald-500 file:text-black file:text-xs file:font-black"/>
+            }} className="text-xs text-white/60 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:bg-emerald-500 file:text-white file:text-xs file:font-black"/>
           </div>
           <label className="block text-[13px] font-bold mt-3 mb-1.5 text-white/80">{t('tc_desc')}</label>
           <textarea value={fdesc} onChange={e=>setFdesc(e.target.value)} rows="2" placeholder={t('tc_desc_ph')} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-emerald-500"/>
