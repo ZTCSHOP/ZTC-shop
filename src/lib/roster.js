@@ -1,6 +1,7 @@
 // Effectifs e-sport : 5 titulaires + 2 remplaçants
 export const ROSTER_MIN = 5
 export const ROSTER_MAX = 7
+export const ROSTER_REQUIRED = 2 // minimum pour valider une inscription
 
 export const GAME_ROLES = {
   lol: ['Top', 'Jungle', 'Mid', 'ADC', 'Support'],
@@ -43,7 +44,7 @@ export const rosterStatus = (roster, game)=>{
     roster: normalized,
     filled,
     starters,
-    complete: starters >= ROSTER_MIN,
+    complete: starters >= ROSTER_REQUIRED,
     label: `${starters}/${ROSTER_MIN}`,
   }
 }

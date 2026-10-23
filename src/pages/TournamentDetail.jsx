@@ -278,8 +278,8 @@ export default function TournamentDetail(){
               </div>
               {rosterBlocked && (
                 <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-xs text-amber-200">
-                  <div className="font-black flex items-center gap-1.5"><ShieldCheck size={13}/> Effectif incomplet — {chosenRoster.starters}/5 titulaires</div>
-                  <p className="mt-1 text-amber-100/80">Complète l’effectif de {chosen?.name} avant de t’inscrire.</p>
+                  <div className="font-black flex items-center gap-1.5"><ShieldCheck size={13}/> Minimum 2 joueurs requis — {chosenRoster.starters}/5</div>
+                  <p className="mt-1 text-amber-100/80">Ajoute au moins 2 joueurs à l’effectif de {chosen?.name} avant de t’inscrire.</p>
                   <Link to={`/teams/${encodeURIComponent(chosen?.name||'')}?tab=effectif`} className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-amber-400 text-black font-black">Compléter l’effectif →</Link>
                 </div>
               )}
