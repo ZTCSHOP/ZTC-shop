@@ -1,0 +1,99 @@
+-- ============================================================
+-- ZTC — SPRINT 4 : LFG / matchmaking, rapports de match, Discord
+-- À exécuter une seule fois dans Supabase → SQL Editor
+-- ============================================================
+
+-- ---------- 1) Discord lié au profil ----------
+alter table public.profiles add column if not exists discord_id text;
+alter table public.profiles add column if not exists discord_tag text;
+
+-- ---------- 2) LFG : joueurs qui cherchent équipe / équipes qui recrutent ----------
+create table if not exists public.lfg_posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  author_name text not null default '',
+  kind text not null default 'player' check (kind in ('player','team')),
+  game text not null default 'valorant',
+  rank text default '',
+  roles text[] not null default '{}',
+  region text default '',
+  description text not null default '',
+  contact text default '',
+  team_name text default '',
+  status text not null default 'open' check (status in ('open','closed')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists lfg_posts_created_idx on public.lfg_posts (created_at desc);
+create index if not exists lfg_posts_game_idx on public.lfg_posts (game, status);
+
+alter table public.lfg_posts enable row level security;
+
+drop policy if exists "lfg_read" on public.lfg_posts;
+create policy "lfg_read" on public.lfg_posts for select using (true);
+
+drop policy if exists "lfg_insert_own" on public.lfg_posts;
+create policy "lfg_insert_own" on public.lfg_posts for insert with check (auth.uid() = user_id);
+
+drop policy if exists "lfg_update_own" on public.lfg_posts;
+create policy "lfg_update_own" on public.lfg_posts for update using (
+  auth.uid() = user_id or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
+);
+
+drop policy if exists "lfg_delete_own" on public.lfg_posts;
+create policy "lfg_delete_own" on public.lfg_posts for delete using (
+  auth.uid() = user_id or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
+);
+
+-- ---------- 3) Rapports de score soumis par les capitaines ----------
+create table if not exists public.match_reports (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id text not null,
+  round int not null default 0,
+  match_index int not null default 0,
+  match_id text not null default '',
+  team_a text not null default '',
+  team_b text not null default '',
+  score_a int not null default 0,
+  score_b int not null default 0,
+  riot_match_id text default '',
+  screenshot_url text default '',
+  note text default '',
+  reporter_id uuid references public.profiles(id) on delete set null,
+  reporter_name text default '',
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  verified jsonb,
+  created_at timestamptz not null default now(),
+  decided_at timestamptz
+);
+
+create index if not exists match_reports_tid_idx on public.match_reports (tournament_id, status, created_at desc);
+
+alter table public.match_reports enable row level security;
+
+drop policy if exists "reports_read" on public.match_reports;
+create policy "reports_read" on public.match_reports for select using (true);
+
+drop policy if exists "reports_insert_own" on public.match_reports;
+create policy "reports_insert_own" on public.match_reports for insert with check (auth.uid() = reporter_id);
+
+drop policy if exists "reports_update_admin" on public.match_reports;
+create policy "reports_update_admin" on public.match_reports for update using (
+  exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
+);
+
+drop policy if exists "reports_delete_own" on public.match_reports;
+create policy "reports_delete_own" on public.match_reports for delete using (
+  auth.uid() = reporter_id or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin)
+);
+
+-- ---------- 4) Temps réel (facultatif mais recommandé) ----------
+do $$ begin
+  alter publication supabase_realtime add table public.lfg_posts;
+exception when duplicate_object then null; when undefined_object then null; end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.match_reports;
+exception when duplicate_object then null; when undefined_object then null; end $$;
+
+notify pgrst, 'reload schema';

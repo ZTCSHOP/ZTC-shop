@@ -13,12 +13,28 @@ import { getHeroVideoRaw, setHeroVideo } from '../lib/site'
 import { isImageValue } from '../lib/storage'
 import PushBell from '../components/PushBell'
 import AdminApplications from '../components/AdminApplications'
+import { getDiscordWebhook, setDiscordWebhook, discordNotify } from '../lib/discord'
 
 export default function Admin(){
   const [heroUrl, setHeroUrl] = useState(()=> getHeroVideoRaw())
+  const [discUrl, setDiscUrl] = useState(()=> getDiscordWebhook())
+  const [discMsg, setDiscMsg] = useState('')
   const saveHeroVideo = ()=>{
     try{ setHeroVideo(heroUrl); alert('Vidéo accueil mise à jour ✓') }
     catch{ alert('Lien YouTube invalide') }
+  }
+  const saveDiscordHook = ()=>{
+    try{ setDiscordWebhook(discUrl.trim()); setDiscMsg('Webhook Discord enregistré ✓') }
+    catch{ setDiscMsg('URL invalide') }
+  }
+  const testDiscordHook = async ()=>{
+    try{ setDiscordWebhook(discUrl.trim()) }catch{}
+    const r = await discordNotify({
+      title: '✅ Test ZTC Esports',
+      description: 'Les annonces tournois, inscriptions et champions arriveront dans ce salon.',
+      fields: [{ name: 'Statut', value: 'Connexion opérationnelle', inline: true }],
+    })
+    setDiscMsg(r.ok ? 'Message test envoyé ✓' : `Échec (${r.error || r.status || 'inconnu'})`)
   }
   const { user, orders, updateOrderStatus, deleteOrder, deleteAccount, products, setProducts, saveProducts, allAccounts, cloud, needsDbGrant, refreshAll, adminThreads, sendMessage, markThreadRead, messages, tournaments, saveTournament, deleteTournament, regs, regsFor, deleteReg, teams, deleteTeam, joinReqs, updateJoinReq, vipSubs, confirmVipSub, rejectVipSub, VIP_PRICE, recharges, confirmRecharge, rejectRecharge, rewardClaims, decideReward } = useAuth()
   const EMPTY_TRN = { title:'', game:'valorant', date:'', prize:'', max_teams:16, entry_fee:0, status:'soon', rules:'', image:'', video:'', elimination:'single', final_format:'BO1' }
@@ -247,6 +263,18 @@ export default function Admin(){
             <iframe key={ytId(heroUrl)} src={`https://www.youtube.com/embed/${ytId(heroUrl)}?rel=0`} title="Aperçu accueil" className="w-full h-full" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
           </div>
         )}
+      </div>
+      <div className="mt-3 p-4 rounded-2xl bg-[#5865F2]/[0.07] border border-[#5865F2]/25">
+        <div className="font-black text-sm flex items-center gap-2">💬 Discord — annonces automatiques</div>
+        <div className="text-xs text-white/50 mt-0.5">Colle l’URL du webhook du salon (Paramètres du salon → Intégrations → Webhooks). Les tournois, inscriptions et champions y seront annoncés.</div>
+        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <input value={discUrl} onChange={e=>{ setDiscUrl(e.target.value); setDiscMsg('') }} placeholder="https://discord.com/api/webhooks/..."
+            className="flex-1 px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-sm"/>
+          <button onClick={saveDiscordHook} className="px-4 py-2 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-black text-sm">Enregistrer</button>
+          <button onClick={testDiscordHook} className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-sm font-bold flex items-center justify-center gap-1.5"><Send size={13}/> Test</button>
+        </div>
+        {discMsg && <div className="text-xs mt-1.5 text-emerald-300">{discMsg}</div>}
+        <div className="text-[10px] text-white/35 mt-1.5">Le rôle automatique nécessite un bot Discord (token) — les annonces fonctionnent sans bot.</div>
       </div>
       <div className="flex flex-wrap gap-2 mt-4">
         <button onClick={()=>setTab('orders')} className={`px-4 py-2 rounded-xl text-sm font-bold border ${tab==='orders'?'bg-lime-400 border-lime-400 text-black':'bg-white/5 border-white/10'}`}>

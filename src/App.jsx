@@ -25,6 +25,7 @@ import PlayerProfile from './pages/PlayerProfile'
 import MemberDashboard from './pages/MemberDashboard'
 import MemberSection from './pages/MemberSection'
 import Leaderboard from './pages/Leaderboard'
+import LFG from './pages/LFG'
 import CircuitBackground from './components/CircuitBackground'
 import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
@@ -70,6 +71,7 @@ export default function App(){
               <Route path="/teams/:teamName" element={<TeamDetail/>}/>
               <Route path="/player/:id" element={<PlayerProfile/>}/>
               <Route path="/leaderboard" element={<Leaderboard/>}/>
+              <Route path="/lfg" element={<LFG/>}/>
 
             </Routes>
             <footer className="border-t border-white/10 mt-8 py-6 text-center text-xs text-white/40">

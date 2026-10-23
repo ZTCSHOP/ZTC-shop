@@ -282,6 +282,79 @@ async function handleValorant({ name, tag, region }, env){
   } }
 }
 
+// ---------- /riot/match : résultat d'un match LoL (vérification de score) ----------
+async function handleRiotMatch(url, env, ctx, origin){
+  if(!env.RIOT_API_KEY) return json({ error: 'riot_key_missing' }, 500, origin)
+  const region = (url.searchParams.get('region') || 'euw').toLowerCase()
+  const id = (url.searchParams.get('id') || '').trim().toUpperCase()
+  const cfg = REGIONS[region]
+  if(!cfg) return json({ error: 'bad_region' }, 400, origin)
+  if(!/^[A-Z0-9]{2,5}\d?_\d{6,}$/.test(id)) return json({ error: 'bad_match_id' }, 400, origin)
+
+  const cache = caches.default
+  const cacheKey = new Request(url.toString(), { method: 'GET' })
+  const hit = await cache.match(cacheKey)
+  if(hit) return new Response(await hit.text(), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...cors(origin) } })
+
+  const res = await riotFetch(
+    `https://${cfg.routing}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(id)}`,
+    env.RIOT_API_KEY
+  )
+  if(res.notFound) return json({ error: 'not_found' }, 404, origin)
+  if(res.error) return json({ error: res.error }, res.error === 'rate_limited' ? 429 : 502, origin)
+
+  const info = res.data?.info || {}
+  const teams = (info.participants || []).reduce((acc, p)=>{
+    const side = p.teamId
+    if(!acc[side]) acc[side] = { side, win: !!p.win, kills: 0, deaths: 0, assists: 0, players: [] }
+    const t = acc[side]
+    t.kills += p.kills || 0; t.deaths += p.deaths || 0; t.assists += p.assists || 0
+    t.players.push({
+      riotId: p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagline || ''}` : (p.summonerName || ''),
+      puuid: p.puuid,
+      champion: p.championName || '',
+      role: p.teamPosition || p.individualPosition || '',
+      kills: p.kills || 0, deaths: p.deaths || 0, assists: p.assists || 0,
+    })
+    return acc
+  }, {})
+  const list = Object.values(teams).map(t=> ({ ...t, players: t.players.sort((a,b)=> (b.kills+b.assists) - (a.kills+a.assists)) }))
+  const winner = list.find(t=> t.win)?.side || null
+  const body = {
+    found: true, matchId: id, region,
+    duration: info.gameDuration || null,
+    playedAt: info.gameCreation || null,
+    queueId: info.queueId || null,
+    winnerSide: winner,
+    teams: list,
+  }
+  const out = new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=600', ...cors(origin) },
+  })
+  ctx.waitUntil(cache.put(cacheKey, out.clone()))
+  return out
+}
+
+// ---------- /discord/role : attribue un rôle Discord (bot optionnel) ----------
+async function handleDiscordRole(request, env, origin){
+  if(!env.DISCORD_BOT_TOKEN || !env.DISCORD_GUILD_ID) return json({ error: 'discord_bot_missing' }, 503, origin)
+  let body
+  try{ body = await request.json() }catch{ return json({ error: 'bad_json' }, 400, origin) }
+  const id = String(body?.discordId || '').trim()
+  const role = String(body?.role || 'player')
+  if(!/^\d{15,25}$/.test(id)) return json({ error: 'bad_discord_id' }, 400, origin)
+  const roleId = role === 'admin' ? env.DISCORD_ROLE_ADMIN : env.DISCORD_ROLE_PLAYER
+  if(!roleId) return json({ error: 'discord_role_missing' }, 503, origin)
+  const r = await fetch(`https://discord.com/api/v10/guilds/${env.DISCORD_GUILD_ID}/members/${id}/roles/${roleId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+  })
+  if(r.status === 404) return json({ error: 'member_not_in_guild' }, 404, origin)
+  if(!r.ok && r.status !== 204) return json({ error: `discord_${r.status}` }, 502, origin)
+  return json({ ok: true }, 200, origin)
+}
+
 async function handleRiot(url, env, ctx, origin){
   const game = (url.searchParams.get('game') || '').toLowerCase()
   const region = (url.searchParams.get('region') || '').toLowerCase()
@@ -329,6 +402,8 @@ export default {
     const url = new URL(request.url)
 
     if(url.pathname === '/riot' && request.method === 'GET') return handleRiot(url, env, ctx, origin)
+    if(url.pathname === '/riot/match' && request.method === 'GET') return handleRiotMatch(url, env, ctx, origin)
+    if(url.pathname === '/discord/role' && request.method === 'POST') return handleDiscordRole(request, env, origin)
     if(url.pathname === '/img' && request.method === 'GET') return handleImg(url, env, origin)
 
     if(url.pathname !== '/upload' || request.method !== 'POST'){

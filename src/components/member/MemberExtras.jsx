@@ -92,8 +92,38 @@ export function NotificationList(){
 
 export function PreferencesPanel(){
   const { lang, setLang } = useLang()
+  const { user, linkDiscord, unlinkDiscord } = useAuth()
   const [prefs, setPrefs] = useState(()=> getPrefs())
   const [saved, setSaved] = useState(false)
+  const [discId, setDiscId] = useState(user?.discord?.id || '')
+  const [discTag, setDiscTag] = useState(user?.discord?.tag || '')
+  const [discMsg, setDiscMsg] = useState('')
+  const [discErr, setDiscErr] = useState('')
+  const [discBusy, setDiscBusy] = useState(false)
+
+  useEffect(()=>{
+    setDiscId(user?.discord?.id || '')
+    setDiscTag(user?.discord?.tag || '')
+  }, [user?.discord?.id])
+
+  const saveDiscord = async ()=>{
+    setDiscErr(''); setDiscMsg(''); setDiscBusy(true)
+    try{
+      await linkDiscord({ id: discId, tag: discTag })
+      setDiscMsg('Discord lié ✓ Rôle attribué automatiquement si le bot est configuré.')
+    }catch(e){
+      const m = e.message || ''
+      setDiscErr(m === 'need_sql' ? 'Exécute sprint4-sql.txt dans Supabase pour activer la liaison Discord.'
+        : m === 'bad_discord_id' ? 'ID Discord invalide — active le mode développeur et copie ton ID (chiffres).'
+        : m === 'cloud_only' ? 'Compte email (cloud) requis.'
+        : m)
+    }finally{ setDiscBusy(false) }
+  }
+  const removeDiscord = async ()=>{
+    setDiscErr(''); setDiscMsg('')
+    try{ await unlinkDiscord(); setDiscId(''); setDiscTag(''); setDiscMsg('Discord délié.') }
+    catch(e){ setDiscErr(e.message || 'Erreur') }
+  }
 
   const update = (patch)=>{
     const next = savePrefs(patch)
@@ -137,6 +167,31 @@ export function PreferencesPanel(){
             )
           })}
         </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#5865F2]/30 bg-[#5865F2]/[0.06] p-5">
+        <h2 className="font-black flex items-center gap-2">💬 Discord</h2>
+        <p className="text-xs text-white/45 mt-0.5">Lie ton compte pour recevoir le rôle joueur et les annonces tournois automatiquement.</p>
+        {user?.discord?.id ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="px-3 py-2 rounded-xl bg-[#5865F2]/20 border border-[#5865F2]/40 text-sm font-bold">✓ {user.discord.tag || `ID ${user.discord.id}`}</span>
+            <button onClick={removeDiscord} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10">Délier</button>
+          </div>
+        ) : (
+          <div className="mt-3 grid sm:grid-cols-[1fr_1fr_auto] gap-2">
+            <input value={discId} onChange={e=>setDiscId(e.target.value)} placeholder="ID Discord (17-20 chiffres)"
+              className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-xs"/>
+            <input value={discTag} onChange={e=>setDiscTag(e.target.value)} placeholder="Pseudo Discord (optionnel)"
+              className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-xs"/>
+            <button onClick={saveDiscord} disabled={discBusy || !discId.trim()}
+              className="px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white text-xs font-black disabled:opacity-50">
+              {discBusy ? '...' : 'Lier'}
+            </button>
+          </div>
+        )}
+        <p className="mt-2 text-[11px] text-white/35">Discord → Paramètres → Avancés → Mode développeur → clic droit sur ton profil → Copier l’identifiant.</p>
+        {discMsg && <p className="mt-2 text-xs text-emerald-300">{discMsg}</p>}
+        {discErr && <p className="mt-2 text-xs text-red-300">{discErr}</p>}
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">

@@ -5,6 +5,8 @@ import { sendWelcomeEmail } from '../lib/email'
 import { isImageValue } from '../lib/storage'
 import { fetchRiotStats } from '../lib/riot'
 import { cleanRoster, rosterStatus } from '../lib/roster'
+import { getChampion } from '../lib/bracket'
+import { discordTournament, discordRegistration, discordChampion, discordLfg, syncDiscordRole } from '../lib/discord'
 
 const AuthCtx = createContext()
 const cloud = isCloudEnabled
@@ -449,6 +451,136 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       })
     }catch(e){ console.warn('cloud teams:', e.message) }
   }, [])
+  // ---- LFG / matchmaking ----
+  const mapCloudLfg = (r)=> ({
+    id: r.id, userId: r.user_id, authorName: r.author_name || '',
+    kind: r.kind || 'player', game: r.game || 'valorant', rank: r.rank || '',
+    roles: Array.isArray(r.roles) ? r.roles : [], region: r.region || '',
+    description: r.description || '', contact: r.contact || '',
+    teamName: r.team_name || '', status: r.status || 'open',
+    date: r.created_at, cloud: true,
+  })
+  const [lfgPosts, setLfgPosts] = useState([])
+  const refreshLfg = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('lfg_posts').select('*').order('created_at', { ascending: false }).limit(200)
+      if(!error && data) setLfgPosts(data.map(mapCloudLfg))
+    }catch(e){ console.warn('cloud lfg:', e.message) }
+  }, [])
+  const createLfgPost = async ({ kind='player', game, rank, roles, region, description, contact, teamName })=>{
+    if(!user) throw new Error('login')
+    if(!(cloud && user.cloud)) throw new Error('cloud_only')
+    const desc = String(description || '').trim().slice(0, 600)
+    if(desc.length < 10) throw new Error('description')
+    const row = {
+      user_id: user.id, author_name: user.name || user.email?.split('@')[0] || 'Joueur',
+      kind: kind === 'team' ? 'team' : 'player', game: game || 'valorant',
+      rank: String(rank || '').slice(0, 40), roles: (roles || []).slice(0, 5),
+      region: String(region || '').slice(0, 40), description: desc,
+      contact: String(contact || '').slice(0, 120),
+      team_name: kind === 'team' ? String(teamName || user.name || '').slice(0, 60) : '',
+      status: 'open',
+    }
+    const { data, error } = await supabase.from('lfg_posts').insert(row).select()
+    if(error){
+      if(/lfg_posts|relation|does not exist/i.test(String(error.message||''))) throw new Error('need_sql')
+      throw error
+    }
+    if(data?.[0]){
+      const m = mapCloudLfg(data[0])
+      setLfgPosts(prev=> [m, ...prev])
+      discordLfg(m).catch(()=>{})
+      return m
+    }
+  }
+  const closeLfgPost = async (id, status='closed')=>{
+    const target = lfgPosts.find(x=> x.id===id)
+    if(!target) throw new Error('post')
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    setLfgPosts(prev=> prev.map(x=> x.id===id ? { ...x, status } : x))
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('lfg_posts').update({ status }).eq('id', id)
+      if(error) throw error
+      refreshLfg()
+    }
+  }
+  const deleteLfgPost = async (id)=>{
+    const target = lfgPosts.find(x=> x.id===id)
+    if(!target) throw new Error('post')
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    setLfgPosts(prev=> prev.filter(x=> x.id!==id))
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('lfg_posts').delete().eq('id', id)
+      if(error) throw error
+      refreshLfg()
+    }
+  }
+  // ---- Rapports de score (vérification Riot) ----
+  const mapCloudReport = (r)=> ({
+    id: r.id, tournamentId: r.tournament_id, round: r.round, matchIndex: r.match_index,
+    matchId: r.match_id || '', teamA: r.team_a || '', teamB: r.team_b || '',
+    scoreA: r.score_a ?? 0, scoreB: r.score_b ?? 0,
+    riotMatchId: r.riot_match_id || '', screenshotUrl: r.screenshot_url || '',
+    note: r.note || '', reporterId: r.reporter_id, reporterName: r.reporter_name || '',
+    status: r.status || 'pending', verified: r.verified || null,
+    date: r.created_at, decidedAt: r.decided_at || null, cloud: true,
+  })
+  const [matchReports, setMatchReports] = useState([])
+  const refreshMatchReports = useCallback(async ()=>{
+    if(!cloud) return
+    try{
+      const { data, error } = await supabase.from('match_reports').select('*').order('created_at', { ascending: false }).limit(300)
+      if(!error && data) setMatchReports(data.map(mapCloudReport))
+    }catch(e){ console.warn('cloud reports:', e.message) }
+  }, [])
+  const submitMatchReport = async ({ tournamentId, round, matchIndex, matchId, teamA, teamB, scoreA, scoreB, riotMatchId, screenshotUrl, note })=>{
+    if(!user) throw new Error('login')
+    if(!(cloud && user.cloud)) throw new Error('cloud_only')
+    const sa = Number(scoreA), sb = Number(scoreB)
+    if(!Number.isFinite(sa) || !Number.isFinite(sb) || sa < 0 || sb < 0) throw new Error('score')
+    if(sa === sb) throw new Error('draw')
+    const row = {
+      tournament_id: tournamentId, round: Number(round)||0, match_index: Number(matchIndex)||0,
+      match_id: String(matchId || ''), team_a: String(teamA || ''), team_b: String(teamB || ''),
+      score_a: sa, score_b: sb,
+      riot_match_id: String(riotMatchId || '').trim().toUpperCase().slice(0, 40),
+      screenshot_url: String(screenshotUrl || '').trim().slice(0, 500),
+      note: String(note || '').trim().slice(0, 300),
+      reporter_id: user.id, reporter_name: user.name || user.email?.split('@')[0] || 'Capitaine',
+      status: 'pending',
+    }
+    const { data, error } = await supabase.from('match_reports').insert(row).select()
+    if(error){
+      if(/match_reports|relation|does not exist/i.test(String(error.message||''))) throw new Error('need_sql')
+      throw error
+    }
+    if(data?.[0]){
+      const m = mapCloudReport(data[0])
+      setMatchReports(prev=> [m, ...prev])
+      return m
+    }
+  }
+  const decideMatchReport = async (id, status)=>{
+    if(!user?.isAdmin) throw new Error('login')
+    const patch = { status, decided_at: new Date().toISOString() }
+    setMatchReports(prev=> prev.map(x=> x.id===id ? { ...x, ...patch } : x))
+    if(cloud){
+      const { error } = await supabase.from('match_reports').update(patch).eq('id', id)
+      if(error) throw error
+      refreshMatchReports()
+    }
+  }
+  const deleteMatchReport = async (id)=>{
+    const target = matchReports.find(x=> x.id===id)
+    if(!target) return
+    if(!user || (!user.isAdmin && target.reporterId!==user.id)) throw new Error('login')
+    setMatchReports(prev=> prev.filter(x=> x.id!==id))
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('match_reports').delete().eq('id', id)
+      if(error) throw error
+    }
+  }
   const refreshTeamAssets = useCallback(async ()=>{
     if(!cloud) return
     try{
@@ -689,8 +821,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     : ''
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp(); refreshNotifications(); refreshProgress()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp, refreshNotifications, refreshProgress])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp(); refreshNotifications(); refreshProgress(); refreshLfg(); refreshMatchReports()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp, refreshNotifications, refreshProgress, refreshLfg, refreshMatchReports])
 
   // Capture du parrainage : ?ref=<user_id> → stocké jusqu'à l'inscription
   useEffect(()=>{
@@ -727,7 +859,9 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'team_assets' }, ()=>{ refreshTeamAssets(); refreshTeamInfos() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'xp_logs' }, ()=> refreshXp())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reward_claims' }, ()=> refreshXp())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, ()=> refreshNotifications())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, ()=> refreshNotifications())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lfg_posts' }, ()=> refreshLfg())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_reports' }, ()=> refreshMatchReports())
       .subscribe()
     let lastFocus = 0
     const onFocus = ()=>{ const now = Date.now(); if(now - lastFocus < 120000) return; lastFocus = now; refreshAll() }
@@ -756,6 +890,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           name: prof.riot_game_name || '',
           tag: prof.riot_tag_line || '',
         } : null,
+        discord: prof?.discord_id ? { id: prof.discord_id, tag: prof.discord_tag || '' } : null,
         createdAt: prof?.created_at || new Date().toISOString(),
         ...readLocalExtras(sbUser.id),
       }
@@ -1016,6 +1151,33 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     setUser(next); saveProfile(next)
   }
 
+  // ---- Liaison Discord (ID + rôle automatique si le bot est configuré) ----
+  const linkDiscord = async ({ id, tag })=>{
+    if(!user) throw new Error('login')
+    if(!(cloud && user.cloud)) throw new Error('cloud_only')
+    const clean = String(id || '').trim()
+    if(!/^\d{15,25}$/.test(clean)) throw new Error('bad_discord_id')
+    const patch = { discord_id: clean, discord_tag: String(tag || '').trim().slice(0, 60) || null }
+    const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
+    if(error){
+      if(/discord_id|column/i.test(String(error.message||''))) throw new Error('need_sql')
+      throw error
+    }
+    const next = { ...user, discord: { id: clean, tag: patch.discord_tag || '' } }
+    setUser(next); saveProfile(next)
+    syncDiscordRole(clean).catch(()=>{})
+    return next.discord
+  }
+  const unlinkDiscord = async ()=>{
+    if(!user) throw new Error('login')
+    if(cloud && user.cloud){
+      const { error } = await supabase.from('profiles').update({ discord_id: null, discord_tag: null }).eq('id', user.id)
+      if(error) throw error
+    }
+    const next = { ...user, discord: null }
+    setUser(next); saveProfile(next)
+  }
+
   // ---- Suppressions admin (local + cloud) ----
   const deleteOrder = async (id)=>{
     if(!user?.isAdmin) throw new Error('login') // seul l'admin supprime
@@ -1109,6 +1271,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const saveTournament = async (t)=>{
     // Un non-admin ne peut que PROPOSER (statut pending, validé par l'admin)
     const isNew = !t.id
+    const prev = tournaments.find(x=> x.id===t.id) || null
     const forcedStatus = user?.isAdmin ? (t.status||'soon') : 'pending'
     const row = { ...t, id: t.id || ('trn-'+Date.now().toString(36)), status: forcedStatus, createdBy: t.createdBy || user?.id || null }
     setTournamentsState(prev=> {
@@ -1149,6 +1312,13 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         throw e
       }
     }
+    // Annonces Discord (best effort, jamais bloquantes)
+    try{
+      const prevChamp = getChampion(prev?.bracket || [])
+      const nextChamp = getChampion(row.bracket || [])
+      if(!prev || (prev.status!=='open' && row.status==='open')) discordTournament(row).catch(()=>{})
+      if(nextChamp && nextChamp !== prevChamp) discordChampion(row, nextChamp).catch(()=>{})
+    }catch{}
     return row
   }
   const deleteTournament = async (id)=>{
@@ -1393,10 +1563,18 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       }
       const { data, error } = res
       if(error) throw error
-      if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); awardXp('tournament_reg', tournamentId); return mapCloudReg(data[0]) }
+      if(data?.[0]) {
+        setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); awardXp('tournament_reg', tournamentId)
+        const tr = tournaments.find(x=> x.id===tournamentId)
+        if(tr) discordRegistration(tr, name).catch(()=>{})
+        if(user.discord?.id) syncDiscordRole(user.discord.id).catch(()=>{})
+        return mapCloudReg(data[0])
+      }
     }
     setRegs(prev=> [reg, ...prev])
     awardXp('tournament_reg', tournamentId)
+    const trLocal = tournaments.find(x=> x.id===tournamentId)
+    if(trLocal) discordRegistration(trLocal, name).catch(()=>{})
     return reg
   }
   // ---- Demandes pour rejoindre une équipe (player avec compte) ----
@@ -1600,6 +1778,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
-    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission}}>{children}</AuthCtx.Provider>
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, linkDiscord, unlinkDiscord, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission,
+    lfgPosts, refreshLfg, createLfgPost, closeLfgPost, deleteLfgPost, matchReports, refreshMatchReports, submitMatchReport, decideMatchReport, deleteMatchReport}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

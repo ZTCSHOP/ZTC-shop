@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck } from 'lucide-react'
+import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck, Send, ClipboardList } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
@@ -11,7 +11,7 @@ import { ytId } from '../lib/video'
 export default function TournamentDetail(){
   const { id } = useParams()
   const nav = useNavigate()
-  const { tournaments, regsFor, myRegs, registerMyTeam, myTeams, saveTournament, user, checkInTeam } = useAuth()
+  const { tournaments, regsFor, myRegs, registerMyTeam, myTeams, saveTournament, user, checkInTeam, matchReports, submitMatchReport } = useAuth()
   const { t } = useLang()
   const tr = tournaments.find(x=> x.id===id)
   const [error, setError] = useState('')
@@ -21,6 +21,15 @@ export default function TournamentDetail(){
   const [flash, setFlash] = useState(false)
   const [ckMsg, setCkMsg] = useState('')
   const [ckBusy, setCkBusy] = useState('')
+  const [repKey, setRepKey] = useState('')
+  const [repA, setRepA] = useState('')
+  const [repB, setRepB] = useState('')
+  const [repRiot, setRepRiot] = useState('')
+  const [repShot, setRepShot] = useState('')
+  const [repNote, setRepNote] = useState('')
+  const [repBusy, setRepBusy] = useState(false)
+  const [repMsg, setRepMsg] = useState('')
+  const [repErr, setRepErr] = useState('')
 
   if(!tr) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('no_result')} <Link to="/tournaments" className="text-amber-300">← {t('tournaments')}</Link></div>
 
@@ -40,6 +49,34 @@ export default function TournamentDetail(){
   const checkinOpen = !startMs || Date.now() >= startMs - 24*3600*1000
   const canCheckIn = checkinOpen && tr.status!=='done'
   const finalMatch = (tr.bracket || []).length ? tr.bracket[tr.bracket.length-1].matches?.[0] : null
+  const myTeamNames = user ? new Set([...(myRegs()||[]).map(r=> r.team), ...(myTeams()||[]).map(t=> t.name)].filter(Boolean)) : new Set()
+  const openMatches = (tr.bracket || []).flatMap((rd, ri)=> (rd.matches||[]).map((m, mi)=> ({ ...m, ri, mi })))
+    .filter(m=> m.teamA && m.teamB && !m.winner && (user?.isAdmin || myTeamNames.has(m.teamA) || myTeamNames.has(m.teamB)))
+  const trReports = (matchReports || []).filter(x=> x.tournamentId === tr.id).slice(0, 20)
+  const selectedMatch = openMatches.find(m=> `${m.ri}-${m.mi}` === repKey) || null
+
+  const sendReport = async (e)=>{
+    e.preventDefault()
+    setRepErr(''); setRepMsg('')
+    if(!selectedMatch) return setRepErr('Sélectionne ton match.')
+    setRepBusy(true)
+    try{
+      await submitMatchReport({
+        tournamentId: tr.id, round: selectedMatch.ri, matchIndex: selectedMatch.mi, matchId: selectedMatch.id,
+        teamA: selectedMatch.teamA, teamB: selectedMatch.teamB,
+        scoreA: repA, scoreB: repB, riotMatchId: repRiot, screenshotUrl: repShot, note: repNote,
+      })
+      setRepMsg('Score envoyé ✓ En attente de validation par l’admin.')
+      setRepA(''); setRepB(''); setRepRiot(''); setRepShot(''); setRepNote('')
+    }catch(err){
+      const m = err.message || ''
+      setRepErr(m === 'need_sql' ? 'Exécute sprint4-sql.txt dans Supabase pour activer les rapports de score.'
+        : m === 'draw' ? 'Match nul impossible — vérifie le score.'
+        : m === 'cloud_only' ? 'Compte email (cloud) requis.'
+        : m === 'login' ? 'Connecte-toi pour soumettre un score.'
+        : m)
+    }finally{ setRepBusy(false) }
+  }
 
   const goRegister = ()=>{
     document.getElementById('tournament-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -229,6 +266,71 @@ export default function TournamentDetail(){
           </div>
         )}
       </div>
+      {(openMatches.length>0 || trReports.length>0) && (
+        <div className="mt-6 rounded-2xl border border-sky-400/25 bg-sky-400/[0.05] p-4">
+          <h2 className="font-black flex items-center gap-2"><ClipboardList size={16} className="text-sky-300"/> Soumettre un score</h2>
+          <p className="text-xs text-white/50 mt-1">Capitaines : envoyez le score avec l’ID du match Riot (LoL) pour vérification automatique. L’admin valide le résultat.</p>
+
+          {user && openMatches.length>0 && (
+            <form onSubmit={sendReport} className="mt-3 grid sm:grid-cols-2 gap-2.5">
+              <select value={repKey} onChange={e=>{ setRepKey(e.target.value); setRepErr('') }}
+                className="sm:col-span-2 px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm">
+                <option value="">— Choisir le match —</option>
+                {openMatches.map(m=> (
+                  <option key={`${m.ri}-${m.mi}`} value={`${m.ri}-${m.mi}`}>
+                    Round {m.ri+1} : {m.teamA} vs {m.teamB}
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" min="0" max="99" value={repA} onChange={e=>setRepA(e.target.value)}
+                  placeholder={selectedMatch ? selectedMatch.teamA : 'Score A'}
+                  className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+                <input type="number" min="0" max="99" value={repB} onChange={e=>setRepB(e.target.value)}
+                  placeholder={selectedMatch ? selectedMatch.teamB : 'Score B'}
+                  className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+              </div>
+              <input value={repRiot} onChange={e=>setRepRiot(e.target.value)}
+                placeholder="ID match Riot (ex: EUW1_1234567890)"
+                className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+              <input value={repShot} onChange={e=>setRepShot(e.target.value)}
+                placeholder="Lien screenshot (optionnel)" className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+              <input value={repNote} onChange={e=>setRepNote(e.target.value)}
+                placeholder="Note pour l’admin (optionnel)" className="px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm"/>
+              <button disabled={repBusy || !selectedMatch} className="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black text-sm font-black disabled:opacity-50 flex items-center justify-center gap-1.5">
+                <Send size={14}/> {repBusy ? 'Envoi…' : 'Envoyer le score'}
+              </button>
+              {repErr && <p className="sm:col-span-2 text-xs text-red-300">{repErr}</p>}
+              {repMsg && <p className="sm:col-span-2 text-xs text-emerald-300">{repMsg}</p>}
+            </form>
+          )}
+          {user && openMatches.length===0 && trReports.length===0 && (
+            <p className="mt-3 text-xs text-white/40">Aucun match ouvert à ton équipe pour le moment.</p>
+          )}
+          {!user && openMatches.length>0 && (
+            <Link to="/login" state={{ from: `/tournaments/${tr.id}` }} className="inline-block mt-3 px-4 py-2.5 rounded-xl bg-sky-500 text-black text-sm font-black">Se connecter pour soumettre</Link>
+          )}
+
+          {trReports.length>0 && (
+            <div className="mt-4">
+              <div className="text-xs font-black text-white/50 uppercase tracking-wide mb-1.5">Derniers rapports</div>
+              <div className="space-y-1.5">
+                {trReports.map(r=> (
+                  <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-black/25 border border-white/5 px-3 py-2 text-[11px]">
+                    <span className={`px-1.5 py-0.5 rounded-full font-black border ${r.status==='approved' ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300' : r.status==='rejected' ? 'bg-red-500/15 border-red-500/35 text-red-300' : 'bg-amber-500/15 border-amber-500/35 text-amber-300'}`}>
+                      {r.status==='approved'?'Validé':r.status==='rejected'?'Refusé':'En attente'}
+                    </span>
+                    <span className="font-bold truncate">{r.teamA} <span className="text-white/40">vs</span> {r.teamB}</span>
+                    <span className="font-mono font-black">{r.scoreA} – {r.scoreB}</span>
+                    {r.riotMatchId && <span className="text-white/35 truncate">Riot: {r.riotMatchId}</span>}
+                    <span className="ml-auto text-white/35">{r.reporterName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
         <div id="tournament-register" className={`rounded-2xl bg-white/5 border border-white/10 p-5 h-fit scroll-mt-24 ${flash ? 'reg-flash' : ''}`}>
           {done ? (
             <div className="text-center py-6">

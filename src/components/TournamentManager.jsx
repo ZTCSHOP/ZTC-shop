@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Plus, Shuffle, RotateCcw, Trash2 } from 'lucide-react'
+import { Plus, Shuffle, RotateCcw, Trash2, BadgeCheck, XCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { generateBracket, computeStandings, getChampion } from '../lib/bracket'
+import { generateBracket, computeStandings, getChampion, setResult } from '../lib/bracket'
+import { fetchRiotMatch, riotErrorMsg, matchRegion } from '../lib/riot'
 import BracketView from './BracketView'
 
 const CK_KEY = (tid)=> `ztc_checkin_${tid}`
 const loadCk = (tid)=> { try { return JSON.parse(localStorage.getItem(CK_KEY(tid))||'{}') } catch { return {} } }
 
 export default function TournamentManager({ tr }){
-  const { regsFor, addTeamManual, saveTournament, deleteReg } = useAuth()
+  const { regsFor, addTeamManual, saveTournament, deleteReg, matchReports, refreshMatchReports, decideMatchReport } = useAuth()
   const { t } = useLang()
   const [teamName, setTeamName] = useState('')
   const [shuffle, setShuffle] = useState(true)
@@ -24,6 +25,50 @@ export default function TournamentManager({ tr }){
   const [ck, setCk] = useState(()=> loadCk(tr.id))
   const [menuFor, setMenuFor] = useState(null) // regId dont le menu statut est ouvert
   useEffect(()=>{ setCk(loadCk(tr.id)) }, [tr.id])
+
+  // ---- Rapports de score + vérification Riot ----
+  const reports = (matchReports || []).filter(r=> r.tournamentId === tr.id)
+  const pendingReports = reports.filter(r=> r.status === 'pending')
+  const [verifs, setVerifs] = useState({})
+  const [busyRep, setBusyRep] = useState('')
+  useEffect(()=>{ refreshMatchReports() }, [tr.id])
+  const rosterIds = (teamName)=>{
+    const reg = regs.find(x=> (x.team||'').toLowerCase() === String(teamName||'').toLowerCase())
+    return (reg?.roster || []).filter(p=> p.riot).map(p=> String(p.riot).toLowerCase().replace(/\s+/g,''))
+  }
+  const nameOf = (id)=> String(id || '').toLowerCase().split('#')[0].replace(/\s+/g,'')
+  const verifyReport = async (rep)=>{
+    setBusyRep(rep.id)
+    try{
+      const data = await fetchRiotMatch({ region: matchRegion(rep.riotMatchId), matchId: rep.riotMatchId })
+      const idsA = rosterIds(rep.teamA), idsB = rosterIds(rep.teamB)
+      let sideA = null, sideB = null
+      ;(data.teams || []).forEach(t=>{
+        const pids = (t.players || []).map(p=> nameOf(p.riotId))
+        const hitsA = idsA.filter(x=> pids.includes(nameOf(x))).length
+        const hitsB = idsB.filter(x=> pids.includes(nameOf(x))).length
+        if(hitsA > hitsB) sideA = t.side
+        if(hitsB > hitsA) sideB = t.side
+      })
+      const inferredWinner = data.winnerSide === sideA ? rep.teamA : data.winnerSide === sideB ? rep.teamB : null
+      setVerifs(v=> ({ ...v, [rep.id]: { data, inferredWinner } }))
+    }catch(e){
+      setVerifs(v=> ({ ...v, [rep.id]: { error: riotErrorMsg(e.message) } }))
+    }finally{ setBusyRep('') }
+  }
+  const applyReport = async (rep)=>{
+    setBusyRep(rep.id)
+    try{
+      const m = tr.bracket?.[rep.round]?.matches?.[rep.matchIndex]
+      let sa = rep.scoreA, sb = rep.scoreB
+      if(m?.teamA && rep.teamA && m.teamA !== rep.teamA && m.teamA === rep.teamB){ sa = rep.scoreB; sb = rep.scoreA }
+      const res = setResult(tr.bracket || [], rep.round, rep.matchIndex, sa, sb)
+      if(res.error) throw new Error(res.error)
+      await saveTournament({ ...tr, bracket: res.rounds })
+      await decideMatchReport(rep.id, 'approved')
+    }catch(e){ alert(e.message === 'teams' ? 'Match incomplet dans le bracket.' : e.message) }
+    finally{ setBusyRep('') }
+  }
   const statusOf = (r)=> ck[r.id] || 'validated'
   const setStatus = (r, s)=> setCk(prev=>{ const n = { ...prev, [r.id]: s }; try{ localStorage.setItem(CK_KEY(tr.id), JSON.stringify(n)) }catch{}; return n })
   const validatedRegs = regs.filter(r=> statusOf(r)==='validated')
@@ -122,6 +167,60 @@ export default function TournamentManager({ tr }){
 
       {/* Bracket éditable */}
       {bracket.length>0 && <BracketView bracket={bracket} onValidate={validateMatch} />}
+
+      {/* Rapports de score en attente */}
+      {pendingReports.length>0 && (
+        <div className="rounded-2xl border border-sky-400/30 bg-sky-400/[0.05] p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-black text-sky-200">📥 Scores à valider ({pendingReports.length})</div>
+            <button onClick={()=>refreshMatchReports()} className="text-white/40 hover:text-white" title="Rafraîchir"><RefreshCw size={13}/></button>
+          </div>
+          {pendingReports.map(rep=>{
+            const v = verifs[rep.id]
+            const reportWinner = rep.scoreA > rep.scoreB ? rep.teamA : rep.teamB
+            const mismatch = v?.inferredWinner && v.inferredWinner !== reportWinner
+            return (
+              <div key={rep.id} className="rounded-xl bg-black/30 border border-white/10 p-2.5 text-xs space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-black">{rep.teamA} <span className="text-white/40">vs</span> {rep.teamB}</span>
+                  <span className="font-mono font-black text-amber-300">{rep.scoreA} – {rep.scoreB}</span>
+                  <span className="text-white/40">par {rep.reporterName}</span>
+                  <span className="ml-auto text-white/30">R{rep.round+1}·M{rep.matchIndex+1}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/50">
+                  <span>Riot: <b className="text-white/70">{rep.riotMatchId || '—'}</b></span>
+                  {rep.screenshotUrl && <a href={rep.screenshotUrl} target="_blank" rel="noreferrer" className="text-sky-300 underline">Screenshot</a>}
+                  {rep.note && <span className="truncate">• {rep.note}</span>}
+                </div>
+                {v?.error && <div className="text-[11px] text-red-300">{v.error}</div>}
+                {v?.data && (
+                  <div className={`rounded-lg px-2 py-1.5 border text-[11px] ${mismatch ? 'border-red-500/30 bg-red-500/10 text-red-200' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'}`}>
+                    Riot dit vainqueur : côté {v.data.winnerSide} {v.inferredWinner ? `→ ${v.inferredWinner}` : '(équipe non reconnue — roster/Riot ID manquant)'}
+                    {mismatch && <span className="block font-black">⚠️ Incohérent avec le score soumis ({reportWinner}).</span>}
+                    <div className="mt-1 flex flex-wrap gap-3 text-white/50">
+                      {(v.data.teams||[]).map(t=> <span key={t.side}>Côté {t.side} : {t.kills}/{t.deaths}/{t.assists} (K/D/A)</span>)}
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {rep.riotMatchId && (
+                    <button onClick={()=>verifyReport(rep)} disabled={busyRep===rep.id} className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-[11px] font-black flex items-center gap-1 disabled:opacity-50">
+                      <RefreshCw size={11}/> {busyRep===rep.id ? '...' : 'Vérifier Riot'}
+                    </button>
+                  )}
+                  <button onClick={()=>applyReport(rep)} disabled={busyRep===rep.id} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black flex items-center gap-1 disabled:opacity-50">
+                    <BadgeCheck size={12}/> Appliquer
+                  </button>
+                  <button onClick={()=>decideMatchReport(rep.id,'rejected')} disabled={busyRep===rep.id} className="px-2.5 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-[11px] font-black flex items-center gap-1 disabled:opacity-50">
+                    <XCircle size={12}/> Rejeter
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+          <p className="text-[10px] text-white/35">Astuce : renseigne les Riot ID dans l’effectif des équipes pour que la vérification reconnaisse automatiquement l’équipe gagnante.</p>
+        </div>
+      )}
 
       {/* Classement */}
       {standings.length>0 && (

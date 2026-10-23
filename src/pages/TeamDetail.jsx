@@ -298,8 +298,8 @@ export default function TeamDetail(){
         {tabBtn('tournois', t('team_tab_tournaments')||'Tournois', perTournament.length)}
         {tabBtn('stats', t('team_tab_stats')||'Statistiques')}
         {tabBtn('realisations', t('team_tab_achieve')||'Réalisations', titles||null)}
-        <span className="px-4 py-2.5 text-sm text-white/25 font-bold cursor-not-allowed" title="Bientôt">Opportunités</span>
-        <span className="px-4 py-2.5 text-sm text-white/25 font-bold cursor-not-allowed" title="Bientôt">Scrims</span>
+        <Link to={`/lfg?kind=team&game=${game}`} className="px-4 py-2.5 text-sm text-white/60 hover:text-amber-300 font-bold whitespace-nowrap">Opportunités</Link>
+        <Link to={`/lfg?kind=player&game=${game}`} className="px-4 py-2.5 text-sm text-white/60 hover:text-amber-300 font-bold whitespace-nowrap">Recruter</Link>
       </div>
 
       <div className="mt-5 grid lg:grid-cols-[280px_1fr] gap-5 items-start">
