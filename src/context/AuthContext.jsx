@@ -4,6 +4,7 @@ import { supabase, isCloudEnabled } from '../lib/supabase'
 import { sendWelcomeEmail } from '../lib/email'
 import { isImageValue } from '../lib/storage'
 import { fetchRiotStats } from '../lib/riot'
+import { cleanRoster, rosterStatus } from '../lib/roster'
 
 const AuthCtx = createContext()
 const cloud = isCloudEnabled
@@ -400,9 +401,9 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   useEffect(()=> localStorage.setItem('ztc_join_reqs', JSON.stringify(joinReqs.filter(x=>!x.cloud))), [joinReqs])
 
   const mapCloudTournament = (r)=> ({ id: r.id, game: r.game, title: r.title, date: r.date, prize: r.prize||'', max_teams: r.max_teams??16, entry_fee: Number(r.entry_fee||0), status: r.status||'soon', rules: r.rules||'', image: r.image||'', video: r.video||'', elimination: r.elimination||'single', final_format: r.final_format||'BO1', createdBy: r.created_by||null, bracket: Array.isArray(r.bracket) ? r.bracket : [], cloud: true })
-  const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', logo: r.logo||'', userId: r.user_id, date: r.created_at, checkedIn: !!r.checked_in, checkedInAt: r.checked_in_at||null, cloud: true })
+  const mapCloudReg = (r)=> ({ id: r.id, tournament_id: r.tournament_id, team: r.team, captain: r.captain||'', phone: r.phone||'', game_id: r.game_id||'', logo: r.logo||'', userId: r.user_id, date: r.created_at, checkedIn: !!r.checked_in, checkedInAt: r.checked_in_at||null, roster: Array.isArray(r.roster) ? r.roster : null, cloud: true })
   const mapCloudJoin = (r)=> ({ id: r.id, tournament_id: r.tournament_id, regId: r.reg_id, userId: r.user_id, userName: r.user_name||'', userEmail: r.user_email||'', message: r.message||'', status: r.status||'pending', date: r.created_at, cloud: true })
-  const mapCloudTeam = (r)=> ({ id: r.id, name: r.name, game: r.game||'valorant', logo: r.logo||'', captain: r.captain||'', phone: r.phone||'', description: r.description||'', userId: r.user_id, date: r.created_at, cloud: true })
+  const mapCloudTeam = (r)=> ({ id: r.id, name: r.name, game: r.game||'valorant', logo: r.logo||'', captain: r.captain||'', phone: r.phone||'', description: r.description||'', roster: Array.isArray(r.roster) ? r.roster : null, userId: r.user_id, date: r.created_at, cloud: true })
 
   const refreshTournaments = useCallback(async ()=>{
     if(!cloud) return
@@ -1290,6 +1291,22 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
     return clean
   }
+  const saveTeamRoster = async (id, roster)=>{
+    const target = teams.find(x=> x.id===id)
+    if(!target) throw new Error('team')
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    const clean = cleanRoster(roster, target.game)
+    setTeams(prev=> prev.map(x=> x.id===id ? { ...x, roster: clean } : x))
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('teams').update({ roster: clean }).eq('id', id)
+      if(error){
+        if(/roster/i.test(String(error.message||''))) throw new Error('need_sql')
+        throw error
+      }
+      refreshTeams()
+    }
+    return clean
+  }
   const updateTeamLogo = async (regId, logo)=>{
     const clean = (logo||'').slice(0, 200000)
     const target = regs.find(x=> x.id===regId)
@@ -1348,21 +1365,33 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const name = (src?.name||'').trim()
     if(!name) throw new Error('team')
     if(regs.some(x=> x.tournament_id===tournamentId && (x.team||'').toLowerCase()===name.toLowerCase())) throw new Error('already')
+    const rosterAvailable = src?.roster !== null && src?.roster !== undefined
+    const rosterInfo = rosterStatus(src?.roster, src?.game)
+    if(rosterAvailable && !rosterInfo.complete) throw new Error('roster')
+    const roster = rosterAvailable ? cleanRoster(src?.roster, src?.game) : []
     const reg = {
       id: genId('reg'), tournament_id: tournamentId, team: name,
       captain: src.captain || user.name || '', phone: src.phone || '',
       game_id: src.game || '', logo: (src.logo||'').slice(0, 200000),
+      roster,
       userId: user.isAdmin && !own ? (src.userId || user.id) : user.id,
       date: new Date().toISOString(),
       cloud: !!(cloud && user.cloud),
     }
     if(reg.cloud){
-      const { data, error } = await supabase.from('tournament_regs').insert({
+      const payload = {
         tournament_id: tournamentId, team: reg.team, captain: reg.captain,
         phone: reg.phone, game_id: reg.game_id,
         ...(reg.logo ? { logo: reg.logo } : {}),
+        roster,
         user_id: sbUserId.current || user.id,
-      }).select()
+      }
+      let res = await supabase.from('tournament_regs').insert(payload).select()
+      if(res.error && /roster/i.test(String(res.error.message || ''))){
+        const { roster: _roster, ...noRoster } = payload
+        res = await supabase.from('tournament_regs').insert(noRoster).select()
+      }
+      const { data, error } = res
       if(error) throw error
       if(data?.[0]) { setRegs(prev=> [mapCloudReg(data[0]), ...prev]); refreshRegs(); awardXp('tournament_reg', tournamentId); return mapCloudReg(data[0]) }
     }
@@ -1570,7 +1599,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
     xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

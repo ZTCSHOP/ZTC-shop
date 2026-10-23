@@ -1,0 +1,12 @@
+-- ============================================================
+-- ZTC — SPRINT 3 : effectifs e-sport (5 titulaires + 2 remplaçants)
+-- À exécuter une seule fois dans Supabase → SQL Editor
+-- ============================================================
+
+-- Effectif enregistré sur la fiche équipe
+alter table public.teams add column if not exists roster jsonb not null default '[]'::jsonb;
+
+-- Copie de l'effectif au moment de l'inscription au tournoi
+alter table public.tournament_regs add column if not exists roster jsonb not null default '[]'::jsonb;
+
+notify pgrst, 'reload schema';

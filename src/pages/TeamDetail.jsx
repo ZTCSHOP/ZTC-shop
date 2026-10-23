@@ -7,13 +7,14 @@ import { computeStandings, getChampion } from '../lib/bracket'
 import { getTeamExtras, setTeamExtras } from '../lib/teamExtras'
 import { reqDisplayName } from '../lib/names'
 import { uploadImage } from '../lib/storage'
+import { normalizeRoster, rosterStatus } from '../lib/roster'
 
-const TABS = ['apercu', 'membres', 'tournois', 'stats', 'realisations']
+const TABS = ['apercu', 'membres', 'effectif', 'tournois', 'stats', 'realisations']
 
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, deleteTeam, allAccounts, teamAssets, teamInfos, saveTeamExtras, saveTeamAsset, profileAssets } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, saveTeamRoster, deleteTeam, allAccounts, teamAssets, teamInfos, saveTeamExtras, saveTeamAsset, profileAssets } = useAuth()
   const accounts = allAccounts()
   const assetOf = (uid)=> (uid && profileAssets[uid]) || {}
   const { t } = useLang()
@@ -22,7 +23,7 @@ export default function TeamDetail(){
   const [joinMsg, setJoinMsg] = useState('')
   const [info, setInfo] = useState('')
   const [logoErr, setLogoErr] = useState('')
-  const [tab, setTab] = useState('apercu')
+  const [tab, setTab] = useState(()=>{ try{ const q = new URLSearchParams(window.location.search).get('tab'); return TABS.includes(q) ? q : 'apercu' }catch{ return 'apercu' } })
   const [extras, setExtras] = useState(()=> getTeamExtras(name))
   const [editAbout, setEditAbout] = useState(false)
   const [aboutDraft, setAboutDraft] = useState('')
@@ -32,6 +33,9 @@ export default function TeamDetail(){
   const [discDraft, setDiscDraft] = useState('')
   const [ytDraft, setYtDraft] = useState('')
   const [igDraft, setIgDraft] = useState('')
+  const [rosterDraft, setRosterDraft] = useState([])
+  const [rosterMsg, setRosterMsg] = useState('')
+  const [rosterSaving, setRosterSaving] = useState(false)
   useEffect(()=>{
     setExtras(getTeamExtras(name))
     const h = ()=> setExtras(getTeamExtras(name))
@@ -43,6 +47,11 @@ export default function TeamDetail(){
   const solo = teamRegs.length===0
     ? teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
     : null
+  const rosterTeamRow = teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
+  const rosterGameInit = solo?.game || teamRegs[0]?.game || teamRegs[0]?.game_id || 'valorant'
+  const rosterSource = (rosterTeamRow?.roster && rosterTeamRow.roster.length) ? rosterTeamRow.roster : ((teamRegs.find(r=> r.roster && r.roster.length)||{}).roster || [])
+  const rosterKey = JSON.stringify(rosterSource)
+  useEffect(()=>{ setRosterDraft(normalizeRoster(rosterSource, rosterGameInit)) }, [name, rosterKey])
 
   // Migration auto : les infos saisies AVANT les colonnes cloud restaient dans ce navigateur.
   // Dès que le capitaine ouvre sa page, on pousse ce qui manque pour que TOUT LE MONDE les voie.
@@ -81,6 +90,18 @@ export default function TeamDetail(){
   // Bannière partagée (cloud, visible par tous) avec repli local
   const banner = teamAssets[name.toLowerCase()] || extras.banner || ''
   const trById = Object.fromEntries(tournaments.map(x=> [x.id, x]))
+  const rosterInfo = rosterStatus(rosterDraft, game)
+  const setSlot = (i, patch)=> setRosterDraft(list=> list.map((p, j)=> j===i ? { ...p, ...patch } : p))
+  const saveRoster = async ()=>{
+    if(!rosterTeamRow){ setRosterMsg('Équipe introuvable.'); return }
+    setRosterSaving(true); setRosterMsg('')
+    try{
+      await saveTeamRoster(rosterTeamRow.id, rosterDraft)
+      setRosterMsg('✓ Effectif enregistré')
+    }catch(e){
+      setRosterMsg(e.message==='need_sql' ? 'Exécute sprint3-sql.txt dans Supabase pour activer les effectifs.' : e.message==='login' ? 'Connexion requise.' : 'Erreur lors de l’enregistrement.')
+    }finally{ setRosterSaving(false) }
+  }
 
   // ---- Stats agrégées ----
   let titles = 0, w = 0, l = 0
@@ -273,6 +294,7 @@ export default function TeamDetail(){
       <div className="mt-6 flex gap-1 overflow-x-auto border-b border-white/10">
         {tabBtn('apercu', t('team_tab_overview')||'Aperçu')}
         {tabBtn('membres', t('team_tab_members')||'Membres', members.length)}
+        {tabBtn('effectif', 'Effectif', rosterInfo.starters < 5 ? rosterInfo.starters : null)}
         {tabBtn('tournois', t('team_tab_tournaments')||'Tournois', perTournament.length)}
         {tabBtn('stats', t('team_tab_stats')||'Statistiques')}
         {tabBtn('realisations', t('team_tab_achieve')||'Réalisations', titles||null)}
@@ -401,6 +423,56 @@ export default function TeamDetail(){
                   <button onClick={()=>ask(r)} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-black flex items-center gap-1"><Send size={12}/> {t('teams_join')}</button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab==='effectif' && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-black text-lg">Effectif de tournoi</div>
+                  <div className="text-xs text-white/50">5 titulaires obligatoires pour s’inscrire — 2 remplaçants optionnels.</div>
+                </div>
+                <div className={`text-[11px] font-black px-2.5 py-1 rounded-full border ${rosterInfo.complete ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-200'}`}>
+                  {rosterInfo.complete ? '✓ Effectif complet' : `${rosterInfo.starters}/5 titulaires`}
+                </div>
+              </div>
+              <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full transition-all duration-500 ${rosterInfo.complete ? 'bg-emerald-400' : 'bg-amber-400'}`} style={{ width: `${Math.min(100, Math.round(rosterInfo.starters/5*100))}%` }}/>
+              </div>
+
+              {rosterTeamRow && rosterTeamRow.roster === null && (
+                <div className="mt-3 rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-xs text-amber-200">
+                  Les effectifs ne sont pas encore activés. Exécute <code className="px-1.5 py-0.5 rounded bg-black/40">sprint3-sql.txt</code> dans Supabase → SQL Editor.
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2">
+                {rosterDraft.map((p, i)=>(
+                  <div key={i} className={`rounded-xl border p-3 ${p.sub ? 'bg-black/20 border-white/5' : 'bg-black/30 border-white/10'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${p.sub ? 'text-white/40' : 'text-amber-300/80'}`}>{p.role}</span>
+                      {p.sub && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 font-bold">Remplaçant</span>}
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <input value={p.name} onChange={e=>setSlot(i,{ name:e.target.value })} readOnly={!isOwner}
+                        placeholder="Pseudo du joueur" maxLength={40}
+                        className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-amber-500 read-only:opacity-70"/>
+                      <input value={p.riot} onChange={e=>setSlot(i,{ riot:e.target.value })} readOnly={!isOwner}
+                        placeholder="Riot ID (Pseudo#TAG)" maxLength={60}
+                        className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-amber-500 read-only:opacity-70"/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {rosterMsg && <p className={`mt-3 text-xs font-bold ${rosterMsg.startsWith('✓') ? 'text-emerald-300' : 'text-amber-300'}`}>{rosterMsg}</p>}
+              {isOwner ? (
+                <button onClick={saveRoster} disabled={rosterSaving || (rosterTeamRow && rosterTeamRow.roster === null)} className="mt-4 w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-sm disabled:opacity-60">
+                  {rosterSaving ? 'Enregistrement...' : 'Enregistrer l’effectif'}
+                </button>
+              ) : (
+                <p className="mt-4 text-xs text-white/40">Seul le capitaine peut modifier l’effectif.</p>
+              )}
             </div>
           )}
 

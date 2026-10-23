@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Trophy, Calendar, Users, Gift, Ticket, Check } from 'lucide-react'
+import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
-import { computeStandings } from '../lib/bracket'
+import { computeStandings, getChampion } from '../lib/bracket'
+import { rosterStatus } from '../lib/roster'
 import { ytId } from '../lib/video'
 
 export default function TournamentDetail(){
@@ -31,6 +32,14 @@ export default function TournamentDetail(){
   // Équipes de l'utilisateur créées sur le site
   const owned = user ? myTeams() : []
   const chosen = owned.find(x=> x.id===(teamId || owned[0]?.id)) || owned[0] || null
+  const rosterAvailable = chosen?.roster !== null && chosen?.roster !== undefined
+  const chosenRoster = rosterStatus(chosen?.roster, chosen?.game || tr.game)
+  const rosterBlocked = rosterAvailable && !chosenRoster.complete
+  const champion = getChampion(tr.bracket || [])
+  const startMs = tr.date ? new Date(tr.date).getTime() : null
+  const checkinOpen = !startMs || Date.now() >= startMs - 24*3600*1000
+  const canCheckIn = checkinOpen && tr.status!=='done'
+  const finalMatch = (tr.bracket || []).length ? tr.bracket[tr.bracket.length-1].matches?.[0] : null
 
   const goRegister = ()=>{
     document.getElementById('tournament-register')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -64,6 +73,7 @@ export default function TournamentDetail(){
       setError(
         m==='already' ? t('tr_already')
         : m==='notowner' ? t('tr_notowner')
+        : m==='roster' ? 'Complète ton effectif (5 titulaires) avant de t’inscrire.'
         : m.includes('foreign key') ? t('tr_need_sync')
         : m
       )
@@ -86,6 +96,8 @@ export default function TournamentDetail(){
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className="text-[11px] px-2 py-1 rounded-full bg-white/10 border border-white/15 font-bold">{(tr.elimination||'single')==='double'?'Double Elimination':'Single Elimination'}</span>
                 <span className="text-[11px] px-2 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">Final {tr.final_format||'BO1'} • Phases BO1</span>
+                {(tr.bracket||[]).length>0 && tr.status!=='done' && <span className="text-[11px] px-2 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 font-black inline-flex items-center gap-1"><Radio size={11} className="animate-pulse"/> EN DIRECT</span>}
+                {tr.status==='open' && <span className={`text-[11px] px-2 py-1 rounded-full border font-bold ${canCheckIn?'bg-emerald-500/15 border-emerald-500/35 text-emerald-300':'bg-white/10 border-white/15 text-white/50'}`}>{canCheckIn?'Check-in ouvert':'Check-in dans les 24 h'}</span>}
               </div>
             </div>
             {mine ? (
@@ -110,6 +122,22 @@ export default function TournamentDetail(){
         </div>
       </div>
 
+      {champion && (
+        <div className="mt-4 rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-400/[0.16] via-amber-400/[0.06] to-transparent p-4 flex flex-wrap items-center gap-3">
+          <Trophy size={22} className="text-amber-300 shrink-0"/>
+          <div className="min-w-0">
+            <div className="text-[10px] font-black uppercase tracking-widest text-amber-300/80">Champion du tournoi</div>
+            <div className="font-black text-lg flex items-center gap-2">
+              {champion}
+              {finalMatch?.scoreA!=null && finalMatch?.scoreB!=null && (
+                <span className="text-sm text-white/50 font-bold">{Math.max(finalMatch.scoreA, finalMatch.scoreB)} – {Math.min(finalMatch.scoreA, finalMatch.scoreB)}</span>
+              )}
+            </div>
+          </div>
+          <Link to={`/teams/${encodeURIComponent(champion)}`} className="ml-auto text-xs font-black text-amber-300 hover:text-amber-200">Voir l’équipe →</Link>
+        </div>
+      )}
+
       {vid && (
         <div className="mt-6">
           <h2 className="font-black mb-3">🎬 {t('tr_video')}</h2>
@@ -125,32 +153,58 @@ export default function TournamentDetail(){
           <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{tr.rules||'—'}</p>
           <h2 className="font-black mt-6 mb-2">{t('tr_participants')} ({regs.length})</h2>
           {regs.length>0 && (
-            <div className="text-xs text-emerald-300 font-bold mb-2">✅ {regs.filter(r=>r.checkedIn).length}/{regs.length} {t('tr_checked_count')}</div>
+            <div className="flex flex-wrap items-center gap-3 text-xs font-bold mb-2">
+              <span className="text-emerald-300">✅ {regs.filter(r=>r.checkedIn).length}/{regs.length} {t('tr_checked_count')}</span>
+              <span className={canCheckIn ? 'text-emerald-300' : 'text-white/45'}>
+                {tr.status==='done' ? 'Check-in clôturé' : canCheckIn ? 'Check-in ouvert (24 h avant le tournoi)' : 'Check-in ouvre 24 h avant le début'}
+              </span>
+            </div>
           )}
           <div className="space-y-2">
             {regs.length===0 && <span className="text-sm text-white/40">—</span>}
             {regs.map(r=>{
               const isMine = user && (r.userId===user.id || (mine && mine.id===r.id))
               return (
-                <div key={r.id} className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                  <Link to={`/teams/${encodeURIComponent(r.team)}`} className="flex items-center gap-1.5 font-bold text-sm hover:text-amber-300 min-w-0">
-                    {r.logo ? <img src={r.logo} alt="" loading="lazy" decoding="async" className="w-6 h-6 rounded-full object-cover bg-white shrink-0"/> : <span className="shrink-0">🛡️</span>}
-                    <span className="truncate">{r.team}</span>
-                  </Link>
-                  <span className="ml-auto flex items-center gap-2 shrink-0">
-                    {r.checkedIn
-                      ? <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black">✔ {t('tr_checked')}</span>
-                      : <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 font-black">⏳ {t('tr_waiting')}</span>}
-                    {isMine && !r.checkedIn && tr.status!=='done' && (
-                      <button onClick={()=>doCheckIn(r.id)} disabled={ckBusy===r.id} className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black disabled:opacity-60">{ckBusy===r.id ? '...' : `✓ ${t('tr_check_in')}`}</button>
-                    )}
-                  </span>
+                <div key={r.id} className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Link to={`/teams/${encodeURIComponent(r.team)}`} className="flex items-center gap-1.5 font-bold text-sm hover:text-amber-300 min-w-0">
+                      {r.logo ? <img src={r.logo} alt="" loading="lazy" decoding="async" className="w-6 h-6 rounded-full object-cover bg-white shrink-0"/> : <span className="shrink-0">🛡️</span>}
+                      <span className="truncate">{r.team}</span>
+                    </Link>
+                    <span className="ml-auto flex items-center gap-2 shrink-0">
+                      {Array.isArray(r.roster) && r.roster.some(p=>p.name) && (
+                        <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 font-bold inline-flex items-center gap-1"><ShieldCheck size={11}/>{r.roster.filter(p=>p.name).length}</span>
+                      )}
+                      {r.checkedIn
+                        ? <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black">✔ {t('tr_checked')}</span>
+                        : <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 font-black">⏳ {t('tr_waiting')}</span>}
+                      {isMine && !r.checkedIn && canCheckIn && (
+                        <button onClick={()=>doCheckIn(r.id)} disabled={ckBusy===r.id} className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black disabled:opacity-60">{ckBusy===r.id ? '...' : `✓ ${t('tr_check_in')}`}</button>
+                      )}
+                    </span>
+                  </div>
+                  {Array.isArray(r.roster) && r.roster.some(p=>p.name) && (
+                    <details className="mt-1.5">
+                      <summary className="text-[11px] text-white/40 cursor-pointer hover:text-white/70 w-fit">Voir l’effectif</summary>
+                      <div className="mt-1.5 grid sm:grid-cols-2 gap-1.5">
+                        {r.roster.filter(p=>p.name).map((p,i)=>(
+                          <div key={i} className="flex items-center gap-2 text-[11px] rounded-lg bg-black/30 border border-white/5 px-2 py-1.5 min-w-0">
+                            <span className="text-[9px] font-black uppercase text-amber-300/70 w-16 shrink-0 truncate">{p.role}</span>
+                            <span className="font-bold truncate">{p.name}</span>
+                            {p.riot && <span className="text-white/35 truncate ml-auto">{p.riot}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )
             })}
           </div>
           {user && mine && !mine.checkedIn && tr.status!=='done' && (
-            <p className="text-[11px] text-white/40 mt-2">{t('tr_checkin_hint')}</p>
+            <p className="text-[11px] text-white/40 mt-2">
+              {canCheckIn ? t('tr_checkin_hint') : `Le check-in ouvre 24 h avant le tournoi${startMs ? ` (${new Date(startMs - 24*3600*1000).toLocaleString('fr-FR')})` : ''}.`}
+            </p>
           )}
           {ckMsg && <p className="text-[11px] text-emerald-300 mt-2">{ckMsg}</p>}
         </div>
@@ -222,8 +276,15 @@ export default function TournamentDetail(){
                   <div className="text-xs text-white/50">🎮 {chosen?.game}{chosen?.captain ? ` • ${chosen.captain}` : ''}</div>
                 </div>
               </div>
+              {rosterBlocked && (
+                <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-xs text-amber-200">
+                  <div className="font-black flex items-center gap-1.5"><ShieldCheck size={13}/> Effectif incomplet — {chosenRoster.starters}/5 titulaires</div>
+                  <p className="mt-1 text-amber-100/80">Complète l’effectif de {chosen?.name} avant de t’inscrire.</p>
+                  <Link to={`/teams/${encodeURIComponent(chosen?.name||'')}?tab=effectif`} className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-amber-400 text-black font-black">Compléter l’effectif →</Link>
+                </div>
+              )}
               {error && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{error}</div>}
-              <button onClick={submitOneClick} disabled={saving || !chosen} className="btn-shine w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black disabled:opacity-60">
+              <button onClick={submitOneClick} disabled={saving || !chosen || rosterBlocked} className="btn-shine w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black disabled:opacity-60">
                 {saving ? '...' : `⚡ ${t('tr_register_oneclick')}`}
               </button>
               <p className="text-[11px] text-white/40 text-center">{t('tr_no_form_needed')}</p>
