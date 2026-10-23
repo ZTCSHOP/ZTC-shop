@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowRight, Bell, CalendarDays, Coins, Gamepad2, Gift, Package, User, UserPlus, Users, Wallet,
+  ArrowRight, Award, BarChart3, Bell, CalendarDays, Coins, Gamepad2, Gift, Package, Target, User, UserPlus, Users, Wallet,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { xpForActivity } from '../lib/level'
+import { BADGES } from '../lib/missions'
 import MemberSidebar from '../components/MemberSidebar'
 
 const CARD_STYLES = {
@@ -60,7 +61,7 @@ const CARD_STYLES = {
 }
 
 export default function MemberDashboard(){
-  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications } = useAuth()
+  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications, badges } = useAuth()
   const { t } = useLang()
   useEffect(()=>{ try{ refreshMyBalance() }catch{} }, [])
   if(!user) return (
@@ -89,6 +90,9 @@ export default function MemberDashboard(){
     { to:'/profile/orders', icon:Package, color:'sky', title:t('pm_orders')||'Commandes', desc:t('dash_orders_d'), stat:orders.length },
     { to:'/profile/notifications', icon:Bell, color:'gold', title:'Notifications', desc:'Commandes, tournois, récompenses et VIP — tout au même endroit.', stat:unreadNotifications||null },
     { to:'/profile/referral', icon:UserPlus, color:'teal', title:'Parrainage', desc:"Invite tes amis et gagne de l'XP à chaque inscription." },
+    { to:'/profile/missions', icon:Target, color:'orange', title:'Missions du jour', desc:"Check-in, série et défis quotidiens à récupérer.", stat:`${Number(user.streak||0)} j` },
+    { to:'/profile/badges', icon:Award, color:'violet', title:'Badges', desc:"Tes accomplissements débloqués sur ZTC.", stat:`${badges.length}/${BADGES.length}` },
+    { to:'/leaderboard', icon:BarChart3, color:'red', title:'Classements', desc:"Saison, classement par jeu et Hall of Fame." },
   ]
 
   return (

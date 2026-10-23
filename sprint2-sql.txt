@@ -1,0 +1,275 @@
+-- ============================================================
+-- ZTC — SPRINT 2 : missions quotidiennes, série, badges, classements
+-- À exécuter une seule fois dans Supabase → SQL Editor
+-- (après xp-system-sql.txt et notifications-sql.txt)
+-- ============================================================
+
+-- 1) Série de connexion
+alter table public.profiles add column if not exists streak integer not null default 0;
+alter table public.profiles add column if not exists last_checkin date;
+
+-- 2) Récompenses quotidiennes déjà réclamées
+create table if not exists public.daily_claims (
+  user_id    uuid not null,
+  code       text not null,                       -- login | order | reg
+  day        date not null default current_date,
+  xp         integer not null default 0,
+  created_at timestamptz not null default now(),
+  primary key (user_id, code, day)
+);
+create index if not exists daily_claims_day_idx on public.daily_claims(day);
+
+alter table public.daily_claims enable row level security;
+drop policy if exists "daily_claims_read_own" on public.daily_claims;
+create policy "daily_claims_read_own" on public.daily_claims
+  for select using (user_id = auth.uid() or public.is_admin());
+
+-- 3) Badges débloqués
+create table if not exists public.user_badges (
+  user_id     uuid not null,
+  code        text not null,
+  unlocked_at timestamptz not null default now(),
+  primary key (user_id, code)
+);
+alter table public.user_badges enable row level security;
+drop policy if exists "user_badges_read_all" on public.user_badges;
+create policy "user_badges_read_all" on public.user_badges for select using (true);
+
+-- 4) Saisons
+create table if not exists public.seasons (
+  id        serial primary key,
+  name      text not null,
+  starts_at timestamptz not null,
+  ends_at   timestamptz not null,
+  active    boolean not null default false
+);
+insert into public.seasons(name, starts_at, ends_at, active)
+select 'Saison 1 — 2026', '2026-10-01', '2026-12-31', true
+where not exists (select 1 from public.seasons);
+alter table public.seasons enable row level security;
+drop policy if exists "seasons_read_all" on public.seasons;
+create policy "seasons_read_all" on public.seasons for select using (true);
+
+-- Anti-doublon XP pour la série quotidienne
+create unique index if not exists xp_logs_uniq_daily on public.xp_logs(user_id, ref) where action = 'daily';
+
+-- ============================================================
+-- 5) RPC : check-in quotidien + série
+-- ============================================================
+create or replace function public.daily_checkin()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_last date;
+  v_streak int;
+  v_bonus int;
+  v_xp int;
+begin
+  if v_uid is null then raise exception 'auth required'; end if;
+
+  select last_checkin, coalesce(streak, 0)
+    into v_last, v_streak
+    from public.profiles where id = v_uid
+    for update;
+
+  if v_last = current_date then
+    return jsonb_build_object('already', true, 'streak', v_streak, 'xp', 0);
+  end if;
+
+  if v_last = current_date - 1 then
+    v_streak := v_streak + 1;
+  else
+    v_streak := 1;
+  end if;
+
+  v_bonus := least(7, v_streak) * 5;
+  v_xp := 25 + v_bonus;
+
+  begin
+    insert into public.xp_logs(user_id, action, xp, ref)
+    values (v_uid, 'daily', v_xp, current_date::text);
+  exception when unique_violation then
+    return jsonb_build_object('already', true, 'streak', v_streak, 'xp', 0);
+  end;
+
+  update public.profiles
+     set xp = coalesce(xp, 0) + v_xp,
+         streak = v_streak,
+         last_checkin = current_date
+   where id = v_uid;
+
+  insert into public.daily_claims(user_id, code, day, xp)
+  values (v_uid, 'login', current_date, v_xp)
+  on conflict do nothing;
+
+  return jsonb_build_object('already', false, 'streak', v_streak, 'xp', v_xp);
+end $$;
+
+grant execute on function public.daily_checkin() to authenticated;
+
+-- ============================================================
+-- 6) RPC : réclamer une mission du jour
+--    code = order (1 commande) | reg (1 inscription tournoi)
+-- ============================================================
+create or replace function public.claim_mission(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_ok boolean := false;
+  v_xp int := 0;
+begin
+  if v_uid is null then raise exception 'auth required'; end if;
+
+  if p_code = 'order' then
+    v_xp := 40;
+    v_ok := exists (
+      select 1 from public.orders
+       where user_id = v_uid and created_at::date = current_date
+    );
+  elsif p_code = 'reg' then
+    v_xp := 60;
+    v_ok := exists (
+      select 1 from public.tournament_regs
+       where user_id = v_uid and created_at::date = current_date
+    );
+  else
+    return jsonb_build_object('ok', false, 'reason', 'code');
+  end if;
+
+  if not v_ok then
+    return jsonb_build_object('ok', false, 'reason', 'not_done');
+  end if;
+
+  if exists (
+    select 1 from public.daily_claims
+     where user_id = v_uid and code = p_code and day = current_date
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'claimed');
+  end if;
+
+  insert into public.daily_claims(user_id, code, day, xp)
+  values (v_uid, p_code, current_date, v_xp)
+  on conflict do nothing;
+
+  update public.profiles set xp = coalesce(xp, 0) + v_xp where id = v_uid;
+
+  begin
+    insert into public.xp_logs(user_id, action, xp, ref)
+    values (v_uid, 'mission_' || p_code, v_xp, current_date::text);
+  exception when unique_violation then null;
+  end;
+
+  return jsonb_build_object('ok', true, 'xp', v_xp);
+end $$;
+
+grant execute on function public.claim_mission(text) to authenticated;
+
+-- ============================================================
+-- 7) RPC : badges (calcule et débloque, renvoie la liste)
+-- ============================================================
+create or replace function public.sync_badges()
+returns text[]
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_xp int := 0;
+  v_streak int := 0;
+  v_vip boolean := false;
+  v_orders int := 0;
+  v_regs int := 0;
+  v_teams int := 0;
+  v_refs int := 0;
+begin
+  if v_uid is null then return '{}'::text[]; end if;
+
+  select coalesce(xp, 0), coalesce(streak, 0),
+         coalesce(is_vip, false) or coalesce(vip_until > now(), false)
+    into v_xp, v_streak, v_vip
+    from public.profiles where id = v_uid;
+
+  select count(*) into v_orders from public.orders where user_id = v_uid;
+  select count(*) into v_regs   from public.tournament_regs where user_id = v_uid;
+  select count(*) into v_teams  from public.teams where user_id = v_uid;
+  select count(*) into v_refs   from public.profiles where referred_by = v_uid;
+
+  if v_orders >= 1 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'first_order') on conflict do nothing;
+  end if;
+  if v_orders >= 5 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'orders_5') on conflict do nothing;
+  end if;
+  if v_regs >= 1 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'first_reg') on conflict do nothing;
+  end if;
+  if v_regs >= 5 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'regs_5') on conflict do nothing;
+  end if;
+  if v_teams >= 1 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'team_owner') on conflict do nothing;
+  end if;
+  if v_refs >= 3 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'referrer_3') on conflict do nothing;
+  end if;
+  if v_streak >= 7 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'streak_7') on conflict do nothing;
+  end if;
+  if v_xp >= 9000 then
+    insert into public.user_badges(user_id, code) values (v_uid, 'level_10') on conflict do nothing;
+  end if;
+  if v_vip then
+    insert into public.user_badges(user_id, code) values (v_uid, 'vip_member') on conflict do nothing;
+  end if;
+
+  return coalesce(
+    (select array_agg(code order by unlocked_at) from public.user_badges where user_id = v_uid),
+    '{}'::text[]
+  );
+end $$;
+
+grant execute on function public.sync_badges() to authenticated;
+
+-- ============================================================
+-- 8) RPC : classement de la saison (XP gagné pendant la saison)
+-- ============================================================
+create or replace function public.season_leaderboard(p_limit int default 50)
+returns table(rank bigint, user_id uuid, name text, xp bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  with s as (
+    select starts_at, ends_at from public.seasons
+     where active order by starts_at desc limit 1
+  ),
+  t as (
+    select l.user_id, sum(l.xp)::bigint as xp
+      from public.xp_logs l, s
+     where l.created_at >= s.starts_at
+       and l.created_at <  s.ends_at + interval '1 day'
+     group by l.user_id
+  )
+  select row_number() over (order by t.xp desc, p.name) as rank,
+         p.id as user_id,
+         coalesce(p.name, 'Joueur') as name,
+         t.xp
+    from t
+    join public.profiles p on p.id = t.user_id
+   order by t.xp desc, p.name
+   limit greatest(1, least(coalesce(p_limit, 50), 100));
+$$;
+
+grant execute on function public.season_leaderboard(int) to anon, authenticated;
+
+-- 9) Recharge du cache de schéma PostgREST
+notify pgrst, 'reload schema';

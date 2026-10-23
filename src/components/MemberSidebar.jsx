@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Bell, Crown, Gamepad2, Gift, LogOut, Package, Settings, Shield, ShoppingBag, SlidersHorizontal, Swords, Trophy, User, UserPlus, Wallet } from 'lucide-react'
+import { Award, BarChart3, Bell, Crown, Gamepad2, Gift, LogOut, Package, Settings, Shield, ShoppingBag, SlidersHorizontal, Swords, Target, Trophy, User, UserPlus, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { levelProgress, xpForActivity } from '../lib/level'
@@ -7,7 +7,7 @@ import { levelProgress, xpForActivity } from '../lib/level'
 const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook:'bg-[#1877F2]', 'Internet Identity':'bg-violet-600' }
 
 export default function MemberSidebar({ active = 'profile' }){
-  const { user, logout, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications } = useAuth()
+  const { user, logout, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications, badges } = useAuth()
   const { t } = useLang()
   if(!user) return null
 
@@ -24,6 +24,8 @@ export default function MemberSidebar({ active = 'profile' }){
 
   const nav = [
     { key:'profile', to:'/profile', icon:User, label:t('pm_profile')||'Profil' },
+    { key:'missions', to:'/profile/missions', icon:Target, label:'Missions du jour' },
+    { key:'badges', to:'/profile/badges', icon:Award, label:'Badges', badge:badges.length||null },
     { key:'orders', to:'/profile/orders', icon:Package, label:t('pm_orders')||'Commandes', badge:orders.length||null },
     { key:'mytournaments', to:'/profile/mytournaments', icon:Trophy, label:t('pm_mytournaments')||'Mes Tournois', badge:regs.length||null },
     { key:'myteam', to:'/profile/myteam', icon:Shield, label:t('pm_myteam')||'Mon Équipe', badge:teamNames.size||null },
@@ -36,6 +38,7 @@ export default function MemberSidebar({ active = 'profile' }){
     { key:'preferences', to:'/profile/preferences', icon:SlidersHorizontal, label:'Préférences' },
     { key:'catalog', to:'/catalog', icon:ShoppingBag, label:'Boutique', outside:true },
     { key:'tournaments', to:'/tournaments', icon:Swords, label:'Tournois', outside:true },
+    { key:'leaderboard', to:'/leaderboard', icon:BarChart3, label:'Classements', outside:true },
   ]
 
   return (

@@ -24,6 +24,7 @@ import TeamDetail from './pages/TeamDetail'
 import PlayerProfile from './pages/PlayerProfile'
 import MemberDashboard from './pages/MemberDashboard'
 import MemberSection from './pages/MemberSection'
+import Leaderboard from './pages/Leaderboard'
 import CircuitBackground from './components/CircuitBackground'
 import ChatWidget from './components/ChatWidget'
 import InstallPWA from './components/InstallPWA'
@@ -52,7 +53,9 @@ export default function App(){
               <Route path="/product/:id" element={<ProductDetail/>}/>
               <Route path="/cart" element={<Cart/>}/>
               <Route path="/checkout" element={<Checkout/>}/>
-              <Route path="/profile" element={<MemberDashboard/>}/>`r`n              <Route path="/profile/:section" element={<MemberSection/>}/>
+              <Route path="/profile" element={<MemberDashboard/>}/>
+              <Route path="/profile/:section" element={<MemberSection/>}/>
+
               <Route path="/orders" element={<Orders/>}/>
               <Route path="/orders/:id" element={<OrderDetail/>}/>
               <Route path="/login" element={<Login/>}/>
@@ -66,6 +69,8 @@ export default function App(){
               <Route path="/teams" element={<Teams/>}/>
               <Route path="/teams/:teamName" element={<TeamDetail/>}/>
               <Route path="/player/:id" element={<PlayerProfile/>}/>
+              <Route path="/leaderboard" element={<Leaderboard/>}/>
+
             </Routes>
             <footer className="border-t border-white/10 mt-8 py-6 text-center text-xs text-white/40">
               <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="ZTC Shop" className="w-12 h-12 mx-auto mb-2 rounded-2xl object-cover bg-white p-1"/>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Gamepad2, KeyRound, User, Gift, Crown, Sparkles, Monitor, X, LayoutGrid, Trophy, MessageCircle, Info, ChevronDown } from 'lucide-react'
+import { Home, Gamepad2, KeyRound, User, Gift, Crown, Sparkles, Monitor, X, LayoutGrid, Trophy, MessageCircle, Info, ChevronDown, BarChart3 } from 'lucide-react'
 import { MENUS, initialProducts, categories } from '../data/products'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -63,6 +63,7 @@ export default function Sidebar({ mobileOpen, onClose }){
       </div>
       <div className="pt-3 mt-3 border-t border-white/10 space-y-1">
         <Link to="/tournaments" onClick={onClose} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/10 font-bold text-sm text-amber-300"><Trophy size={17}/> Tournois</Link>
+        <Link to="/leaderboard" onClick={onClose} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/10 font-bold text-sm text-amber-300"><BarChart3 size={17}/> Classements</Link>
         <Link to="/support" onClick={onClose} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/10 font-bold text-sm text-emerald-300"><MessageCircle size={17}/> Support</Link>
         <Link to="/about" onClick={onClose} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/10 font-bold text-sm text-white/70"><Info size={17}/> À propos</Link>
       </div>

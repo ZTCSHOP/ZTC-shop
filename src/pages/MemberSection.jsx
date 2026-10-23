@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Bell, Gamepad2, Gift, Package, Settings, Shield, SlidersHorizontal, Trophy, UserPlus, Wallet as WalletIcon } from 'lucide-react'
+import { Award, Bell, Gamepad2, Gift, Package, Settings, Shield, SlidersHorizontal, Target, Trophy, UserPlus, Wallet as WalletIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import MemberSidebar from '../components/MemberSidebar'
@@ -7,8 +7,9 @@ import XpRewards from '../components/XpRewards'
 import RiotCard from '../components/RiotCard'
 import { MyTournaments, MyTeam, ProfileSettings, VipCard, Wallet, OrdersList } from '../components/member/MemberPanels'
 import { NotificationList, PreferencesPanel, ReferralPanel } from '../components/member/MemberExtras'
+import { BadgesPanel, DailyCheckin, MissionsPanel } from '../components/member/Progress'
 
-const ICONS = { orders:Package, mytournaments:Trophy, myteam:Shield, wallet:WalletIcon, xp:Gift, riot:Gamepad2, settings:Settings, notifications:Bell, referral:UserPlus, preferences:SlidersHorizontal }
+const ICONS = { orders:Package, mytournaments:Trophy, myteam:Shield, wallet:WalletIcon, xp:Gift, riot:Gamepad2, settings:Settings, notifications:Bell, referral:UserPlus, preferences:SlidersHorizontal, missions:Target, badges:Award }
 
 export default function MemberSection(){
   const { section } = useParams()
@@ -35,6 +36,8 @@ export default function MemberSection(){
     notifications:  { title:'Notifications', desc:'Toutes les mises à jour de ton compte, tes commandes et tes tournois.' },
     referral:       { title:'Parrainage', desc:"Invite tes amis et gagne de l'XP à chaque inscription." },
     preferences:    { title:'Préférences', desc:"Langue, notifications et confort d'utilisation." },
+    missions:       { title:'Missions du jour', desc:'Check-in quotidien, défis et XP bonus à récupérer.' },
+    badges:         { title:'Badges', desc:'Tes accomplissements débloqués sur ZTC.' },
   }
 
   if(!META[section]) return <Navigate to="/profile" replace/>
@@ -68,6 +71,8 @@ export default function MemberSection(){
         {section==='notifications' && <NotificationList/>}
         {section==='referral' && <ReferralPanel/>}
         {section==='preferences' && <PreferencesPanel/>}
+        {section==='missions' && <div className="grid gap-4"><DailyCheckin/><MissionsPanel/></div>}
+        {section==='badges' && <BadgesPanel/>}
       </section>
     </div>
   )

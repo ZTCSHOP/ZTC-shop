@@ -559,8 +559,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const uid = sbUserId.current
     if(uid){
       try{
-        const { data } = await supabase.from('profiles').select('xp').eq('id', uid).single()
-        if(data) setUser(u=> u ? { ...u, xp: Number(data.xp || 0) } : u)
+        const { data } = await supabase.from('profiles').select('xp,streak,last_checkin').eq('id', uid).single()
+        if(data) setUser(u=> u ? { ...u, xp: Number(data.xp || 0), streak: Number(data.streak || 0), lastCheckin: data.last_checkin || null } : u)
       }catch{}
       try{
         const { data } = await supabase.from('xp_logs').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100)
@@ -606,6 +606,48 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }
   const unreadNotifications = notifications.filter(n=> !n.read_at).length
 
+  // ---- Sprint 2 : série, missions, badges ----
+  const [badges, setBadges] = useState([])
+  const [dailyClaims, setDailyClaims] = useState([])
+  const [progressReady, setProgressReady] = useState(true)
+  const refreshProgress = useCallback(async ()=>{
+    if(!cloud) return
+    const uid = sbUserId.current
+    if(!uid){ setBadges([]); setDailyClaims([]); return }
+    try{
+      const { data, error } = await supabase.rpc('sync_badges')
+      if(error) throw error
+      setBadges(Array.isArray(data) ? data : [])
+      setProgressReady(true)
+    }catch(e){
+      console.warn('badges:', e.message)
+      setProgressReady(false)
+    }
+    try{
+      const day = new Date().toISOString().slice(0,10)
+      const { data } = await supabase.from('daily_claims').select('code,day').eq('user_id', uid).eq('day', day)
+      setDailyClaims((data||[]).map(x=>x.code))
+    }catch{ setDailyClaims([]) }
+  }, [cloud])
+
+  const dailyCheckin = async ()=>{
+    if(!cloud || !user?.cloud) throw new Error('login')
+    const { data, error } = await supabase.rpc('daily_checkin')
+    if(error) throw error
+    await refreshXp()
+    await refreshProgress()
+    return data
+  }
+
+  const claimMission = async (code)=>{
+    if(!cloud || !user?.cloud) throw new Error('login')
+    const { data, error } = await supabase.rpc('claim_mission', { p_code: code })
+    if(error) throw error
+    await refreshXp()
+    await refreshProgress()
+    return data
+  }
+
   const awardXp = async (action, ref=null)=>{
     if(!cloud || !user?.cloud) return null
     try{
@@ -646,8 +688,8 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     : ''
 
   const refreshAll = useCallback(()=>{
-    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp(); refreshNotifications()
-  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp])
+    refreshCloudOrders(); refreshCloudProducts(); refreshCloudProfiles(); refreshCloudMessages(); refreshTournaments(); refreshRegs(); refreshJoinReqs(); refreshTeams(); refreshVipSubs(); refreshRecharges(); refreshTeamAssets(); refreshTeamInfos(); refreshProfileAssets(); refreshXp(); refreshNotifications(); refreshProgress()
+  }, [refreshCloudOrders, refreshCloudProducts, refreshCloudProfiles, refreshCloudMessages, refreshTournaments, refreshRegs, refreshJoinReqs, refreshTeams, refreshVipSubs, refreshRecharges, refreshTeamAssets, refreshTeamInfos, refreshProfileAssets, refreshXp, refreshNotifications, refreshProgress])
 
   // Capture du parrainage : ?ref=<user_id> → stocké jusqu'à l'inscription
   useEffect(()=>{
@@ -1529,6 +1571,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
-    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead}}>{children}</AuthCtx.Provider>
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift, Gamepad2, Bell, UserPlus } from 'lucide-react'
+import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift, Gamepad2, Bell, UserPlus, Target, Award, BarChart3 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { xpForActivity, levelProgress } from '../lib/level'
@@ -29,6 +29,9 @@ export default function ProfileMenu(){
     { to:'/profile/wallet', icon:<Wallet size={16}/>, label: t('pm_wallet')||'Portefeuille', badge: Number(user.balance||0)>0?`${Number(user.balance||0)}`:null },
     { to:'/profile/xp', icon:<Gift size={16}/>, label: t('pm_xp')||'XP & Récompenses', badge: `${xp}` },
     { to:'/profile/riot', icon:<Gamepad2 size={16}/>, label: 'Compte Riot', badge: user.riot ? (user.riot.game==='lol'?'LoL':'Valo') : null },
+    { to:'/profile/missions', icon:<Target size={16}/>, label:'Missions du jour' },
+    { to:'/profile/badges', icon:<Award size={16}/>, label:'Badges' },
+    { to:'/leaderboard', icon:<BarChart3 size={16}/>, label:'Classements' },
     { to:'/profile/orders', icon:<ShoppingBag size={16}/>, label: t('pm_orders')||'Commandes', badge: orders.length||null },
     { to:'/profile/notifications', icon:<Bell size={16}/>, label:'Notifications', badge: unreadNotifications||null },
     { to:'/profile/referral', icon:<UserPlus size={16}/>, label:'Parrainage' },
