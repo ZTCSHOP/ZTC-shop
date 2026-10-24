@@ -686,6 +686,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   // ---- XP / récompenses ----
   const [xpLogs, setXpLogs] = useState([])
   const [rewardClaims, setRewardClaims] = useState([])
+  const tournamentXpAwardsInFlight = useRef(new Set())
   const xpOf = (id)=> Number(((cloudProfiles||[]).find(p=>p.id===id)||{}).xp || 0)
   const refreshXp = useCallback(async ()=>{
     if(!cloud) return
@@ -783,7 +784,18 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   const awardXp = async (action, ref=null)=>{
     if(!cloud || !user?.cloud) return null
+    const tournamentRef = action === 'tournament_reg' && ref ? String(ref) : null
+    const uid = sbUserId.current
+    const awardKey = tournamentRef && uid ? `${uid}:${tournamentRef}` : null
+    if(awardKey && tournamentXpAwardsInFlight.current.has(awardKey)) return null
+    if(awardKey) tournamentXpAwardsInFlight.current.add(awardKey)
     try{
+      if(awardKey){
+        const { data, error } = await supabase.from('xp_logs').select('id')
+          .eq('user_id', uid).eq('action', 'tournament_reg').eq('ref', tournamentRef).limit(1)
+        if(error) throw error
+        if(data?.length) return null
+      }
       const { data, error } = await supabase.rpc('award_xp', { p_action: action, p_ref: ref ? String(ref) : null })
       if(error) throw error
       if(data!=null){
@@ -792,6 +804,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       }
       return data
     }catch(e){ console.warn('award_xp:', e.message); return null }
+    finally{ if(awardKey) tournamentXpAwardsInFlight.current.delete(awardKey) }
   }
 
   const claimReward = async (tier)=>{
