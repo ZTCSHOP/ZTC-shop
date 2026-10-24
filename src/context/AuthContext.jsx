@@ -1045,36 +1045,23 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   }
 
   // ---- Admin propriétaire ----
-  // Tente d'abord une session cloud (nécessaire pour écrire dans le cloud),
-  // sinon repli local.
   const loginAdmin = async (email, password)=>{
     email = (email||'').trim().toLowerCase()
-    if(cloud){
-      try{
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if(!error && data.user){
-          await upsertCloudProfile(data.user)
-          const u = await buildCloudUser(data.user)
-          refreshAll()
-          if(u.isAdmin) return u
-        }
-      }catch{}
+    if(!cloud) throw new Error('Connexion admin indisponible : Supabase n’est pas configuré.')
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if(error) throw error
+    if(!data.user) throw new Error('Connexion admin impossible.')
+
+    await upsertCloudProfile(data.user)
+    const u = await buildCloudUser(data.user)
+    if(!u.isAdmin){
+      await supabase.auth.signOut()
+      throw new Error('Ce compte n’a pas les droits administrateur.')
     }
-    const expectedEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'admin@ztc.shop').toLowerCase()
-    const expectedPass = import.meta.env.VITE_ADMIN_PASSWORD || 'ztc2026admin'
-    if(email === expectedEmail && password === expectedPass){
-      const u = { id: 'admin_owner', name: 'Admin ZTC', email, provider:'email', principal: genPrincipal(), isAdmin: true, createdAt: new Date().toISOString() }
-      setUser(withExtras(u)); saveProfile(withExtras(u)); return withExtras(u)
-    }
-    const users = readUsers()
-    const found = users.find(u=> u.email===email)
-    if(found && found.passwordHash === hashPw(password) && (isOwnerEmail(email) || found.isAdmin)){
-      const { passwordHash, ...safe } = found
-      safe.isAdmin = true
-      setUser(withExtras(safe)); saveProfile(withExtras(safe)); return withExtras(safe)
-    }
-    if(email !== expectedEmail && !found) throw new Error('Email admin inconnu')
-    throw new Error('Mot de passe admin incorrect')
+
+    refreshAll()
+    return u
   }
 
   const logout = async ()=>{

@@ -106,13 +106,17 @@ export default function Login(){
             <Shield size={15}/> Espace propriétaire — Admin ZTC {showAdmin?'▲':'▼'}
           </button>
           {showAdmin && (
-            <form onSubmit={handleAdmin} className="mt-3 space-y-3">
-              <input placeholder="Email admin" type="email" required value={adminEmail} onChange={e=>setAdminEmail(e.target.value)} className="w-full px-3 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:border-amber-500"/>
-              <input placeholder="Mot de passe admin" type="password" required value={adminPass} onChange={e=>setAdminPass(e.target.value)} className="w-full px-3 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:border-amber-500"/>
-              {adminError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{adminError}</div>}
-              <button className="w-full py-3 rounded-xl bg-amber-500 text-black font-black">Se connecter en Admin</button>
-              <p className="text-[11px] text-white/40 text-center">Seul le propriétaire connaît ces identifiants (définis dans les variables Netlify).</p>
-            </form>
+            isCloudEnabled ? (
+              <form onSubmit={handleAdmin} className="mt-3 space-y-3">
+                <input placeholder="Email admin" type="email" required value={adminEmail} onChange={e=>setAdminEmail(e.target.value)} className="w-full px-3 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:border-amber-500"/>
+                <input placeholder="Mot de passe admin" type="password" required value={adminPass} onChange={e=>setAdminPass(e.target.value)} className="w-full px-3 py-3 rounded-xl bg-black/40 border border-white/10 focus:outline-none focus:border-amber-500"/>
+                {adminError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{adminError}</div>}
+                <button disabled={busy} className="w-full py-3 rounded-xl bg-amber-500 text-black font-black disabled:opacity-60">{busy ? '...' : 'Se connecter en Admin'}</button>
+                <p className="text-[11px] text-white/40 text-center">Connexion sécurisée via Supabase Auth.</p>
+              </form>
+            ) : (
+              <p className="mt-3 text-xs text-amber-200/70 text-center">Connexion admin indisponible : Supabase n’est pas configuré.</p>
+            )
           )}
         </div>
       </div>

@@ -219,6 +219,15 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 }
 @keyframes shine { 0% { left: -60%; } 60%,100% { left: 130%; } }
 
+@keyframes countdown-tick {
+  from { opacity: .35; transform: translateY(6px) scale(.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.countdown-number { display: inline-block; animation: countdown-tick .35s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .countdown-number { animation: none !important; }
+}
+
 /* Halo renforcé au survol */
 .anim-glow:hover::before { opacity: .5; }
 

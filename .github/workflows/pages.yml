@@ -28,7 +28,6 @@ jobs:
           VITE_SUPABASE_URL: https://ytdgkvzzcqjaijcbupfp.supabase.co
           VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0ZGdrdnp6Y3FqYWlqY2J1cGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3Mzk0MzQsImV4cCI6MjEwNTMxNTQzNH0.McF-7NUw7kDqc4URkwD4gXbZfkAmLzURRlZVW45DsbU
           VITE_ADMIN_EMAIL: apatchegaming@gmail.com
-          VITE_ADMIN_PASSWORD: Transcom2026*
           VITE_EMAILJS_SERVICE_ID: service_ajfqjwp
           VITE_EMAILJS_PUBLIC_KEY: tUZJqrdBgviM54-if
           VITE_EMAILJS_TEMPLATE_WELCOME: template_4gveo97
