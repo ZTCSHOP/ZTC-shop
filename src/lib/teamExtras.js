@@ -12,3 +12,15 @@ export const setTeamExtras = (name, patch)=>{
   window.dispatchEvent(new CustomEvent('ztc:team-extras', { detail: norm(name) }))
   return all[norm(name)]
 }
+export const renameTeamExtras = (oldName, newName)=>{
+  const all = readAll()
+  const oldKey = norm(oldName)
+  const newKey = norm(newName)
+  if(oldKey && newKey && oldKey!==newKey){
+    all[newKey] = { ...(all[oldKey]||{}), ...(all[newKey]||{}) }
+    delete all[oldKey]
+    try{ localStorage.setItem(KEY, JSON.stringify(all)) }catch{}
+    window.dispatchEvent(new CustomEvent('ztc:team-extras', { detail: newKey }))
+  }
+  return all[newKey] || {}
+}

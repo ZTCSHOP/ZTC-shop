@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { computeStandings, getChampion } from '../lib/bracket'
-import { getTeamExtras, setTeamExtras } from '../lib/teamExtras'
+import { getTeamExtras, setTeamExtras, renameTeamExtras } from '../lib/teamExtras'
 import { reqDisplayName } from '../lib/names'
 import { uploadImage } from '../lib/storage'
 import { normalizeRoster, rosterStatus } from '../lib/roster'
@@ -14,7 +14,7 @@ const TABS = ['apercu', 'membres', 'effectif', 'tournois', 'stats', 'realisation
 export default function TeamDetail(){
   const { teamName } = useParams()
   const name = decodeURIComponent(teamName||'')
-  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamLogo, updateTeamInfo, saveTeamRoster, deleteTeam, allAccounts, teamAssets, teamInfos, saveTeamExtras, saveTeamAsset, profileAssets } = useAuth()
+  const { regs, teams, tournaments, user, myJoinReqs, joinReqsFor, requestJoinTeam, updateJoinReq, updateTeamIdentity, updateTeamInfo, saveTeamRoster, deleteTeam, allAccounts, teamAssets, teamInfos, saveTeamExtras, saveTeamAsset, profileAssets } = useAuth()
   const accounts = allAccounts()
   const assetOf = (uid)=> (uid && profileAssets[uid]) || {}
   const { t } = useLang()
@@ -27,6 +27,9 @@ export default function TeamDetail(){
   const [nameDraft, setNameDraft] = useState(name)
   const [nameMsg, setNameMsg] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
+  const [logoDraft, setLogoDraft] = useState('')
+  const [logoChanged, setLogoChanged] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [tab, setTab] = useState(()=>{ try{ const q = new URLSearchParams(window.location.search).get('tab'); return TABS.includes(q) ? q : 'apercu' }catch{ return 'apercu' } })
   const [extras, setExtras] = useState(()=> getTeamExtras(name))
   const [editAbout, setEditAbout] = useState(false)
@@ -52,6 +55,7 @@ export default function TeamDetail(){
     ? teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
     : null
   const rosterTeamRow = teams.find(x=> (x.name||'').toLowerCase()===name.toLowerCase())
+  const identityTeamRow = rosterTeamRow || teamRegs[0]
   const rosterGameInit = solo?.game || teamRegs[0]?.game || teamRegs[0]?.game_id || 'valorant'
   const rosterSource = (rosterTeamRow?.roster && rosterTeamRow.roster.length) ? rosterTeamRow.roster : ((teamRegs.find(r=> r.roster && r.roster.length)||{}).roster || [])
   const rosterKey = JSON.stringify(rosterSource)
@@ -81,7 +85,7 @@ export default function TeamDetail(){
   const game = (solo?.game || teamRegs[0]?.game || teamRegs[0]?.game_id || 'valorant')
   const teamLogo = solo?.logo || (teamRegs.find(r=> r.logo)||{}).logo || ''
   const ownerId = solo?.userId || teamRegs[0]?.userId
-  const isOwner = user && (user.isAdmin || user.id===ownerId)
+  const isOwner = user && (user.isAdmin || (solo ? solo.userId===user.id : teamRegs.some(r=>r.userId===user.id)))
   const ownerName = solo?.captain || teamRegs[0]?.captain || ''
   const founded = solo?.date || teamRegs[0]?.date
   const cloudInfo = teamInfos[name.toLowerCase()] || {}
@@ -106,14 +110,17 @@ export default function TeamDetail(){
       setRosterMsg(e.message==='need_sql' ? 'Exécute sprint3-sql.txt dans Supabase pour activer les effectifs.' : e.message==='login' ? 'Connexion requise.' : 'Erreur lors de l’enregistrement.')
     }finally{ setRosterSaving(false) }
   }
-  const saveName = async (e)=>{
+  const saveTeamIdentity = async (e)=>{
     e.preventDefault()
-    if(!rosterTeamRow) return
+    if(!identityTeamRow) return
     setNameSaving(true)
     setNameMsg('')
     try{
-      const updated = await updateTeamInfo(rosterTeamRow.id, { name: nameDraft })
-      setTeamExtras(updated.name, getTeamExtras(name))
+      const updated = await updateTeamIdentity(identityTeamRow.id, {
+        name: nameDraft,
+        logo: logoChanged ? logoDraft : teamLogo,
+      })
+      renameTeamExtras(name, updated.name)
       setEditName(false)
       nav(`/teams/${encodeURIComponent(updated.name)}`, { replace: true })
     }catch(err){
@@ -121,7 +128,11 @@ export default function TeamDetail(){
         ? 'Ce nom est déjà utilisé par une autre équipe.'
         : err.message==='team_name'
           ? 'Le nom doit contenir au moins 2 caractères.'
-          : 'Impossible de modifier le nom de l’équipe.')
+          : err.message==='need_sql'
+            ? 'Exécute supabase-rename-team.sql dans Supabase pour activer la modification.'
+            : err.message==='not_member' || err.message==='login'
+              ? 'Seuls les membres de l’équipe peuvent la modifier.'
+              : 'Impossible de modifier l’équipe.')
     }finally{
       setNameSaving(false)
     }
@@ -147,7 +158,10 @@ export default function TeamDetail(){
   const allReqs = teamRegs.flatMap(r=> joinReqsFor(r.id))
   const accepted = allReqs.filter(q=>q.status==='accepted')
   const pending = allReqs.filter(q=>q.status==='pending')
-  const members = [{ name: ownerName||name, role: 'owner', uid: ownerId },
+  const ownerMembers = solo
+    ? [{ name: ownerName||name, role: 'owner', uid: ownerId }]
+    : [...new Map(teamRegs.map(r=>[r.userId, { name: r.captain||name, role: 'owner', uid: r.userId }])).values()]
+  const members = [...ownerMembers,
     ...accepted.map(q=> ({ name: reqDisplayName(q, accounts), role: 'member', reqId: q.id, date: q.date, uid: q.userId }))]
   const memberAvatar = (m)=> assetOf(m.uid).avatar || ''
 
@@ -165,9 +179,9 @@ export default function TeamDetail(){
   })
 
   const myReg = user ? teamRegs.find(r=> r.userId===user.id) : null
-  const canEditLogo = user && (user.isAdmin || !!myReg)
   const myReqs = myJoinReqs()
   const alreadyMember = user && (myReg || members.some(m=> m.uid===user.id))
+  const canManageIdentity = !!user && (user.isAdmin || !!alreadyMember)
   const alreadyRequested = user && myReqs.some(q=> q.status==='pending' && teamRegs.some(r=> r.id===q.regId))
 
   const ask = async (r)=>{
@@ -181,14 +195,14 @@ export default function TeamDetail(){
     }
   }
 
-  const onLogoFile = (f)=>{
+  const onLogoFile = async (f)=>{
     setLogoErr(''); setInfo('')
-    const target = myReg || (user?.isAdmin ? teamRegs[0] : null)
-    if(!target) return
     if(!f) return
     if(!f.type.startsWith('image/')){ setLogoErr(t('team_logo_bad')); return }
     if(f.size > 5*1024*1024){ setLogoErr(t('team_logo_big')); return }
+    setLogoUploading(true)
     const rd = new FileReader()
+    rd.onerror = ()=>{ setLogoErr(t('team_logo_bad')); setLogoUploading(false) }
     rd.onload = ()=>{
       const img = new Image()
       img.onload = async ()=>{
@@ -196,15 +210,18 @@ export default function TeamDetail(){
         const s = Math.min(1, max / Math.max(img.width, img.height))
         const c = document.createElement('canvas')
         c.width = Math.max(1, Math.round(img.width*s)); c.height = Math.max(1, Math.round(img.height*s))
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        const context = c.getContext('2d')
+        if(!context){ setLogoErr(t('teams_join_err')); setLogoUploading(false); return }
+        context.drawImage(img, 0, 0, c.width, c.height)
         try{
           const url = await uploadImage(c.toDataURL('image/jpeg', 0.82), 'teams')
-          await updateTeamLogo(target.id, url)
-          setInfo(t('team_logo_ok'))
+          setLogoDraft(url)
+          setLogoChanged(true)
         }
-        catch(e){ setLogoErr(e.message==='need_sql' ? t('teams_need_sql') : t('teams_join_err')) }
+        catch{ setLogoErr(t('teams_join_err')) }
+        finally{ setLogoUploading(false) }
       }
-      img.onerror = ()=> setLogoErr(t('team_logo_bad'))
+      img.onerror = ()=>{ setLogoErr(t('team_logo_bad')); setLogoUploading(false) }
       img.src = rd.result
     }
     rd.readAsDataURL(f)
@@ -297,20 +314,21 @@ export default function TeamDetail(){
       {/* Header équipe */}
       <div className="mt-4 flex items-center gap-4">
         <div className="flex shrink-0 flex-col items-center">
-          <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
-            {teamLogo
-              ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
-              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
-            {canEditLogo && <>
-              <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300"><Pencil size={11}/></span>
-              <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
-            </>}
-          </label>
-          {isOwner && rosterTeamRow && (
+          {teamLogo
+            ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+            : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
+          {canManageIdentity && identityTeamRow && (
             <button
               type="button"
-              onClick={()=>{ setNameDraft(name); setNameMsg(''); setEditName(v=>!v) }}
-              className="mt-1 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/20 px-1.5 py-1 text-[10px] font-bold text-white/65 hover:border-amber-400/40 hover:text-amber-300"
+              onClick={()=>{
+                setNameDraft(name)
+                setLogoDraft(teamLogo)
+                setLogoChanged(false)
+                setNameMsg('')
+                setLogoErr('')
+                setEditName(v=>!v)
+              }}
+              className="mt-1 inline-flex items-center gap-1 rounded-md border border-red-500/60 bg-red-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-red-500"
             >
               <Pencil size={10}/> Modifier
             </button>
@@ -324,9 +342,9 @@ export default function TeamDetail(){
         {isOwner && solo && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="ml-auto px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold">{t('tc_delete')}</button>}
         {!isOwner && user && teamRegs.length>0 && !alreadyMember && !alreadyRequested && <button onClick={()=>ask(teamRegs[0])} className="ml-auto px-4 py-2 rounded-xl bg-emerald-500 text-black text-xs font-bold">{t('teams_join')||'Rejoindre'}</button>}
       </div>
-      {editName && isOwner && rosterTeamRow && (
-        <form onSubmit={saveName} className="mt-3 max-w-xl rounded-2xl border border-amber-400/20 bg-[#141418] p-4">
-          <label className="mb-2 block text-xs font-bold text-white/70">Nouveau nom d’équipe</label>
+      {editName && canManageIdentity && identityTeamRow && (
+        <form onSubmit={saveTeamIdentity} className="mt-3 max-w-xl rounded-2xl border border-red-500/20 bg-[#141418] p-4">
+          <label className="mb-2 block text-xs font-bold text-white/70">Nom d’équipe</label>
           <div className="flex flex-wrap gap-2">
             <input
               autoFocus
@@ -335,14 +353,28 @@ export default function TeamDetail(){
               maxLength={40}
               value={nameDraft}
               onChange={e=>setNameDraft(e.target.value)}
-              className="min-w-[180px] flex-1 rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+              className="min-w-[180px] flex-1 rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-red-400"
               placeholder="Nom de l’équipe"
             />
-            <button disabled={nameSaving} className="rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-black disabled:opacity-60">
+            <button type="button" onClick={()=>document.getElementById('team-identity-logo')?.click()} className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-white/75 hover:text-white">
+              {logoUploading ? 'Chargement…' : 'Changer le logo'}
+            </button>
+            <input id="team-identity-logo" type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
+            {logoDraft && <button type="button" onClick={()=>{ setLogoDraft(''); setLogoChanged(true) }} className="rounded-xl border border-red-500/40 px-4 py-2.5 text-sm font-bold text-red-300 hover:text-red-200">Supprimer le logo</button>}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            {logoDraft
+              ? <img src={logoDraft} alt="Aperçu du logo" className="h-14 w-14 rounded-xl bg-white object-cover"/>
+              : <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 text-xs text-white/40">Aucun</div>}
+            <span className="text-xs text-white/45">Le nom et le logo seront modifiés sur l’équipe existante.</span>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button disabled={nameSaving || logoUploading} className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-500 disabled:opacity-60">
               {nameSaving ? 'Enregistrement…' : 'Enregistrer'}
             </button>
             <button type="button" onClick={()=>setEditName(false)} className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-white/65 hover:text-white">Annuler</button>
           </div>
+          {logoErr && <p role="alert" className="mt-2 text-xs text-red-300">{logoErr}</p>}
           {nameMsg && <p role="alert" className="mt-2 text-xs text-red-300">{nameMsg}</p>}
         </form>
       )}

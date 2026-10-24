@@ -1475,32 +1475,61 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(error){ refreshTeams(); throw new Error('del_need_policy') }
     }
   }
-  // Le capitaine modifie la description de SON équipe standalone (ou l'admin)
-  const updateTeamInfo = async (id, { description, name })=>{
-    const target = teams.find(x=> x.id===id)
+  const updateTeamIdentity = async (id, { name, logo })=>{
+    const standalone = teams.find(x=>x.id===id)
+    const registration = regs.find(x=>x.id===id)
+    const target = standalone || registration
     if(!target) throw new Error('team')
-    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
-    const cleanName = name===undefined ? target.name : String(name).trim().slice(0, 40)
-    const cleanDescription = description===undefined ? target.description : String(description||'').trim().slice(0, 500)
-    if(name!==undefined && cleanName.length<2) throw new Error('team_name')
-    if(name!==undefined && (
+    const oldName = String(standalone?.name || registration?.team || '')
+    if(!oldName) throw new Error('team')
+    const oldLogo = standalone?.logo || registration?.logo || ''
+    const cleanName = String(name ?? oldName).trim().slice(0, 40)
+    const cleanLogo = String(logo ?? oldLogo).slice(0, 200000)
+    const cloudTarget = standalone || registration
+    const teamRegIds = new Set(regs.filter(x=>String(x.team||'').toLowerCase()===oldName.toLowerCase()).map(x=>x.id))
+    const acceptedMember = joinReqs.some(x=>x.userId===user?.id && x.status==='accepted' && teamRegIds.has(x.regId))
+    const ownsRegistration = regs.some(x=>x.userId===user?.id && String(x.team||'').toLowerCase()===oldName.toLowerCase())
+    if(!user) throw new Error('login')
+    if(!(cloud && cloudTarget.cloud) && !user.isAdmin && standalone?.userId!==user.id && registration?.userId!==user.id && !ownsRegistration && !acceptedMember) throw new Error('login')
+    if(cleanName.length<2) throw new Error('team_name')
+    if(
       teams.some(x=>x.id!==id && x.name.toLowerCase()===cleanName.toLowerCase()) ||
-      regs.some(x=>String(x.team||'').toLowerCase()!==target.name.toLowerCase() && String(x.team||'').toLowerCase()===cleanName.toLowerCase())
-    )) throw new Error('taken')
-    if(cloud && target.cloud){
-      const { error } = await supabase.from('teams').update({
-        ...(name!==undefined ? { name: cleanName } : {}),
-        ...(description!==undefined ? { description: cleanDescription || null } : {}),
-      }).eq('id', id)
+      regs.some(x=>String(x.team||'').toLowerCase()!==oldName.toLowerCase() && String(x.team||'').toLowerCase()===cleanName.toLowerCase())
+    ) throw new Error('taken')
+    if(cloud && cloudTarget.cloud){
+      const { error } = await supabase.rpc('update_team_identity', {
+        p_team_id: id,
+        p_name: cleanName,
+        p_logo: cleanLogo,
+      })
       if(error){
-        refreshTeams()
+        if(error.code==='PGRST202' || /update_team_identity|schema cache/i.test(String(error.message||''))) throw new Error('need_sql')
         if(error.code==='23505' || /duplicate/i.test(String(error.message||''))) throw new Error('taken')
+        if(error.code==='42501') throw new Error('not_member')
         throw error
       }
     }
-    setTeams(prev=> prev.map(x=> x.id===id ? { ...x, name: cleanName, description: cleanDescription } : x))
-    if(name!==undefined && cleanName.toLowerCase()!==target.name.toLowerCase()){
-      const oldKey = target.name.toLowerCase()
+    setTeams(prev=> prev.map(x=> x.id===id ? { ...x, name: cleanName, logo: cleanLogo } : x))
+    setRegs(prev=> prev.map(x=> String(x.team||'').toLowerCase()===oldName.toLowerCase()
+      ? { ...x, team: cleanName, logo: cleanLogo }
+      : x))
+    setTournamentsState(prev=> prev.map(tr=>({
+      ...tr,
+      bracket: (tr.bracket||[]).map(round=>({
+        ...round,
+        matches: (round.matches||[]).map(match=>({
+          ...match,
+          ...(String(match.teamA||'').toLowerCase()===oldName.toLowerCase() ? { teamA: cleanName } : {}),
+          ...(String(match.teamB||'').toLowerCase()===oldName.toLowerCase() ? { teamB: cleanName } : {}),
+          ...(String(match.winner||'').toLowerCase()===oldName.toLowerCase() ? { winner: cleanName } : {}),
+        })),
+      })),
+    })))
+    setLfgPosts(prev=>prev.map(post=>String(post.teamName||'').toLowerCase()===oldName.toLowerCase()
+      ? { ...post, teamName: cleanName }
+      : post))
+    if(cleanName.toLowerCase()!==oldName.toLowerCase()){
+      const oldKey = oldName.toLowerCase()
       const newKey = cleanName.toLowerCase()
       setTeamAssets(prev=>{
         const next = { ...prev }
@@ -1514,13 +1543,28 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
         delete next[oldKey]
         return next
       })
-      if(cloud && target.cloud){
-        const { error } = await supabase.from('team_assets').update({ team_name: newKey }).eq('team_name', oldKey)
-        if(error && error.code!=='PGRST116') console.warn('team asset rename:', error.message)
-      }
     }
-    if(cloud && target.cloud) refreshTeams()
-    return { name: cleanName, description: cleanDescription }
+    if(cloud && cloudTarget.cloud){
+      refreshTeams()
+      refreshRegs()
+      refreshTournaments()
+      refreshTeamAssets()
+      refreshTeamInfos()
+    }
+    return { name: cleanName, logo: cleanLogo }
+  }
+  // Le capitaine modifie la description de son équipe standalone (ou l'admin).
+  const updateTeamInfo = async (id, { description })=>{
+    const clean = String(description||'').trim().slice(0, 500)
+    const target = teams.find(x=>x.id===id)
+    if(!target) throw new Error('team')
+    if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
+    if(cloud && target.cloud){
+      const { error } = await supabase.from('teams').update({ description: clean || null }).eq('id', id)
+      if(error) throw error
+    }
+    setTeams(prev=>prev.map(x=>x.id===id ? {...x, description: clean} : x))
+    return clean
   }
   const saveTeamRoster = async (id, roster)=>{
     const target = teams.find(x=> x.id===id)
@@ -1839,7 +1883,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, saveMyGames, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamIdentity, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, saveMyGames, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
     xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, linkDiscord, unlinkDiscord, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission,
     lfgPosts, refreshLfg, createLfgPost, closeLfgPost, deleteLfgPost, matchReports, refreshMatchReports, submitMatchReport, decideMatchReport, deleteMatchReport}}>{children}</AuthCtx.Provider>
 }
