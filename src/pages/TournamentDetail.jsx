@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, Send, ClipboardList } from 'lucide-react'
+import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck, Send, ClipboardList } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
