@@ -23,6 +23,10 @@ export default function TeamDetail(){
   const [joinMsg, setJoinMsg] = useState('')
   const [info, setInfo] = useState('')
   const [logoErr, setLogoErr] = useState('')
+  const [editName, setEditName] = useState(false)
+  const [nameDraft, setNameDraft] = useState(name)
+  const [nameMsg, setNameMsg] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
   const [tab, setTab] = useState(()=>{ try{ const q = new URLSearchParams(window.location.search).get('tab'); return TABS.includes(q) ? q : 'apercu' }catch{ return 'apercu' } })
   const [extras, setExtras] = useState(()=> getTeamExtras(name))
   const [editAbout, setEditAbout] = useState(false)
@@ -101,6 +105,26 @@ export default function TeamDetail(){
     }catch(e){
       setRosterMsg(e.message==='need_sql' ? 'Exécute sprint3-sql.txt dans Supabase pour activer les effectifs.' : e.message==='login' ? 'Connexion requise.' : 'Erreur lors de l’enregistrement.')
     }finally{ setRosterSaving(false) }
+  }
+  const saveName = async (e)=>{
+    e.preventDefault()
+    if(!rosterTeamRow) return
+    setNameSaving(true)
+    setNameMsg('')
+    try{
+      const updated = await updateTeamInfo(rosterTeamRow.id, { name: nameDraft })
+      setTeamExtras(updated.name, getTeamExtras(name))
+      setEditName(false)
+      nav(`/teams/${encodeURIComponent(updated.name)}`, { replace: true })
+    }catch(err){
+      setNameMsg(err.message==='taken'
+        ? 'Ce nom est déjà utilisé par une autre équipe.'
+        : err.message==='team_name'
+          ? 'Le nom doit contenir au moins 2 caractères.'
+          : 'Impossible de modifier le nom de l’équipe.')
+    }finally{
+      setNameSaving(false)
+    }
   }
 
   // ---- Stats agrégées ----
@@ -272,15 +296,26 @@ export default function TeamDetail(){
 
       {/* Header équipe */}
       <div className="mt-4 flex items-center gap-4">
-        <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
-          {teamLogo
-            ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
-            : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
-          {canEditLogo && <>
-            <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300"><Pencil size={11}/></span>
-            <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
-          </>}
-        </label>
+        <div className="flex shrink-0 flex-col items-center">
+          <label className={`${canEditLogo?'cursor-pointer group/logo':''}`}>
+            {teamLogo
+              ? <img src={teamLogo} alt="" loading="lazy" decoding="async" className="w-16 h-16 rounded-2xl object-cover bg-white border border-white/20"/>
+              : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl">🛡️</div>}
+            {canEditLogo && <>
+              <span className="mt-1 flex items-center gap-1 text-[11px] text-emerald-300"><Pencil size={11}/></span>
+              <input type="file" accept="image/*" className="hidden" onChange={e=>{ onLogoFile(e.target.files?.[0]); e.target.value='' }}/>
+            </>}
+          </label>
+          {isOwner && rosterTeamRow && (
+            <button
+              type="button"
+              onClick={()=>{ setNameDraft(name); setNameMsg(''); setEditName(v=>!v) }}
+              className="mt-1 inline-flex items-center gap-1 rounded-md border border-white/15 bg-black/20 px-1.5 py-1 text-[10px] font-bold text-white/65 hover:border-amber-400/40 hover:text-amber-300"
+            >
+              <Pencil size={10}/> Modifier
+            </button>
+          )}
+        </div>
         <div>
           <h1 className="text-2xl md:text-4xl font-black">{name}</h1>
           <div className="text-xs text-white/50 mt-1">🎮 {game}{titles>0 && <span className="ml-2 text-amber-300 font-black">🏆 {titles}x {t('champion')}</span>}</div>
@@ -289,6 +324,28 @@ export default function TeamDetail(){
         {isOwner && solo && <button onClick={async ()=>{ if(window.confirm(t('tc_delete_q'))){ await deleteTeam(solo.id); nav('/teams') } }} className="ml-auto px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-bold">{t('tc_delete')}</button>}
         {!isOwner && user && teamRegs.length>0 && !alreadyMember && !alreadyRequested && <button onClick={()=>ask(teamRegs[0])} className="ml-auto px-4 py-2 rounded-xl bg-emerald-500 text-black text-xs font-bold">{t('teams_join')||'Rejoindre'}</button>}
       </div>
+      {editName && isOwner && rosterTeamRow && (
+        <form onSubmit={saveName} className="mt-3 max-w-xl rounded-2xl border border-amber-400/20 bg-[#141418] p-4">
+          <label className="mb-2 block text-xs font-bold text-white/70">Nouveau nom d’équipe</label>
+          <div className="flex flex-wrap gap-2">
+            <input
+              autoFocus
+              required
+              minLength={2}
+              maxLength={40}
+              value={nameDraft}
+              onChange={e=>setNameDraft(e.target.value)}
+              className="min-w-[180px] flex-1 rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+              placeholder="Nom de l’équipe"
+            />
+            <button disabled={nameSaving} className="rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-black text-black disabled:opacity-60">
+              {nameSaving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+            <button type="button" onClick={()=>setEditName(false)} className="rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-white/65 hover:text-white">Annuler</button>
+          </div>
+          {nameMsg && <p role="alert" className="mt-2 text-xs text-red-300">{nameMsg}</p>}
+        </form>
+      )}
 
       {/* Tabs */}
       <div className="mt-6 flex gap-1 overflow-x-auto border-b border-white/10">

@@ -1476,20 +1476,51 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
   }
   // Le capitaine modifie la description de SON équipe standalone (ou l'admin)
-  const updateTeamInfo = async (id, { description })=>{
-    const clean = (description||'').trim().slice(0, 500)
+  const updateTeamInfo = async (id, { description, name })=>{
     const target = teams.find(x=> x.id===id)
     if(!target) throw new Error('team')
     if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
-    setTeams(prev=> prev.map(x=> x.id===id ? {...x, description: clean} : x))
+    const cleanName = name===undefined ? target.name : String(name).trim().slice(0, 40)
+    const cleanDescription = description===undefined ? target.description : String(description||'').trim().slice(0, 500)
+    if(name!==undefined && cleanName.length<2) throw new Error('team_name')
+    if(name!==undefined && (
+      teams.some(x=>x.id!==id && x.name.toLowerCase()===cleanName.toLowerCase()) ||
+      regs.some(x=>String(x.team||'').toLowerCase()!==target.name.toLowerCase() && String(x.team||'').toLowerCase()===cleanName.toLowerCase())
+    )) throw new Error('taken')
     if(cloud && target.cloud){
-      try{
-        const { error } = await supabase.from('teams').update({ description: clean || null }).eq('id', id)
-        if(error) throw error
-      }catch{ refreshTeams() }
-      refreshTeams()
+      const { error } = await supabase.from('teams').update({
+        ...(name!==undefined ? { name: cleanName } : {}),
+        ...(description!==undefined ? { description: cleanDescription || null } : {}),
+      }).eq('id', id)
+      if(error){
+        refreshTeams()
+        if(error.code==='23505' || /duplicate/i.test(String(error.message||''))) throw new Error('taken')
+        throw error
+      }
     }
-    return clean
+    setTeams(prev=> prev.map(x=> x.id===id ? { ...x, name: cleanName, description: cleanDescription } : x))
+    if(name!==undefined && cleanName.toLowerCase()!==target.name.toLowerCase()){
+      const oldKey = target.name.toLowerCase()
+      const newKey = cleanName.toLowerCase()
+      setTeamAssets(prev=>{
+        const next = { ...prev }
+        if(next[oldKey] && !next[newKey]) next[newKey] = next[oldKey]
+        delete next[oldKey]
+        return next
+      })
+      setTeamInfos(prev=>{
+        const next = { ...prev }
+        if(next[oldKey] && !next[newKey]) next[newKey] = next[oldKey]
+        delete next[oldKey]
+        return next
+      })
+      if(cloud && target.cloud){
+        const { error } = await supabase.from('team_assets').update({ team_name: newKey }).eq('team_name', oldKey)
+        if(error && error.code!=='PGRST116') console.warn('team asset rename:', error.message)
+      }
+    }
+    if(cloud && target.cloud) refreshTeams()
+    return { name: cleanName, description: cleanDescription }
   }
   const saveTeamRoster = async (id, roster)=>{
     const target = teams.find(x=> x.id===id)
