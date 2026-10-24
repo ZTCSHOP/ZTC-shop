@@ -1122,9 +1122,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(cloud && user.cloud){
       const { error } = await supabase.from('profile_assets').upsert({
         id: user.id,
-        name: user.name||'',
-        avatar: user.avatar||null,
-        banner: user.banner||null,
         games: selected,
       }, { onConflict: 'id' })
       if(error) throw error
@@ -1138,7 +1135,13 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     }
     setProfileAssets(prev=> ({
       ...prev,
-      [user.id]: { ...(prev[user.id]||{}), name: user.name||'', avatar: user.avatar||'', banner: user.banner||'', games: selected },
+      [user.id]: {
+        ...(prev[user.id]||{}),
+        ...(user.name ? { name: user.name } : {}),
+        ...(user.avatar ? { avatar: user.avatar } : {}),
+        ...(user.banner ? { banner: user.banner } : {}),
+        games: selected,
+      },
     }))
     return selected
   }
