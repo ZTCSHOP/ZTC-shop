@@ -224,8 +224,77 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .countdown-number { display: inline-block; animation: countdown-tick .35s ease-out both; }
+.countdown-storm { isolation: isolate; }
+.countdown-clouds {
+  position: absolute;
+  z-index: -1;
+  inset: -40%;
+  background:
+    radial-gradient(ellipse at 45% 45%, rgba(59,130,246,.26), transparent 28%),
+    radial-gradient(ellipse at 28% 72%, rgba(30,41,59,.92), transparent 42%),
+    radial-gradient(ellipse at 75% 25%, rgba(51,65,85,.8), transparent 38%),
+    linear-gradient(115deg, #080b13, #172033 48%, #090b12);
+  filter: blur(22px);
+  opacity: .88;
+  animation: storm-cloud-drift 18s ease-in-out infinite alternate;
+}
+.countdown-storm::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(211,239,255,.48);
+  opacity: 0;
+  animation: storm-sky-flash 8s linear infinite;
+}
+.countdown-storm > .relative { z-index: 2; }
+.countdown-bolt {
+  position: absolute;
+  z-index: 1;
+  top: -14%;
+  width: 18%;
+  height: 128%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+.countdown-bolt-one { left: 30%; animation: lightning-strike 8s linear infinite; }
+.countdown-bolt-two { left: 49%; animation: lightning-strike 8s linear 2.8s infinite; }
+.countdown-bolt-three { left: 65%; animation: lightning-strike 8s linear 5.1s infinite; }
+.countdown-bolt-glow {
+  stroke: #65caff;
+  stroke-width: 11;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px #38bdf8) drop-shadow(0 0 22px #2563eb);
+}
+.countdown-bolt-core {
+  stroke: #f0fbff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px #fff);
+}
+.countdown-bolt-branch { stroke-width: 6; }
+@keyframes storm-cloud-drift {
+  from { transform: translate3d(-2%, 1%, 0) scale(1); }
+  to { transform: translate3d(2%, -1%, 0) scale(1.08); }
+}
+@keyframes storm-sky-flash {
+  0%, 3%, 6%, 100% { opacity: 0; }
+  3.2%, 4% { opacity: .16; }
+  5%, 5.4% { opacity: .08; }
+}
+@keyframes lightning-strike {
+  0%, 3%, 6%, 100% { opacity: 0; }
+  3.1%, 3.7% { opacity: .9; }
+  4.1%, 4.4% { opacity: .15; }
+  4.7%, 5.4% { opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .countdown-number { animation: none !important; }
+  .countdown-number, .countdown-clouds, .countdown-storm::after,
+  .countdown-bolt { animation: none !important; }
 }
 
 /* Halo renforcé au survol */

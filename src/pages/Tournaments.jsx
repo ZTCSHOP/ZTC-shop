@@ -81,8 +81,22 @@ export default function Tournaments(){
       </div>
 
       <section className="max-w-2xl mx-auto mt-6">
-        <div className="reveal relative overflow-hidden rounded-3xl border border-lime-400/30 bg-gradient-to-br from-lime-400/10 via-[#111014] to-royal-700/20 p-5 md:p-6 text-center">
-          <div className="absolute -top-20 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-lime-400/10 blur-3xl" />
+        <div className="countdown-storm reveal relative overflow-hidden rounded-3xl border border-sky-200/20 bg-gradient-to-br from-slate-900 via-[#111014] to-indigo-950/80 p-5 md:p-6 text-center">
+          <div className="countdown-clouds" aria-hidden="true" />
+          <svg className="countdown-bolt countdown-bolt-one" viewBox="0 0 120 200" fill="none" aria-hidden="true">
+            <path className="countdown-bolt-glow" d="M71 4 27 91h31l-17 105 55-119H65L71 4Z" />
+            <path className="countdown-bolt-core" d="M71 4 27 91h31l-17 105 55-119H65L71 4Z" />
+            <path className="countdown-bolt-glow countdown-bolt-branch" d="m50 77-32 24 31 1" />
+            <path className="countdown-bolt-core countdown-bolt-branch" d="m50 77-32 24 31 1" />
+          </svg>
+          <svg className="countdown-bolt countdown-bolt-two" viewBox="0 0 120 200" fill="none" aria-hidden="true">
+            <path className="countdown-bolt-glow" d="m54 3 43 79-30 8 26 105-66-104 34-7L54 3Z" />
+            <path className="countdown-bolt-core" d="m54 3 43 79-30 8 26 105-66-104 34-7L54 3Z" />
+          </svg>
+          <svg className="countdown-bolt countdown-bolt-three" viewBox="0 0 120 200" fill="none" aria-hidden="true">
+            <path className="countdown-bolt-glow" d="m67 2-40 83 31 5-22 108 60-120-35 7L67 2Z" />
+            <path className="countdown-bolt-core" d="m67 2-40 83 31 5-22 108 60-120-35 7L67 2Z" />
+          </svg>
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-lime-300">
               <Zap size={14}/> {t('countdown_badge')}
