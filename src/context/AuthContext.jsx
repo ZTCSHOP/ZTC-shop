@@ -1488,19 +1488,22 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     const target = regs.find(x=> x.id===regId)
     if(!target) throw new Error('team')
     if(!user || (!user.isAdmin && target.userId!==user.id)) throw new Error('login')
-    const at = checked ? new Date().toISOString() : null
-    setRegs(prev=> prev.map(x=> x.id===regId ? { ...x, checkedIn: checked, checkedInAt: at } : x))
+    const firstCheckIn = checked && !target.checkedIn && !target.checkedInAt
+    const checkedInAt = checked
+      ? target.checkedInAt || new Date().toISOString()
+      : target.checkedInAt || (target.checkedIn ? new Date().toISOString() : null)
     if(cloud && target.cloud){
       try{
-        const { error } = await supabase.from('tournament_regs').update({ checked_in: checked, checked_in_at: at }).eq('id', regId)
+        const { error } = await supabase.from('tournament_regs').update({ checked_in: checked, checked_in_at: checkedInAt }).eq('id', regId)
         if(error) throw error
       }catch(e){
         if(String(e.message||'').includes('checked_in')) throw new Error('need_sql')
         throw e
       }
-      refreshRegs()
     }
-    if(checked) awardXp('checkin', target.tournament_id)
+    setRegs(prev=> prev.map(x=> x.id===regId ? { ...x, checkedIn: checked, checkedInAt } : x))
+    if(cloud && target.cloud) refreshRegs()
+    if(firstCheckIn) awardXp('checkin', target.tournament_id)
     return true
   }
   const myRegs = (u=user)=>{

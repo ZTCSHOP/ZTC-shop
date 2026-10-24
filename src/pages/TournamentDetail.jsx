@@ -8,6 +8,8 @@ import { computeStandings, getChampion } from '../lib/bracket'
 import { rosterStatus } from '../lib/roster'
 import { ytId } from '../lib/video'
 
+const CHECKIN_WINDOW_MS = 2 * 60 * 60 * 1000
+
 export default function TournamentDetail(){
   const { id } = useParams()
   const nav = useNavigate()
@@ -19,8 +21,10 @@ export default function TournamentDetail(){
   const [saving, setSaving] = useState(false)
   const [teamId, setTeamId] = useState(null)
   const [flash, setFlash] = useState(false)
+  const [now, setNow] = useState(()=> Date.now())
   const [ckMsg, setCkMsg] = useState('')
   const [ckBusy, setCkBusy] = useState('')
+  const [ckError, setCkError] = useState(false)
   const [repKey, setRepKey] = useState('')
   const [repA, setRepA] = useState('')
   const [repB, setRepB] = useState('')
@@ -30,6 +34,15 @@ export default function TournamentDetail(){
   const [repBusy, setRepBusy] = useState(false)
   const [repMsg, setRepMsg] = useState('')
   const [repErr, setRepErr] = useState('')
+
+  const startMs = tr?.date ? new Date(tr.date).getTime() : null
+  const checkinOpensAt = Number.isFinite(startMs) ? startMs - CHECKIN_WINDOW_MS : null
+
+  useEffect(()=>{
+    if(checkinOpensAt===null || now>=checkinOpensAt) return
+    const timer = window.setTimeout(()=> setNow(Date.now()), checkinOpensAt-now)
+    return ()=> window.clearTimeout(timer)
+  }, [checkinOpensAt, now])
 
   if(!tr) return <div className="max-w-[800px] mx-auto px-4 py-16 text-center">{t('no_result')} <Link to="/tournaments" className="text-amber-300">← {t('tournaments')}</Link></div>
 
@@ -45,8 +58,7 @@ export default function TournamentDetail(){
   const chosenRoster = rosterStatus(chosen?.roster, chosen?.game || tr.game)
   const rosterBlocked = rosterAvailable && !chosenRoster.complete
   const champion = getChampion(tr.bracket || [])
-  const startMs = tr.date ? new Date(tr.date).getTime() : null
-  const checkinOpen = !startMs || Date.now() >= startMs - 24*3600*1000
+  const checkinOpen = checkinOpensAt===null || now >= checkinOpensAt
   const canCheckIn = checkinOpen && tr.status!=='done'
   const finalMatch = (tr.bracket || []).length ? tr.bracket[tr.bracket.length-1].matches?.[0] : null
   const myTeamNames = user ? new Set([...(myRegs()||[]).map(r=> r.team), ...(myTeams()||[]).map(t=> t.name)].filter(Boolean)) : new Set()
@@ -84,12 +96,13 @@ export default function TournamentDetail(){
     setTimeout(()=>setFlash(false), 1900)
   }
 
-  const doCheckIn = async (regId)=>{
-    setCkMsg(''); setCkBusy(regId)
+  const doCheckIn = async (regId, checked=true)=>{
+    setCkMsg(''); setCkError(false); setCkBusy(regId)
     try{
-      await checkInTeam(regId)
-      setCkMsg(t('tr_checkin_done'))
+      await checkInTeam(regId, checked)
+      setCkMsg(t(checked ? 'tr_checkin_done' : 'tr_checkin_cancelled'))
     }catch(e){
+      setCkError(true)
       setCkMsg(e.message==='need_sql' ? t('tr_checkin_sql') : (e.message==='login' ? t('tr_login_needed') : (e.message||'')))
     }finally{ setCkBusy('') }
   }
@@ -193,7 +206,7 @@ export default function TournamentDetail(){
             <div className="flex flex-wrap items-center gap-3 text-xs font-bold mb-2">
               <span className="text-emerald-300">✅ {regs.filter(r=>r.checkedIn).length}/{regs.length} {t('tr_checked_count')}</span>
               <span className={canCheckIn ? 'text-emerald-300' : 'text-white/45'}>
-                {tr.status==='done' ? 'Check-in clôturé' : canCheckIn ? 'Check-in ouvert (24 h avant le tournoi)' : 'Check-in ouvre 24 h avant le début'}
+                {tr.status==='done' ? t('tr_checkin_closed') : canCheckIn ? t('tr_checkin_open') : t('tr_checkin_opens')}
               </span>
             </div>
           )}
@@ -215,8 +228,10 @@ export default function TournamentDetail(){
                       {r.checkedIn
                         ? <span className="text-[11px] px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black">✔ {t('tr_checked')}</span>
                         : <span className="text-[11px] px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 font-black">⏳ {t('tr_waiting')}</span>}
-                      {isMine && !r.checkedIn && canCheckIn && (
-                        <button onClick={()=>doCheckIn(r.id)} disabled={ckBusy===r.id} className="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-black disabled:opacity-60">{ckBusy===r.id ? '...' : `✓ ${t('tr_check_in')}`}</button>
+                      {(isMine || user?.isAdmin) && canCheckIn && (
+                        <button onClick={()=>doCheckIn(r.id, !r.checkedIn)} disabled={ckBusy===r.id} className={`px-3 py-1 rounded-lg text-[11px] font-black disabled:opacity-60 ${r.checkedIn ? 'bg-white/10 hover:bg-white/15 text-white/80' : 'bg-emerald-500 hover:bg-emerald-400 text-black'}`}>
+                          {ckBusy===r.id ? '...' : r.checkedIn ? t('tr_checkin_cancel') : `✓ ${t('tr_check_in')}`}
+                        </button>
                       )}
                     </span>
                   </div>
@@ -240,10 +255,10 @@ export default function TournamentDetail(){
           </div>
           {user && mine && !mine.checkedIn && tr.status!=='done' && (
             <p className="text-[11px] text-white/40 mt-2">
-              {canCheckIn ? t('tr_checkin_hint') : `Le check-in ouvre 24 h avant le tournoi${startMs ? ` (${new Date(startMs - 24*3600*1000).toLocaleString('fr-FR')})` : ''}.`}
+              {canCheckIn ? t('tr_checkin_hint') : `${t('tr_checkin_opens')}${checkinOpensAt ? ` (${new Date(checkinOpensAt).toLocaleString()})` : ''}.`}
             </p>
           )}
-          {ckMsg && <p className="text-[11px] text-emerald-300 mt-2">{ckMsg}</p>}
+          {ckMsg && <p className={`text-[11px] mt-2 ${ckError ? 'text-red-300' : 'text-emerald-300'}`}>{ckMsg}</p>}
         </div>
 
       <div className="mt-6 lg:col-span-2">
