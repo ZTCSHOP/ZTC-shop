@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Trophy, Calendar, Users, Gift, ArrowRight, Plus, Check } from 'lucide-react'
+import { Trophy, Calendar, Users, Gift, ArrowRight, Plus, Check, Zap } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { sortTournaments } from '../lib/bracket'
+
+const TOURNAMENT_DATE = new Date('2026-10-31T18:30:00+01:00').getTime()
 
 const statusStyle = {
   open: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
@@ -16,6 +18,7 @@ export default function Tournaments(){
   const { tournaments, regsFor, saveTournament, user } = useAuth()
   const { t } = useLang()
   const [game, setGame] = useState('all')
+  const [countdownNow, setCountdownNow] = useState(()=> Date.now())
   const [form, setForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'', video:'' })
   const [sent, setSent] = useState(false)
   const games = ['all', ...new Set(tournaments.map(x=> x.game))]
@@ -23,6 +26,18 @@ export default function Tournaments(){
     .filter(x=> x.status!=='pending')
   const mine = user ? tournaments.filter(x=> x.createdBy===user.id && x.status==='pending') : []
   const statusLabel = (s)=> s==='open' ? t('tr_open') : s==='done' ? t('tr_done') : s==='pending' ? t('tr_pending') : t('tr_soon')
+  const countdown = Math.max(0, TOURNAMENT_DATE - countdownNow)
+  const countdownUnits = [
+    { label: t('countdown_days'), value: Math.floor(countdown / 86400000) },
+    { label: t('countdown_hours'), value: Math.floor(countdown / 3600000) % 24 },
+    { label: t('countdown_minutes'), value: Math.floor(countdown / 60000) % 60 },
+    { label: t('countdown_seconds'), value: Math.floor(countdown / 1000) % 60 },
+  ]
+
+  useEffect(()=>{
+    const interval = window.setInterval(()=> setCountdownNow(Date.now()), 1000)
+    return ()=> window.clearInterval(interval)
+  }, [])
 
   const propose = async (e)=>{
     e.preventDefault()
@@ -64,6 +79,34 @@ export default function Tournaments(){
         </div>
         <p className="text-white/60 mt-3 max-w-xl mx-auto">{t('tournaments_sub')}</p>
       </div>
+
+      <section className="max-w-2xl mx-auto mt-6">
+        <div className="reveal relative overflow-hidden rounded-3xl border border-lime-400/30 bg-gradient-to-br from-lime-400/10 via-[#111014] to-royal-700/20 p-5 md:p-6 text-center">
+          <div className="absolute -top-20 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-lime-400/10 blur-3xl" />
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-lime-300">
+              <Zap size={14}/> {t('countdown_badge')}
+            </div>
+            <h2 className="mt-3 font-display text-3xl font-bold uppercase tracking-wide md:text-4xl">{t('countdown_title')}</h2>
+            <p className="mt-2 text-sm text-white/60">
+              {countdown > 0 ? t('countdown_starts') : t('countdown_launched')}
+              <time dateTime="2026-10-31T18:30:00+01:00"> • {t('countdown_date')}</time>
+            </p>
+            {countdown > 0 && (
+              <div className="mx-auto mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4" dir="ltr" role="timer">
+                {countdownUnits.map(({ label, value })=>(
+                  <div key={label} className="rounded-2xl border border-white/10 bg-black/35 px-3 py-3">
+                    <div className="font-display text-4xl font-bold tabular-nums text-lime-300">
+                      <span key={`${label}-${value}`} className="countdown-number">{String(value).padStart(2, '0')}</span>
+                    </div>
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-white/50">{label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="mt-6 flex gap-2 overflow-auto pb-2 justify-start md:justify-center">
         {games.map(g=>(

@@ -5,28 +5,14 @@ import { initialProducts, minPrice } from '../data/products'
 import { useLang } from '../context/LanguageContext'
 import { getHeroVideoId } from '../lib/site'
 
-const TOURNAMENT_DATE = new Date('2026-10-31T18:30:00+01:00').getTime()
-
 export default function Home(){
   const { t } = useLang()
   const [HERO_VIDEO_ID, setHeroId] = useState(()=> getHeroVideoId())
-  const [countdownNow, setCountdownNow] = useState(()=> Date.now())
-  const countdown = Math.max(0, TOURNAMENT_DATE - countdownNow)
-  const countdownUnits = [
-    { label: t('countdown_days'), value: Math.floor(countdown / 86400000) },
-    { label: t('countdown_hours'), value: Math.floor(countdown / 3600000) % 24 },
-    { label: t('countdown_minutes'), value: Math.floor(countdown / 60000) % 60 },
-    { label: t('countdown_seconds'), value: Math.floor(countdown / 1000) % 60 },
-  ]
   useEffect(()=>{
     const h = ()=> setHeroId(getHeroVideoId())
     window.addEventListener('ztc:hero-video', h)
     window.addEventListener('storage', h)
     return ()=> { window.removeEventListener('ztc:hero-video', h); window.removeEventListener('storage', h) }
-  }, [])
-  useEffect(()=>{
-    const interval = window.setInterval(()=> setCountdownNow(Date.now()), 1000)
-    return ()=> window.clearInterval(interval)
   }, [])
   const trust = [
     {title: t('trust1t'), desc: t('trust1d')},
@@ -69,34 +55,6 @@ export default function Home(){
               <iframe src={`https://www.youtube.com/embed/${HERO_VIDEO_ID}?rel=0&autoplay=1&mute=1&playsinline=1`} title="ZTC Presentation" className="w-full h-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
             </div>
             <div className="mt-2 flex items-center justify-center gap-3 text-xs text-white/50">🎬 {t('home_video')} <a href={`https://www.youtube.com/watch?v=${HERO_VIDEO_ID}`} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-500">▶ YouTube</a></div>
-          </div>
-        </div>
-      </section>
-
-      <section className="max-w-[1760px] mx-auto px-4 py-6">
-        <div className="reveal relative overflow-hidden rounded-3xl border border-lime-400/30 bg-gradient-to-br from-lime-400/10 via-[#111014] to-royal-700/20 p-5 md:p-8 text-center">
-          <div className="absolute -top-20 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-lime-400/10 blur-3xl" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-lime-300">
-              <Zap size={14}/> {t('countdown_badge')}
-            </div>
-            <h2 className="mt-3 font-display text-3xl font-bold uppercase tracking-wide md:text-5xl">{t('countdown_title')}</h2>
-            <p className="mt-2 text-sm text-white/60">
-              {countdown > 0 ? t('countdown_starts') : t('countdown_launched')}
-              <time dateTime="2026-10-31T18:30:00+01:00"> • {t('countdown_date')}</time>
-            </p>
-            {countdown > 0 && (
-              <div className="mx-auto mt-6 grid max-w-2xl grid-cols-2 gap-3 md:grid-cols-4" dir="ltr" role="timer">
-                {countdownUnits.map(({ label, value })=>(
-                  <div key={label} className="rounded-2xl border border-white/10 bg-black/35 px-3 py-4">
-                    <div className="font-display text-4xl font-bold tabular-nums text-lime-300 md:text-5xl">
-                      <span key={`${label}-${value}`} className="countdown-number">{String(value).padStart(2, '0')}</span>
-                    </div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-white/50">{label}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </section>
