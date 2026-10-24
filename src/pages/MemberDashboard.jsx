@@ -87,7 +87,13 @@ export default function MemberDashboard(){
     setGamesBusy(true)
     setGamesError('')
     try{ await saveMyGames(next) }
-    catch(e){ setGamesError(e.message || 'Impossible d’enregistrer tes jeux.') }
+    catch(e){
+      const message = String(e?.message || '')
+      const missingGamesColumn = /games/i.test(message) && (/column|schema cache/i.test(message) || e?.code === 'PGRST204')
+      setGamesError(missingGamesColumn
+        ? 'La colonne des jeux manque dans Supabase. Exécute supabase-profile-assets.sql dans Supabase → SQL Editor, puis recharge le site.'
+        : message || 'Impossible d’enregistrer tes jeux.')
+    }
     finally{ setGamesBusy(false) }
   }
 

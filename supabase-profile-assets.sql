@@ -11,6 +11,7 @@ create table if not exists public.profile_assets (
 );
 
 alter table public.profile_assets add column if not exists games text[] not null default '{}';
+notify pgrst, 'reload schema';
 
 alter table public.profile_assets enable row level security;
 

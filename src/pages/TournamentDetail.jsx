@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck, Send, ClipboardList } from 'lucide-react'
+import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, Send, ClipboardList } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import BracketView from '../components/BracketView'
 import { computeStandings, getChampion } from '../lib/bracket'
-import { rosterStatus } from '../lib/roster'
 import { ytId } from '../lib/video'
 
 const CHECKIN_WINDOW_MS = 2 * 60 * 60 * 1000
@@ -54,9 +53,6 @@ export default function TournamentDetail(){
   // Équipes de l'utilisateur créées sur le site
   const owned = user ? myTeams() : []
   const chosen = owned.find(x=> x.id===(teamId || owned[0]?.id)) || owned[0] || null
-  const rosterAvailable = chosen?.roster !== null && chosen?.roster !== undefined
-  const chosenRoster = rosterStatus(chosen?.roster, chosen?.game || tr.game)
-  const rosterBlocked = rosterAvailable && !chosenRoster.complete
   const champion = getChampion(tr.bracket || [])
   const checkinOpen = checkinOpensAt===null || now >= checkinOpensAt
   const canCheckIn = checkinOpen && tr.status!=='done'
@@ -123,7 +119,6 @@ export default function TournamentDetail(){
       setError(
         m==='already' ? t('tr_already')
         : m==='notowner' ? t('tr_notowner')
-        : m==='roster' ? 'Complète ton effectif (5 titulaires) avant de t’inscrire.'
         : m.includes('foreign key') ? t('tr_need_sync')
         : m
       )
@@ -393,15 +388,11 @@ export default function TournamentDetail(){
                   <div className="text-xs text-white/50">🎮 {chosen?.game}{chosen?.captain ? ` • ${chosen.captain}` : ''}</div>
                 </div>
               </div>
-              {rosterBlocked && (
-                <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-xs text-amber-200">
-                  <div className="font-black flex items-center gap-1.5"><ShieldCheck size={13}/> Minimum 2 joueurs requis — {chosenRoster.starters}/5</div>
-                  <p className="mt-1 text-amber-100/80">Ajoute au moins 2 joueurs à l’effectif de {chosen?.name} avant de t’inscrire.</p>
-                  <Link to={`/teams/${encodeURIComponent(chosen?.name||'')}?tab=effectif`} className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-amber-400 text-black font-black">Compléter l’effectif →</Link>
-                </div>
-              )}
+              <div className="rounded-xl border border-sky-400/20 bg-sky-400/[0.06] p-3 text-xs text-sky-100/70">
+                L’inscription est ouverte même si tu es seul. Tu pourras compléter l’effectif de ton équipe plus tard.
+              </div>
               {error && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5">{error}</div>}
-              <button onClick={submitOneClick} disabled={saving || !chosen || rosterBlocked} className="btn-shine w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black disabled:opacity-60">
+              <button onClick={submitOneClick} disabled={saving || !chosen} className="btn-shine w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black disabled:opacity-60">
                 {saving ? '...' : `⚡ ${t('tr_register_oneclick')}`}
               </button>
               <p className="text-[11px] text-white/40 text-center">{t('tr_no_form_needed')}</p>

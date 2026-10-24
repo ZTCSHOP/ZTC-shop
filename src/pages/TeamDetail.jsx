@@ -431,10 +431,10 @@ export default function TeamDetail(){
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="font-black text-lg">Effectif de tournoi</div>
-                  <div className="text-xs text-white/50">2 joueurs minimum sur 5 pour s’inscrire — les 2 remplaçants sont optionnels.</div>
+                  <div className="text-xs text-white/50">Effectif facultatif pour l’inscription : le capitaine peut inscrire son équipe même seul.</div>
                 </div>
                 <div className={`text-[11px] font-black px-2.5 py-1 rounded-full border ${rosterInfo.complete ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' : 'border-amber-400/40 bg-amber-400/10 text-amber-200'}`}>
-                  {rosterInfo.complete ? '✓ Inscription autorisée' : `${rosterInfo.starters}/5 joueurs`}
+                  {rosterInfo.complete ? '✓ Effectif complet' : `${rosterInfo.starters}/5 titulaires`}
                 </div>
               </div>
               <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">

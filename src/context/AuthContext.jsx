@@ -4,7 +4,7 @@ import { supabase, isCloudEnabled } from '../lib/supabase'
 import { sendWelcomeEmail } from '../lib/email'
 import { isImageValue } from '../lib/storage'
 import { fetchRiotStats } from '../lib/riot'
-import { cleanRoster, rosterStatus } from '../lib/roster'
+import { cleanRoster } from '../lib/roster'
 import { getChampion } from '../lib/bracket'
 import { discordTournament, discordRegistration, discordChampion, discordLfg, syncDiscordRole } from '../lib/discord'
 
@@ -1569,8 +1569,6 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(!name) throw new Error('team')
     if(regs.some(x=> x.tournament_id===tournamentId && (x.team||'').toLowerCase()===name.toLowerCase())) throw new Error('already')
     const rosterAvailable = src?.roster !== null && src?.roster !== undefined
-    const rosterInfo = rosterStatus(src?.roster, src?.game)
-    if(rosterAvailable && !rosterInfo.complete) throw new Error('roster')
     const roster = rosterAvailable ? cleanRoster(src?.roster, src?.game) : []
     const reg = {
       id: genId('reg'), tournament_id: tournamentId, team: name,

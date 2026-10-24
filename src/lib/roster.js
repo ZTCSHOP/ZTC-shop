@@ -1,7 +1,7 @@
-// Effectifs e-sport : 5 titulaires + 2 remplaçants
+// Effectifs e-sport : 5 titulaires + 2 remplaçants, facultatif pour l'inscription
 export const ROSTER_MIN = 5
 export const ROSTER_MAX = 7
-export const ROSTER_REQUIRED = 2 // minimum pour valider une inscription
+export const ROSTER_REQUIRED = ROSTER_MIN
 
 export const GAME_ROLES = {
   lol: ['Top', 'Jungle', 'Mid', 'ADC', 'Support'],
