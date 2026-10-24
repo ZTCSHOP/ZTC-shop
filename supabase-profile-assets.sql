@@ -6,8 +6,11 @@ create table if not exists public.profile_assets (
   name text,
   avatar text,
   banner text,
+  games text[] not null default '{}',
   updated_at timestamptz default now()
 );
+
+alter table public.profile_assets add column if not exists games text[] not null default '{}';
 
 alter table public.profile_assets enable row level security;
 

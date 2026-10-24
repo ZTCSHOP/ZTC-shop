@@ -1,12 +1,13 @@
 import { Link, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Shield, Trophy, Swords, Crown, Sparkles, Lock, CheckCircle2 } from 'lucide-react'
+import { Shield, Trophy, Swords, Crown, Sparkles, Lock, CheckCircle2, Gamepad2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
 import { supabase } from '../lib/supabase'
 import { fetchRiotStats, riotErrorMsg } from '../lib/riot'
 import { xpForActivity, levelProgress, REWARDS } from '../lib/level'
 import PlayerRiotCard from '../components/PlayerRiotCard'
+import GameTiles from '../components/GameTiles'
 
 export default function PlayerProfile(){
   const { id } = useParams()
@@ -51,6 +52,7 @@ export default function PlayerProfile(){
   const accounts = allAccounts()
   const acc = accounts.find(a=> a.id===id)
   const asset = profileAssets[id] || {}
+  const games = Array.isArray(asset.games) ? asset.games : []
 
   const myRegs = regs.filter(r=> r.userId===id)
   const myOwnTeams = teams.filter(x=> x.userId===id)
@@ -107,6 +109,13 @@ export default function PlayerProfile(){
           <div className="rounded-xl bg-black/30 border border-white/10 py-2.5"><div className="font-black text-purple-300 text-lg">{badges.length}</div><div className="text-[11px] text-white/50">Badges</div></div>
         </div>
       </div>
+
+      {games.length>0 && (
+        <section className="mt-6 rounded-3xl border border-violet-400/20 bg-gradient-to-br from-[#101528] to-[#0a0e1a] p-5">
+          <h2 className="mb-4 flex items-center gap-2 font-black"><Gamepad2 size={16} className="text-violet-300"/> My game</h2>
+          <GameTiles selected={games}/>
+        </section>
+      )}
 
       {pubErr && (
         <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">

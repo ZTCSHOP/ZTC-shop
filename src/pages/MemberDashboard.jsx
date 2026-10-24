@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight, Award, BarChart3, Bell, CalendarDays, Coins, Gamepad2, Gift, Package, Target, User, UserPlus, Users, Wallet,
@@ -8,6 +8,7 @@ import { useLang } from '../context/LanguageContext'
 import { xpForActivity } from '../lib/level'
 import { BADGES } from '../lib/missions'
 import MemberSidebar from '../components/MemberSidebar'
+import GameTiles from '../components/GameTiles'
 
 const CARD_STYLES = {
   gold: {
@@ -61,8 +62,10 @@ const CARD_STYLES = {
 }
 
 export default function MemberDashboard(){
-  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications, badges } = useAuth()
+  const { user, myOrders, myRegs, myTeams, isVipActive, refreshMyBalance, unreadNotifications, badges, profileAssets, saveMyGames } = useAuth()
   const { t } = useLang()
+  const [gamesBusy, setGamesBusy] = useState(false)
+  const [gamesError, setGamesError] = useState('')
   useEffect(()=>{ try{ refreshMyBalance() }catch{} }, [])
   if(!user) return (
     <div className="max-w-[800px] mx-auto px-4 py-16 text-center">
@@ -78,6 +81,15 @@ export default function MemberDashboard(){
   const xp = user.xp != null ? Number(user.xp) : xpForActivity({ orders: orders.length, regs: regs.length, teams: owTeams.length })
   const balance = Number(user.balance || 0)
   const riotLabel = user.riot ? (user.riot.game === 'lol' ? 'LoL' : 'Valorant') : null
+  const myGames = Array.isArray(profileAssets[user.id]?.games) ? profileAssets[user.id].games : (Array.isArray(user.games) ? user.games : [])
+  const toggleGame = async (game)=>{
+    const next = myGames.includes(game) ? myGames.filter(x=>x!==game) : [...myGames, game]
+    setGamesBusy(true)
+    setGamesError('')
+    try{ await saveMyGames(next) }
+    catch(e){ setGamesError(e.message || 'Impossible d’enregistrer tes jeux.') }
+    finally{ setGamesBusy(false) }
+  }
 
   const cards = [
     { to:'/profile/wallet', icon:Coins, color:'gold', title:t('pm_coins')||'Coins', desc:t('dash_coins_d'), stat:balance },
@@ -109,6 +121,19 @@ export default function MemberDashboard(){
             <p className="text-sm text-white/50 max-w-2xl">{t('dash_sub')||'Gérez votre activité, suivez vos performances et accédez à tous vos contenus depuis votre profil.'}</p>
           </div>
         </div>
+
+        <section className="mb-6 rounded-3xl border border-violet-400/20 bg-gradient-to-br from-[#101528] to-[#0a0e1a] p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-black text-lg">My game</h2>
+              <p className="mt-1 text-xs text-white/50">Choisis tes jeux principaux pour les afficher sur ton profil.</p>
+            </div>
+            <span className="shrink-0 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-[11px] font-bold text-violet-200">{myGames.length} sélectionné{myGames.length===1?'':'s'}</span>
+          </div>
+          <GameTiles selected={myGames} onToggle={toggleGame} disabled={gamesBusy}/>
+          {gamesError && <p role="alert" className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">{gamesError}</p>}
+          {gamesBusy && <p className="mt-3 text-xs text-white/40">Enregistrement…</p>}
+        </section>
 
         <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {cards.map(c=>{

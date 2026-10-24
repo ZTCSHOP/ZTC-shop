@@ -71,8 +71,8 @@ function readLocalExtras(id){
   try{
     const u = JSON.parse(localStorage.getItem('ztc_user')||'null')
     if(u && u.id===id){
-      const { avatar, banner, phone, birthdate, gender } = u
-      return { ...(avatar?{avatar}:{}), ...(banner?{banner}:{}), ...(phone?{phone}:{}), ...(birthdate?{birthdate}:{}), ...(gender?{gender}:{}) }
+      const { avatar, banner, phone, birthdate, gender, games } = u
+      return { ...(avatar?{avatar}:{}), ...(banner?{banner}:{}), ...(phone?{phone}:{}), ...(birthdate?{birthdate}:{}), ...(gender?{gender}:{}), ...(Array.isArray(games)?{games}:{}) }
     }
   }catch{}
   return {}
@@ -649,7 +649,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(error) throw error
       if(data){
         const obj = {}
-        data.forEach(r=>{ if(r.id) obj[r.id] = { name: r.name||'', avatar: r.avatar||'', banner: r.banner||'' } })
+        data.forEach(r=>{ if(r.id) obj[r.id] = { name: r.name||'', avatar: r.avatar||'', banner: r.banner||'', games: Array.isArray(r.games) ? r.games : [] } })
         setProfileAssets(prev=> ({ ...prev, ...obj }))
       }
     }catch(e){ console.warn('cloud profile assets:', e.message) }
@@ -1114,6 +1114,33 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       if(/quota|exceed/i.test(String(e?.message||e?.name||e))) throw new Error('quota')
     }
     return next
+  }
+
+  const saveMyGames = async (games)=>{
+    if(!user) throw new Error('login')
+    const selected = [...new Set((Array.isArray(games) ? games : []).filter(x=> typeof x === 'string'))]
+    if(cloud && user.cloud){
+      const { error } = await supabase.from('profile_assets').upsert({
+        id: user.id,
+        name: user.name||'',
+        avatar: user.avatar||null,
+        banner: user.banner||null,
+        games: selected,
+      }, { onConflict: 'id' })
+      if(error) throw error
+    }
+    const next = { ...user, games: selected }
+    setUser(next)
+    writeExtrasById(user.id, { games: selected })
+    try{ localStorage.setItem('ztc_user', JSON.stringify(next)) }
+    catch(e){
+      if(/quota|exceed/i.test(String(e?.message||e?.name||e))) throw new Error('quota')
+    }
+    setProfileAssets(prev=> ({
+      ...prev,
+      [user.id]: { ...(prev[user.id]||{}), name: user.name||'', avatar: user.avatar||'', banner: user.banner||'', games: selected },
+    }))
+    return selected
   }
 
   // ---- Liaison Riot (LoL / Valorant) ----
@@ -1780,7 +1807,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
   const needsDbGrant = cloud && !!user?.isAdmin && cloudProfiles === null
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
-    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
+    deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, saveMyGames, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
     xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, linkDiscord, unlinkDiscord, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission,
     lfgPosts, refreshLfg, createLfgPost, closeLfgPost, deleteLfgPost, matchReports, refreshMatchReports, submitMatchReport, decideMatchReport, deleteMatchReport}}>{children}</AuthCtx.Provider>
 }
