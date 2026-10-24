@@ -22,9 +22,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: cloudflare
-          secrets: |
-            HENRIK_API_KEY
-            RIOT_API_KEY
-        env:
-          HENRIK_API_KEY: ${{ secrets.HENRIK_API_KEY }}
-          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
