@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Trophy, Calendar, Users, Gift, Ticket, Check, Radio, ShieldCheck, Send, ClipboardList } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
