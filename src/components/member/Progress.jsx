@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Award, CheckCircle2, ChevronRight, Flame, Loader2, Lock, Sparkles, Target } from 'lucide-react'
+import { Award, CheckCircle2, ChevronRight, ExternalLink, Flame, Loader2, Lock, Sparkles, Target } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { BADGES, BADGE_TIER, MISSIONS, STREAK_TARGET, isToday, todayKey } from '../../lib/missions'
+import { SOCIAL_LINKS } from '../../lib/socialLinks'
+
+const SOCIAL_FOLLOW_TASKS = ['instagram', 'youtube', 'facebook']
 
 function SqlBanner(){
   return (
@@ -63,8 +66,9 @@ export function DailyCheckin(){
 }
 
 export function MissionsPanel(){
-  const { user, myOrders, myRegs, dailyClaims, claimMission, progressReady } = useAuth()
+  const { user, cloud, myOrders, myRegs, dailyClaims, claimMission, claimSocialFollow, xpLogs, progressReady } = useAuth()
   const [busy, setBusy] = useState('')
+  const [socialBusy, setSocialBusy] = useState('')
   const [msg, setMsg] = useState(null)
   if(!user) return null
 
@@ -92,6 +96,21 @@ export function MissionsPanel(){
       else setMsg({ ok: false, text: res?.reason === 'claimed' ? 'Déjà récupéré aujourd’hui.' : 'Mission pas encore terminée.' })
     }catch(e){ setMsg({ ok: false, text: e.message || 'Erreur' }) }
     finally{ setBusy('') }
+  }
+
+  const claimFollow = async (network)=>{
+    setSocialBusy(network); setMsg(null)
+    try{
+      const res = await claimSocialFollow(network)
+      setMsg(res?.ok
+        ? { ok: true, text: `+${res.xp} XP pour ${SOCIAL_LINKS[network].label} !` }
+        : { ok: false, text: res?.reason === 'claimed' ? 'Cette récompense a déjà été récupérée.' : 'Impossible de récupérer cette récompense.' })
+    }catch(e){
+      const missingSql = e.code === 'PGRST202' || /claim_social_follow|schema cache/i.test(String(e.message||''))
+      setMsg({ ok: false, text: missingSql
+        ? 'La récompense n’est pas encore activée. Exécute social-follow-xp.sql dans Supabase.'
+        : e.message === 'login' ? 'Connecte-toi avec un compte cloud pour récupérer tes XP.' : e.message || 'Erreur' })
+    }finally{ setSocialBusy('') }
   }
 
   return (
@@ -132,6 +151,46 @@ export function MissionsPanel(){
           )
         })}
       </div>
+      <section className="rounded-2xl border border-white/10 bg-[#0b0c12]/70 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="font-black text-sm">Abonne-toi à Zomra — +2 500 XP par réseau</h3>
+            <p className="mt-1 text-xs text-white/50">Suis le compte, puis reviens ici pour réclamer la récompense une seule fois. La confirmation est déclarative : les réseaux ne permettent pas de vérifier l’abonnement depuis le site.</p>
+          </div>
+          <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[11px] font-black text-amber-200">Jusqu’à +7 500 XP</span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {SOCIAL_FOLLOW_TASKS.map(network=>{
+            const social = SOCIAL_LINKS[network]
+            const claimed = (xpLogs||[]).some(log=>log.action==='social_follow' && log.ref===network)
+            return (
+              <div key={network} className={`rounded-xl border p-3 ${claimed ? 'border-emerald-400/30 bg-emerald-400/[0.06]' : 'border-white/10 bg-black/20'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold">{social.label}</span>
+                  {claimed
+                    ? <CheckCircle2 size={16} className="text-emerald-300"/>
+                    : <span className="text-[11px] font-black text-amber-200">+2 500 XP</span>}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a href={social.href} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-bold text-white/70 hover:text-white">
+                    Suivre <ExternalLink size={12}/>
+                  </a>
+                  {claimed ? (
+                    <span className="inline-flex items-center text-xs font-bold text-emerald-300">Récupéré</span>
+                  ) : (
+                    <button onClick={()=>claimFollow(network)} disabled={!cloud || !!socialBusy}
+                      className="rounded-lg bg-amber-400 px-2.5 py-1.5 text-xs font-black text-black hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50">
+                      {socialBusy===network ? 'Validation…' : 'J’ai suivi — réclamer'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {!cloud && <p className="mt-2 text-xs text-amber-200/80">La récupération des XP nécessite un compte cloud connecté.</p>}
+      </section>
       {msg && <p className={`text-xs font-bold ${msg.ok ? 'text-emerald-300' : 'text-amber-300'}`}>{msg.text}</p>}
       <div className="rounded-2xl border border-white/10 bg-[#0b0c12]/60 p-4 flex flex-wrap items-center justify-between gap-2 text-sm">
         <span className="text-white/60">Envie de plus d’XP ? Le barème complet est ici.</span>

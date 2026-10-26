@@ -698,7 +698,12 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
       }catch{}
       try{
         const { data } = await supabase.from('xp_logs').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100)
-        setXpLogs(data||[])
+        const { data: socialData, error: socialError } = await supabase.from('xp_logs').select('*')
+          .eq('user_id', uid).eq('action', 'social_follow')
+        if(socialError) throw socialError
+        const logs = new Map((data||[]).map(log=>[log.id, log]))
+        ;(socialData||[]).forEach(log=>logs.set(log.id, log))
+        setXpLogs([...logs.values()].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)))
       }catch(e){ console.warn('xp logs:', e.message) }
     }
     try{
@@ -779,6 +784,15 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
     if(error) throw error
     await refreshXp()
     await refreshProgress()
+    return data
+  }
+
+  const claimSocialFollow = async (network)=>{
+    if(!cloud || !user?.cloud) throw new Error('login')
+    if(!['instagram','youtube','facebook'].includes(network)) throw new Error('network')
+    const { data, error } = await supabase.rpc('claim_social_follow', { p_network: network })
+    if(error) throw error
+    await refreshXp()
     return data
   }
 
@@ -1884,7 +1898,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
 
   return <AuthCtx.Provider value={{user, setUser, cloud, needsDbGrant, refreshAll, refreshMessages: refreshCloudMessages, login, loginAdmin, loginWithEmail, signupWithEmail, sendPasswordReset, updatePassword, loginWithDiscord, loginWithFacebook, logout, orders, myOrders, allAccounts, addOrder, retryOrder, updateOrderStatus, deleteOrder, deleteAccount, messages, sendMessage, markThreadRead, myThread, adminThreads, tournaments, regs, saveTournament, deleteTournament, registerTournament,
     deleteReg, regsFor, myRegs, myTeams, registerMyTeam, addTeamManual, updateTeamLogo, updateTeamIdentity, updateTeamInfo, saveTeamRoster, checkInTeam, teams, createTeam, deleteTeam, updateProfile, saveMyGames, teamAssets, saveTeamAsset, teamInfos, saveTeamExtras, profileAssets, refreshProfileAssets, VIP_PRICE, VIP_DISCOUNT, isVipActive, vipSubs, myVipSub, createVipSub, confirmVipSub, rejectVipSub, COIN_RATE, CASHBACK_RATE, recharges, myRecharges, createRecharge, confirmRecharge, rejectRecharge, refreshMyBalance, creditBalance, spendBalance, joinReqs, joinReqsFor, myJoinReqs, requestJoinTeam, updateJoinReq, products, setProducts, saveProducts,
-    xpLogs, rewardClaims, xpOf, awardXp, claimReward, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, linkDiscord, unlinkDiscord, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission,
+    xpLogs, rewardClaims, xpOf, awardXp, claimReward, claimSocialFollow, decideReward, inviteLink, refreshXp, linkRiot, unlinkRiot, linkDiscord, unlinkDiscord, notifications, notifReady, unreadNotifications, refreshNotifications, markNotifRead, markAllNotifsRead, badges, dailyClaims, progressReady, refreshProgress, dailyCheckin, claimMission,
     lfgPosts, refreshLfg, createLfgPost, closeLfgPost, deleteLfgPost, matchReports, refreshMatchReports, submitMatchReport, decideMatchReport, deleteMatchReport}}>{children}</AuthCtx.Provider>
 }
 export const useAuth = ()=> useContext(AuthCtx)
