@@ -16,13 +16,13 @@ export default function Navbar({ onBurger }){
   const { lang, setLang, t } = useLang()
   const nav = useNavigate()
   const [q, setQ] = useState('')
-  const logoUrl = `${import.meta.env.BASE_URL}ztc-gaming-logo.png`
+  const logoUrl = `${import.meta.env.BASE_URL}ztc-gaming-logo.jpg`
   const goSearch = (e)=>{ e.preventDefault(); nav(`/catalog?q=${encodeURIComponent(q.trim())}`) }
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-[#0a0a0c]/90 border-b border-white/10">
       <div className="max-w-[1760px] mx-auto px-2 sm:px-4 h-16 flex items-center gap-2 sm:gap-3">
         <Link to="/" className="flex items-center gap-2 font-black text-xl tracking-tight">
-          <img src={logoUrl} alt="ZTC-GAMING" className="w-10 h-10 rounded-xl object-cover border border-amber-300/40"/>
+          <img src={logoUrl} alt="ZTC-GAMING" className="w-12 h-12 rounded-xl object-cover border border-amber-300/40"/>
           <span className="hidden sm:inline font-display text-2xl tracking-wide nav-brand">ZTC-GAMING</span>
         </Link>
         <button onClick={onBurger} className="lg:hidden p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10" aria-label="Menu">

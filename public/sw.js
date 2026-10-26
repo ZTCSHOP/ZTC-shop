@@ -1,6 +1,6 @@
 /* ZTC-GAMING — Service Worker (PWA offline de base) */
-const CACHE = 'ztc-v3'
-const SHELL = ['./', './index.html', './manifest.webmanifest', './ztc-gaming-logo.png']
+const CACHE = 'ztc-v4'
+const SHELL = ['./', './index.html', './manifest.webmanifest', './ztc-gaming-logo.jpg']
 
 self.addEventListener('install', (e)=>{
   e.waitUntil(
@@ -57,8 +57,8 @@ self.addEventListener('push', (e)=>{
   e.waitUntil(
     self.registration.showNotification(d.title || 'ZTC-GAMING', {
       body: d.body || 'Nouveau message',
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
+      icon: './ztc-gaming-logo.jpg',
+      badge: './ztc-gaming-logo.jpg',
       data: { url: d.url || './' },
     })
   )
