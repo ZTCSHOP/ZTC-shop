@@ -16,14 +16,14 @@ export default function Navbar({ onBurger }){
   const { lang, setLang, t } = useLang()
   const nav = useNavigate()
   const [q, setQ] = useState('')
-  const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`
+  const logoUrl = `${import.meta.env.BASE_URL}ztc-gaming-logo.png`
   const goSearch = (e)=>{ e.preventDefault(); nav(`/catalog?q=${encodeURIComponent(q.trim())}`) }
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-[#0a0a0c]/90 border-b border-white/10">
-      <div className="max-w-[1760px] mx-auto px-4 h-16 flex items-center gap-3">
+      <div className="max-w-[1760px] mx-auto px-2 sm:px-4 h-16 flex items-center gap-2 sm:gap-3">
         <Link to="/" className="flex items-center gap-2 font-black text-xl tracking-tight">
-          <img src={logoUrl} alt="ZTC Shop" className="w-10 h-10 rounded-xl object-cover bg-white p-0.5 border border-white/20"/>
-          <span className="hidden sm:inline font-display text-2xl tracking-wide">ZTC<span className="text-lime-400"> SHOP</span></span>
+          <img src={logoUrl} alt="ZTC-GAMING" className="w-10 h-10 rounded-xl object-cover border border-amber-300/40"/>
+          <span className="hidden sm:inline font-display text-2xl tracking-wide nav-brand">ZTC-GAMING</span>
         </Link>
         <button onClick={onBurger} className="lg:hidden p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10" aria-label="Menu">
           <Menu size={18}/>
@@ -34,25 +34,25 @@ export default function Navbar({ onBurger }){
         </form>
         <div className="flex-1 md:hidden" />
         {/* Tournois + Équipes + Support */}
-        <Link to="/teams" title={t('teams')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
-          <Shield size={16} className="text-[#f6e2a6]"/> {t('teams')}
+        <Link to="/teams" title="Teams" className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Shield size={16}/> Teams
         </Link>
-        <Link to="/tournaments" title={t('tournaments')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
-          <Trophy size={16} className="text-[#f6e2a6]"/> {t('tournaments')}
+        <Link to="/tournaments" title="Tournaments" className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Trophy size={16}/> Tournaments
         </Link>
-        <Link to="/recrutement" title={t('recrutement')} className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
-          <Gamepad2 size={16} className="text-[#f6e2a6]"/> {t('recrutement')}
+        <Link to="/recrutement" title="E-Sports" className="nav-gold hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold">
+          <Gamepad2 size={16}/> E-Sports
         </Link>
-        <Link to="/support" title={t('support')}
-          className="nav-gold relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-black">
-          <MessageCircle size={17} className="text-[#f6e2a6] animate-support-bounce"/>
-          <span className="hidden sm:inline">{t('support')}</span>
+        <Link to="/support" title="Support"
+          className="nav-gold relative flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl text-sm font-black">
+          <MessageCircle size={17} className="animate-support-bounce"/>
+          <span className="hidden sm:inline">Support</span>
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c] animate-ping"/>
           <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0a0a0c]"/>
         </Link>
         {/* Lang switcher : compact, se déploie au survol de la souris */}
         <div className="relative group">
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-black" aria-label={t('st_lang')}>
+          <button className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-black" aria-label={t('st_lang')}>
             <Globe size={15} className="text-lime-400"/>
             <span>{lang.toUpperCase()}</span>
             <ChevronDown size={13} className="text-white/50 transition-transform group-hover:rotate-180"/>
@@ -81,7 +81,7 @@ export default function Navbar({ onBurger }){
             <ProfileMenu />
           </div>
         ) : (
-          <Link to="/login" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-sm font-bold">
+          <Link to="/login" className="flex items-center gap-2 px-2 sm:px-4 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-sm font-bold">
             <User size={16}/> {t('login')}
           </Link>
         )}
@@ -96,13 +96,13 @@ export default function Navbar({ onBurger }){
       <div className="sm:hidden border-t border-white/10">
         <div className="px-4 py-2 flex gap-2 overflow-x-auto">
           <Link to="/teams" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
-            <Shield size={14} className="text-[#f6e2a6]"/> {t('teams')}
+            <Shield size={14}/> Teams
           </Link>
           <Link to="/tournaments" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
-            <Trophy size={14} className="text-[#f6e2a6]"/> {t('tournaments')}
+            <Trophy size={14}/> Tournaments
           </Link>
           <Link to="/recrutement" className="nav-gold flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap">
-            <Gamepad2 size={14} className="text-[#f6e2a6]"/> {t('recrutement')}
+            <Gamepad2 size={14}/> E-Sports
           </Link>
         </div>
       </div>

@@ -15,7 +15,7 @@ export const TPL = {
 // Le site continue de marcher même sans EmailJS configuré (no-op silencieux)
 export const emailReady = !!(SERVICE_ID && PUBLIC_KEY)
 
-const SHOP = 'ZTC Shop'
+const SHOP = 'ZTC-GAMING'
 
 export async function sendEmail(templateId, params){
   if(!emailReady || !templateId) return { skipped: true }

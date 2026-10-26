@@ -247,7 +247,7 @@ export function ReferralPanel(){
   const copy = async ()=>{
     try{ await navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(()=>setCopied(false), 2000) }catch{}
   }
-  const share = `https://wa.me/?text=${encodeURIComponent('Rejoins ZTC Shop 🎮 ' + inviteLink)}`
+  const share = `https://wa.me/?text=${encodeURIComponent('Rejoins ZTC-GAMING 🎮 ' + inviteLink)}`
 
   return (
     <div className="grid gap-4">

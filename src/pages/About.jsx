@@ -29,7 +29,7 @@ export default function About(){
     <div className="max-w-[1000px] mx-auto px-4 py-10">
       <div className="text-center reveal">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-lime-400/15 border border-lime-400/30 text-xs text-lime-300 mb-4">
-          <Zap size={14}/> ZTC SHOP • ZOMRA TN
+          <Zap size={14}/> ZTC-GAMING • ZOMRA TN
         </div>
         <h1 className="text-3xl md:text-5xl font-black tracking-tight">{t('about_title')}</h1>
         <p className="text-white/60 mt-3 max-w-2xl mx-auto">{t('about_sub')}</p>

@@ -1,7 +1,7 @@
 {
-  "name": "ZTC Shop — Gift Cards Gaming & Streaming",
-  "short_name": "ZTC Shop",
-  "description": "Cartes cadeaux gaming & streaming en dinars : Valorant, LoL, FC, PUBG, Netflix et plus. Livraison instantanée 24/7.",
+  "name": "ZTC-GAMING — Gaming & Esports",
+  "short_name": "ZTC-GAMING",
+  "description": "Gaming & esports in Tunisia: tournaments, teams, gaming gifts and more.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

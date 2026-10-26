@@ -1820,7 +1820,7 @@ useEffect(()=> localStorage.setItem('ztc_teams', JSON.stringify(teams.filter(x=>
           const preview = isImageValue(clean) ? '📷 Photo' : clean.slice(0, 120)
           supabase.functions.invoke('push-message', {
             body: isAdminMsg
-              ? { senderId: user.cloud ? user.id : null, senderName: user.name || 'ZTC Shop', text: preview, targetUserId: threadUserId }
+              ? { senderId: user.cloud ? user.id : null, senderName: user.name || 'ZTC-GAMING', text: preview, targetUserId: threadUserId }
               : { senderId: user.cloud ? user.id : null, senderName: msg.name, text: preview, toAdmins: true },
           }).catch(()=>{})
         }catch{}

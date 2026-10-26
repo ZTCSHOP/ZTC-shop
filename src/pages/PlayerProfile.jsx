@@ -171,7 +171,7 @@ export default function PlayerProfile(){
             return <Link key={r.id} to={tr?`/tournaments/${tr.id}`:'/tournaments'} className="rounded-2xl bg-white/5 border border-white/10 p-3 hover:border-amber-500/50"><div className="font-bold text-sm">🏆 {tr?.title||r.tournament_id}</div><div className="text-[11px] text-white/50">🛡️ {r.team}</div></Link>
           })}</div>}
 
-      <div className="mt-6 text-xs text-white/30 flex items-center gap-1"><Swords size={12}/> ZTC Shop</div>
+      <div className="mt-6 text-xs text-white/30 flex items-center gap-1"><Swords size={12}/> ZTC-GAMING</div>
     </div>
   )
 }

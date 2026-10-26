@@ -67,23 +67,62 @@
 body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #060509; color: #e5e7eb; }
 .font-display { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; }
 
-/* Boutons de nav dorés : reflet + halo animés discrets */
-@keyframes nav-gold-shift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+/* Navigation en or métallique texturé avec reflet animé */
 @keyframes nav-gold-glow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(223,174,53,0), inset 0 0 16px rgba(223,174,53,.05); }
-  50% { box-shadow: 0 0 20px -6px rgba(233,194,88,.5), inset 0 0 20px rgba(223,174,53,.12); }
+  0%,100% { box-shadow: inset 0 0 12px rgba(64,35,0,.3), 0 0 0 rgba(255,205,92,0); }
+  50% { box-shadow: inset 0 0 18px rgba(255,235,170,.24), 0 0 18px -8px rgba(255,205,92,.7); }
 }
+@keyframes nav-gold-shine { to { transform: translateX(180%) skewX(-18deg); } }
 .nav-gold {
-  color: #fff;
-  background-color: rgba(120,84,16,.30);
-  background-image: linear-gradient(110deg, rgba(223,174,53,.35), rgba(255,232,166,.28) 30%, rgba(196,145,27,.30) 60%, rgba(223,174,53,.35));
-  background-size: 250% 100%;
-  border: 1px solid rgba(233,194,88,.50);
-  animation: nav-gold-shift 6s linear infinite, nav-gold-glow 3.8s ease-in-out infinite;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff4cf;
+  background-color: #8a5a0c;
+  background-image: linear-gradient(115deg, rgba(59,35,3,.72), rgba(255,215,112,.22) 35%, rgba(99,58,2,.56) 68%, rgba(255,225,139,.18)), url('./gold-texture.jpg');
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(255,220,133,.72);
+  animation: nav-gold-glow 3.8s ease-in-out infinite;
   transition: filter .2s, transform .2s, border-color .2s;
 }
-.nav-gold:hover { filter: brightness(1.15); border-color: rgba(240,218,142,.8); }
+.nav-gold::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: -40%;
+  bottom: -40%;
+  left: -45%;
+  width: 34%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,226,.55), transparent);
+  filter: blur(2px);
+  animation: nav-gold-shine 4.8s ease-in-out infinite;
+}
+.nav-gold > * { position: relative; z-index: 1; }
+.nav-gold svg { color: #fff0b5; }
+.nav-gold:hover { filter: brightness(1.18) saturate(1.08); border-color: #fff0b5; }
 .nav-gold:active { transform: scale(.97); }
+.nav-brand {
+  color: #f5d88e;
+  text-shadow: 0 0 16px rgba(232,182,65,.38);
+}
+
+.cursor-glow {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 60px;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(219,153,255,.2) 0%, rgba(238,89,202,.12) 32%, rgba(124,58,237,.07) 52%, transparent 76%);
+  filter: blur(3px);
+  transition: opacity .2s ease, transform .09s ease-out;
+}
+.cursor-glow.is-visible { opacity: 1; }
 
 /* Bouton support : anneau pulsant + flottement pour attirer l'œil */
 @keyframes support-ring {
@@ -117,7 +156,7 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #
 .cat-pill:active { transform: scale(.88); }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav-gold, .anim-glow::before, .animate-support-ring, .animate-support-bounce,
+  .nav-gold, .nav-gold::before, .cursor-glow, .anim-glow::before, .animate-support-ring, .animate-support-bounce,
   .marquee-track, .blob, .reveal, .badge-pop, .btn-shine::after,
   .slide-zoom-a, .slide-zoom-b,
   .soc-jump, .soc-sway, .soc-pulse, .soc-wiggle, .soc-insta-bg { animation: none !important; }

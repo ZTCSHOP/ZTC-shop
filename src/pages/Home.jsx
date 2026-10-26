@@ -35,7 +35,7 @@ export default function Home(){
               <Zap size={14}/> {t('home_badge')}
             </div>
             <h1 className="font-display text-6xl md:text-8xl font-bold leading-[0.85] tracking-tight uppercase">
-              ZTC Shop<br/>
+              ZTC-GAMING<br/>
               <span className="bg-gradient-to-r from-[#b9c7ff] via-[#6f8bff] to-[#3f56e8] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(76,104,255,.35)]">gift cards</span><br/>
               gaming & streaming
             </h1>

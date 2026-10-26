@@ -20,9 +20,9 @@ export default function InstallPWA(){
 
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-xs z-50 rounded-2xl bg-[#14141c]/95 backdrop-blur border border-lime-400/30 p-3.5 shadow-2xl flex items-center gap-3">
-      <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="ZTC" className="w-11 h-11 rounded-xl object-cover bg-white shrink-0"/>
+      <img src={`${import.meta.env.BASE_URL}ztc-gaming-logo.png`} alt="ZTC-GAMING" className="w-11 h-11 rounded-xl object-cover shrink-0"/>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-black">ZTC Shop</div>
+        <div className="text-sm font-black">ZTC-GAMING</div>
         <div className="text-xs text-white/60">{t('pwa_install_d')}</div>
       </div>
       <button
