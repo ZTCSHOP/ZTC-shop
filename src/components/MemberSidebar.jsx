@@ -49,11 +49,11 @@ export default function MemberSidebar({ active = 'profile' }){
           <div className="relative w-20 h-20 mx-auto">
             {user.avatar
               ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-20 h-20 rounded-full object-cover ring-2 ring-lime-400/70 ring-offset-2 ring-offset-[#0c0d13]"/>
-              : <div className={`w-20 h-20 rounded-full ring-2 ring-lime-400/70 ring-offset-2 ring-offset-[#0c0d13] ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-2xl text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
+              : <div className={`w-20 h-20 rounded-full ring-2 ring-lime-400/70 ring-offset-2 ring-offset-[#0c0d13] ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-2xl text-black`}>{(user.name||'?')[0].toUpperCase()}</div>}
             <span className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0c0d13]"/>
           </div>
           <div className="mt-2 font-black text-lg truncate flex items-center justify-center gap-1.5">
-            {user.name || user.email || 'Joueur'}
+            {user.name || 'Joueur'}
             {vip && <Crown size={15} className="text-amber-300 shrink-0"/>}
           </div>
           <div className="mt-1.5">

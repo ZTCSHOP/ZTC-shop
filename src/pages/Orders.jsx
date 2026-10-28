@@ -15,7 +15,7 @@ export default function Orders(){
     <div className="max-w-[1000px] mx-auto px-4 py-8">
       <Link to="/profile" className="inline-flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-lime-300 mb-2">← {t('dash_title')||'Mon Espace Membre'}</Link>
       <h1 className="font-display text-4xl font-bold uppercase tracking-wide">{t('profile')}</h1>
-      <p className="text-sm text-white/50">{user.provider}{user.email? ` • ${user.email}`: user.principal? ` • ${user.principal}`:''}</p>
+      <p className="text-sm text-white/50">{user.provider}</p>
       <div className="mt-6"><VipCard /></div>
       <div className="mt-6"><XpRewards /></div>
       <div className="mt-6"><RiotCard /></div>

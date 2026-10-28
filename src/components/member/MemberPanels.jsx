@@ -82,7 +82,7 @@ export function ProfileSettings({ hideHeader = false }){
           <div className="w-[180px] h-[180px] rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
             {user.avatar
               ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover"/>
-              : <span className="text-5xl font-black text-white/20">{(user.name||user.email||'?')[0].toUpperCase()}</span>}
+              : <span className="text-5xl font-black text-white/20">{(user.name||'?')[0].toUpperCase()}</span>}
           </div>
           <div className="mt-3 flex gap-2 w-[180px]">
             <label className={btnUp}>⬆ <span className="text-xs">Upload</span><input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; e.target.value=''; imgToData(f, 400, 400, async (d)=>{ try{ const url = await uploadImage(d, 'avatars'); await updateProfile({ avatar: url }); setMsg('✓') }catch(e){ saveMsg(e) } }) }}/></label>
@@ -121,7 +121,6 @@ export function ProfileSettings({ hideHeader = false }){
         <select value={gender} onChange={e=>setGender(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-black/30 border border-white/10 text-sm focus:outline-none focus:border-lime-400">
           <option value="">—</option><option value="male">{t('pm_male')||'Homme'}</option><option value="female">{t('pm_female')||'Femme'}</option>
         </select></div>
-        <div className="text-xs text-white/50 px-1 self-center truncate">{user.email||''}</div>
         <button disabled={busy} className="px-5 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-sm font-black disabled:opacity-60">{busy ? '...' : (t('pm_save')||'Enregistrer')}</button>
       </form>
       {msg && <div className="mt-2 text-xs text-lime-300">{msg}</div>}
@@ -275,7 +274,7 @@ export function OrdersList(){
               <div className="font-bold">{o.id} • {new Date(o.date).toLocaleString()}</div>
               <span className={`text-xs px-2 py-1 rounded-full font-bold border ${badge(o.status)}`}>{o.status}</span>
             </div>
-            <div className="text-sm text-white/60 mt-1">{o.items.length} article(s) • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':o.method==='d17'?'D17':o.method==='wallet'?'Wallet 🪙':'À la livraison'}{o.customer?.phone? ` • 📞 ${o.customer.phone}`:''}</div>
+            <div className="text-sm text-white/60 mt-1">{o.items.length} article(s) • {o.total.toFixed(2)} TND • {o.method==='card'?'Carte':o.method==='d17'?'D17':o.method==='wallet'?'Wallet 🪙':'À la livraison'}</div>
           </Link>
           {o.syncError && (
             <div className="mt-2 flex items-center gap-2 text-xs">

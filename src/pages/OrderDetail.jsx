@@ -6,9 +6,11 @@ import { useLang } from '../context/LanguageContext'
 
 export default function OrderDetail(){
   const { id } = useParams()
-  const { orders } = useAuth()
+  const { user, orders, myOrders } = useAuth()
   const { t } = useLang()
-  const order = orders.find(o=> o.id===id)
+  const order = user?.isAdmin
+    ? orders.find(o=> o.id===id)
+    : myOrders().find(o=> o.id===id)
   const [revealed, setRevealed] = useState({})
   const [copied, setCopied] = useState(null)
 
@@ -31,7 +33,6 @@ export default function OrderDetail(){
         </div>
         <div className="text-sm text-white/50 mt-1">{new Date(order.date).toLocaleString('fr-FR')} • {order.method==='card'?'Payée par carte':order.method==='d17'?'Payée via D17':order.method==='wallet'?'Payée en coins (wallet)':'Payer à la livraison'} • {order.total.toFixed(2)} TND</div>
         {order.customer?.cashback > 0 && <div className="text-xs font-bold text-amber-300 mt-1">🎁 {t('wal_cashback_got')} +{Number(order.customer.cashback).toFixed(2)} 🪙</div>}
-        <div className="text-xs text-white/50 mt-1">Client: {order.customer.name} • {order.customer.email}{order.customer.phone? ` • 📞 ${order.customer.phone}`:''}</div>
       </div>
 
       {!confirmed ? (

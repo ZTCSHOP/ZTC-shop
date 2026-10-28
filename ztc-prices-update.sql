@@ -1,11 +1,21 @@
 -- ============================================================
--- ZTC-SHOP — Mise à jour prix € + nouveau Battle.net
+-- ZTC-SHOP — Mise à jour prix + nouveau Battle.net
 -- Supabase (projet ztc) > SQL Editor > New query > coller > Run
 -- ============================================================
 
--- LoL : cartes €
-update public.products set subtitle = 'Cartes € • Europe',
-variants = '[{"id":"lol-eu10","label":"Carte 10€","price":38},{"id":"lol-eu15","label":"Carte 15€","price":59},{"id":"lol-eu20","label":"Carte 20€","price":78},{"id":"lol-eu25","label":"Carte 25€","price":96},{"id":"lol-eu35","label":"Carte 35€","price":135},{"id":"lol-eu50","label":"Carte 50€","price":195},{"id":"lol-eu100","label":"Carte 100€","price":380}]'::jsonb
+-- Valorant Gift Cards
+update public.products set
+name = 'Valorant Gift Cards',
+subtitle = 'Cartes € • Europe',
+variants = '[{"id":"val-eu10","label":"Carte 10€","price":41},{"id":"val-eu15","label":"Carte 15€","price":61},{"id":"val-eu20","label":"Carte 20€","price":82},{"id":"val-eu25","label":"Carte 25€","price":105},{"id":"val-eu30","label":"Carte 30€","price":122},{"id":"val-eu35","label":"Carte 35€","price":142},{"id":"val-eu50","label":"Carte 50€","price":200}]'::jsonb
+where id = 'val-1';
+
+-- LoL : recharge RP
+update public.products set
+name = 'League of Legends TOP-UP',
+subtitle = 'RP • Recharge League of Legends',
+description = 'Recharge ton compte League of Legends avec le pack RP de ton choix.',
+variants = '[{"id":"lol-rp575","label":"575 RP","price":21},{"id":"lol-rp1380","label":"1380 RP","price":42},{"id":"lol-rp1955","label":"1955 RP","price":67},{"id":"lol-rp2800","label":"2800 RP","price":90},{"id":"lol-rp3375","label":"3375 RP","price":110},{"id":"lol-rp4500","label":"4500 RP","price":140},{"id":"lol-rp6500","label":"6500 RP","price":205},{"id":"lol-rp13500","label":"13500 RP","price":400}]'::jsonb
 where id = 'lol-1';
 
 -- Steam : wallet €

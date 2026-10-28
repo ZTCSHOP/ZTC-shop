@@ -15,6 +15,16 @@ import PushBell from '../components/PushBell'
 import AdminApplications from '../components/AdminApplications'
 import { getDiscordWebhook, setDiscordWebhook, discordNotify } from '../lib/discord'
 
+const orderWhatsAppUrl = (order)=>{
+  let phone = String(order.customer?.phone||'').replace(/\D/g, '')
+  if(phone.startsWith('00')) phone = phone.slice(2)
+  if(phone.length===8) phone = `216${phone}`
+  else if(phone.length===9 && phone.startsWith('0')) phone = `216${phone.slice(1)}`
+  if(!phone) return null
+  const message = `Bonjour ${order.customer?.name||''}, je vous contacte au sujet de votre commande ${order.id} (${Number(order.total||0).toFixed(2)} TND). Statut : ${order.status}. — ZTC-GAMING`
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+}
+
 export default function Admin(){
   const [heroUrl, setHeroUrl] = useState(()=> getHeroVideoRaw())
   const [discUrl, setDiscUrl] = useState(()=> getDiscordWebhook())
@@ -157,7 +167,7 @@ export default function Admin(){
   const sendDirectMsg = async ()=>{
     if(!msgTarget || !msgText.trim()) return
     try{
-      await sendMessage({ text: msgText.trim(), toUserId: msgTarget.id })
+      await sendMessage({ text: msgText.trim(), toUserId: msgTarget.id, orderId: msgTarget.orderId||null })
       setMsgSent(`Message envoyé à ${msgTarget.name||msgTarget.email||'ce compte'} ✓`)
       setMsgText('')
     }catch{ setMsgSent("Échec d'envoi — réessaie.") }
@@ -182,6 +192,21 @@ export default function Admin(){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
   const accounts = allAccounts()
+  const orderRecipient = (order)=>{
+    const email = String(order.customer?.email||'').trim().toLowerCase()
+    if(order.userId && order.userId!==user.id){
+      const account = accounts.find(a=>a.id===order.userId)
+      if(account?.isAdmin) return null
+      return { id: order.userId, name: account?.name||order.customer?.name, email: account?.email||email }
+    }
+    if(!email) return null
+    const account = accounts.find(a=>
+      !a.isAdmin && a.id!==user.id &&
+      String(a.email||'').trim().toLowerCase()===email &&
+      String(a.id).toLowerCase()!==email
+    )
+    return account ? { id: account.id, name: account.name||order.customer?.name, email: account.email } : null
+  }
   const visibleAccounts = qUser
     ? accounts.filter(a=> ((a.name||'')+' '+(a.email||'')+' '+(a.phones||[]).join(' ')+' '+(a.provider||'')).toLowerCase().includes(qUser.toLowerCase()))
     : accounts
@@ -294,6 +319,22 @@ export default function Admin(){
         <button onClick={initIfNeeded} className="ml-auto text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10">Réinitialiser DB démo</button>
       </div>
 
+      {msgTarget && !msgTarget.orderId && (
+        <div className="mt-4 rounded-2xl bg-lime-400/10 border border-lime-400/30 p-4">
+          <div className="flex items-center gap-2 text-sm font-black">
+            <MessageCircle size={15} className="text-lime-300"/> Message direct à <span className="text-lime-300">{msgTarget.name||msgTarget.email||msgTarget.id}</span>
+            {msgTarget.orderId && <span className="text-white/50">• {msgTarget.orderId}</span>}
+            <button onClick={()=>{ setMsgTarget(null); setMsgText(''); setMsgSent('') }} className="ml-auto p-1.5 rounded-lg bg-white/10 hover:bg-white/20"><X size={13}/></button>
+          </div>
+          <textarea value={msgText} onChange={e=>setMsgText(e.target.value)} rows="3" placeholder="Écris ton message..." className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-sm focus:outline-none focus:border-lime-500"/>
+          {msgSent && <div className="mt-2 text-xs text-lime-300">{msgSent}</div>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={sendDirectMsg} disabled={!msgText.trim()} className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60"><Send size={14}/> Envoyer</button>
+            {msgSent.includes('✓') && <button onClick={()=>{ setTab('messages'); openThread(msgTarget.id) }} className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-bold">Ouvrir la conversation →</button>}
+          </div>
+        </div>
+      )}
+
       {tab==='products' && (
         <div className="mt-6">
           <div className="rounded-2xl bg-white/5 border border-white/10 p-4 grid md:grid-cols-5 gap-3">
@@ -387,6 +428,25 @@ export default function Admin(){
                 </div>
                 <div className="text-xs mt-2 bg-black/30 rounded-xl p-2.5 border border-white/5">{o.items.map(i=> `${i.name} (${i.variantLabel}) ×${i.qty} → ${i.code}`).join(' | ')}</div>
                 <div className="flex flex-wrap gap-2 mt-3">
+                  {orderRecipient(o) ? (
+                    <button onClick={()=>{
+                      if(msgTarget?.orderId===o.id){ setMsgTarget(null); setMsgText(''); setMsgSent(''); return }
+                      setMsgTarget({ ...orderRecipient(o), orderId:o.id })
+                      setMsgText('')
+                      setMsgSent('')
+                    }} className="px-4 py-2 rounded-xl bg-lime-400/20 hover:bg-lime-400/30 text-lime-200 text-xs font-black flex items-center gap-1.5">
+                      <MessageCircle size={14}/> {msgTarget?.orderId===o.id ? 'Fermer' : 'Contacter le client'}
+                    </button>
+                  ) : (
+                    <span title="Cette commande n'est liée à aucun compte client pouvant recevoir un message interne." className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-bold flex items-center gap-1.5">
+                      <MessageCircle size={14}/> Compte client non lié
+                    </span>
+                  )}
+                  {orderWhatsAppUrl(o) && (
+                    <a href={orderWhatsAppUrl(o)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl bg-[#25D366]/90 hover:bg-[#25D366] text-black text-xs font-black flex items-center gap-1.5">
+                      <MessageCircle size={14}/> WhatsApp
+                    </a>
+                  )}
                   {isPending(o) && (
                     <button onClick={()=>updateOrderStatus(o.id,'Confirmée • Codes disponibles')} className="px-4 py-2 rounded-xl bg-emerald-600 text-xs font-black flex items-center gap-1.5"><Check size={14}/> Confirmer la commande</button>
                   )}
@@ -394,6 +454,19 @@ export default function Admin(){
                   <button onClick={()=>updateOrderStatus(o.id,'Livrée')} className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-xs flex items-center gap-1"><Truck size={12}/> Livrée</button>
                   <button onClick={()=>updateOrderStatus(o.id,'Annulée')} className="px-3 py-2 rounded-xl bg-red-500/20 text-red-300 text-xs flex items-center gap-1"><X size={12}/> Annuler</button>
                 </div>
+                {msgTarget?.orderId===o.id && (
+                  <div className="mt-4 rounded-2xl bg-lime-400/10 border border-lime-400/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-black">
+                      <MessageCircle size={15} className="text-lime-300"/> Message à {msgTarget.name||msgTarget.email||'ce client'} <span className="text-white/50">• {o.id}</span>
+                    </div>
+                    <textarea value={msgText} onChange={e=>setMsgText(e.target.value)} rows="3" placeholder="Écris ton message..." className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-sm focus:outline-none focus:border-lime-500"/>
+                    {msgSent && <div className="mt-2 text-xs text-lime-300">{msgSent}</div>}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button onClick={sendDirectMsg} disabled={!msgText.trim()} className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60"><Send size={14}/> Envoyer</button>
+                      {msgSent.includes('✓') && <button onClick={()=>{ setTab('messages'); openThread(msgTarget.id) }} className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-bold">Ouvrir la conversation →</button>}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -407,20 +480,6 @@ export default function Admin(){
             <input value={qUser} onChange={e=>setQUser(e.target.value)} placeholder="Rechercher nom, email, téléphone..." className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:outline-none focus:border-lime-500/50 text-sm"/>
           </div>
           <p className="text-xs text-white/40 mt-2">Chaque compte créé sur le site (email, Discord, Facebook) + infos de ses commandes. Tu peux aussi écrire directement à n’importe quel compte via 💬.</p>
-          {msgTarget && (
-            <div className="mt-4 rounded-2xl bg-lime-400/10 border border-lime-400/30 p-4">
-              <div className="flex items-center gap-2 text-sm font-black">
-                <MessageCircle size={15} className="text-lime-300"/> Message direct à <span className="text-lime-300">{msgTarget.name||msgTarget.email||msgTarget.id}</span>
-                <button onClick={()=>{ setMsgTarget(null); setMsgText(''); setMsgSent('') }} className="ml-auto p-1.5 rounded-lg bg-white/10 hover:bg-white/20"><X size={13}/></button>
-              </div>
-              <textarea value={msgText} onChange={e=>setMsgText(e.target.value)} rows="3" placeholder="Écris ton message (promo, rappel tournoi, support...)..." className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/10 text-sm focus:outline-none focus:border-lime-500"/>
-              {msgSent && <div className="mt-2 text-xs text-lime-300">{msgSent}</div>}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button onClick={sendDirectMsg} disabled={!msgText.trim()} className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-black text-sm flex items-center gap-1.5 disabled:opacity-60"><Send size={14}/> Envoyer</button>
-                {msgSent.includes('✓') && <button onClick={()=>{ setTab('messages'); openThread(msgTarget.id) }} className="px-4 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm font-bold">Ouvrir la conversation →</button>}
-              </div>
-            </div>
-          )}
           <div className="mt-4 grid md:grid-cols-2 gap-3">
             {visibleAccounts.map(a=>(
               <div key={a.id} className="p-4 rounded-2xl bg-white/5 border border-white/10">
