@@ -41,7 +41,12 @@ export default function Home(){
   const { level, cur, need } = levelProgress(xp)
   const progress = need > 0 ? Math.min(100, Math.round(cur / need * 100)) : 0
   const activeOrders = userOrders.slice(0, 3)
-  const games = featuredGames.map(id => GAMES.find(game => game.id === id)).filter(Boolean)
+  const games = featuredGames
+    .map(id => GAMES.find(game => game.id === id))
+    .filter(Boolean)
+    .map(game => game.id === 'tekken8'
+      ? { ...game, image: 'https://cdn.cloudflare.steamstatic.com/steam/apps/1778820/header.jpg' }
+      : game)
 
   return (
     <main className="ztc-dashboard min-h-[calc(100vh-64px)] bg-[#f5f6f8] px-4 py-5 text-[#17191d] sm:px-6 lg:px-7">
@@ -86,13 +91,18 @@ export default function Home(){
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
               {games.map(game=>(
-                <Link key={game.id} to={`/tournaments?game=${game.id}`} className="group relative flex h-[92px] items-center justify-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(27,31,38,.035)] transition hover:-translate-y-0.5 hover:border-[#d3b36c] hover:shadow-md sm:h-[102px]">
-                  {game.image && <img src={game.image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-[.14] transition group-hover:opacity-25"/>}
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/55 to-white/35"/>
-                  <div className="relative flex flex-col items-center gap-1.5 px-2 text-center">
-                    <span className="text-2xl" aria-hidden="true">{game.icon}</span>
-                    <span className="text-[9px] font-black uppercase leading-tight tracking-wide text-[#30343b] sm:text-[10px]">{game.short}</span>
-                  </div>
+                <Link key={game.id} to={`/tournaments?game=${game.id}`} aria-label={game.label} className="group relative aspect-[1.08] overflow-hidden rounded-xl border border-[#e5e7eb] bg-[#17191d] shadow-[0_2px_8px_rgba(27,31,38,.08)] transition hover:-translate-y-0.5 hover:border-[#d3b36c] hover:shadow-md">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${game.tint} via-[#10182b] to-[#080d18]`}/>
+                  {game.image && <img
+                    src={game.image}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className={`absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105 ${game.id === 'valorant' ? 'object-[50%_25%] opacity-80' : 'opacity-75'}`}
+                    onError={event => { event.currentTarget.style.display = 'none' }}
+                  />}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-black/5"/>
+                  <span className="absolute inset-x-2 bottom-2 text-left text-[10px] font-black uppercase leading-tight tracking-wide text-white drop-shadow sm:text-xs">{game.short}</span>
                 </Link>
               ))}
             </div>
