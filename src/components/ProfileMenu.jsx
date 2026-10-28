@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { User, Trophy, Shield, Wallet, ShoppingBag, Settings, Flag, LogOut, Crown, Gift, Gamepad2, Bell, UserPlus, Target, Award, BarChart3 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -10,6 +10,8 @@ const providerColor = { email:'bg-emerald-500', discord:'bg-[#5865F2]', facebook
 export default function ProfileMenu(){
   const { user, logout, myOrders, myRegs, myTeams, isVipActive, unreadNotifications } = useAuth()
   const { t } = useLang()
+  const { pathname } = useLocation()
+  const dashboard = pathname === '/'
   const [open, setOpen] = useState(false)
   if(!user) return null
 
@@ -19,7 +21,6 @@ export default function ProfileMenu(){
   const teamNames = new Set([...owTeams.map(x=>x.name), ...regs.map(r=>r.team)].filter(Boolean))
   const xp = user.xp != null ? Number(user.xp) : xpForActivity({ orders: orders.length, regs: regs.length, teams: owTeams.length })
   const { level, cur, need } = levelProgress(xp)
-  const phone = user.phone || orders[0]?.customer?.phone || ''
   const pct = Math.min(100, Math.round((cur / need) * 100))
 
   const rows = [
@@ -41,16 +42,16 @@ export default function ProfileMenu(){
 
   return (
     <div className="relative hidden lg:block" onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)}>
-      <button onClick={()=>setOpen(o=>!o)} className="flex items-center gap-2 hover:bg-white/5 rounded-xl px-1 py-1">
+      <button onClick={()=>setOpen(o=>!o)} className={`flex items-center gap-2 rounded-xl px-1 py-1 ${dashboard ? 'hover:bg-[#f4f5f6]' : 'hover:bg-white/5'}`}>
         {user.avatar
           ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover"/>
-          : <div className={`w-8 h-8 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-sm text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
-        <div className="text-xs leading-tight text-left">
-          <div className="text-white font-bold truncate max-w-[120px] flex items-center gap-1">
-            {user.name || user.email || user.principal?.slice(0,12)}
+          : <div className={`w-8 h-8 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-sm text-black`}>{(user.name||'?')[0].toUpperCase()}</div>}
+        <div className="text-left text-xs leading-tight">
+          <div className={`flex max-w-[120px] items-center gap-1 truncate font-bold ${dashboard ? 'text-[#252930]' : 'text-white'}`}>
+            {user.name || user.principal?.slice(0,12) || 'Joueur'}
             {isVipActive() && <Crown size={13} className="text-amber-300 shrink-0"/>}
           </div>
-          <div className="text-white/50">Nv.{level}</div>
+          <div className={dashboard ? 'text-[#818690]' : 'text-white/50'}>Nv.{level}</div>
         </div>
       </button>
       {open && (
@@ -61,10 +62,9 @@ export default function ProfileMenu(){
               <div className="flex items-center gap-3">
                 {user.avatar
                   ? <img src={user.avatar} alt="" loading="lazy" decoding="async" className="w-11 h-11 rounded-full object-cover"/>
-                  : <div className={`w-11 h-11 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-lg text-black`}>{(user.name||user.email||'?')[0].toUpperCase()}</div>}
+                  : <div className={`w-11 h-11 rounded-full ${providerColor[user.provider]||'bg-lime-600'} flex items-center justify-center font-black text-lg text-black`}>{(user.name||'?')[0].toUpperCase()}</div>}
                 <div className="min-w-0">
                   <div className="font-black truncate">{user.name || 'Joueur'}</div>
-                  <div className="text-[11px] text-white/50 truncate">{user.email||''}{phone?` • ${phone}`:''}</div>
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between text-xs">

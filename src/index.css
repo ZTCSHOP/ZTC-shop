@@ -440,3 +440,33 @@ html.reduce-motion *::after {
   animation-delay: 0ms !important;
   transition-duration: .001ms !important;
 }
+
+.ztc-home-header::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 12%;
+  width: 190px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(132deg, transparent 38%, rgba(196, 146, 49, .14) 38% 43%, #171a20 43% 58%, rgba(196, 146, 49, .5) 58% 61%, transparent 61%);
+  clip-path: polygon(42% 0, 100% 0, 56% 100%, 0 100%);
+  opacity: .8;
+}
+
+.ztc-dashboard {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.ztc-dashboard a {
+  text-decoration: none;
+}
+
+@media (max-width: 767px) {
+  .ztc-home-header::after {
+    right: 19%;
+    width: 100px;
+    opacity: .35;
+  }
+}

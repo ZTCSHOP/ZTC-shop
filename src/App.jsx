@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import { LanguageProvider } from './context/LanguageContext'
@@ -36,20 +36,19 @@ import CursorGlow from './components/CursorGlow'
 
 const basename = (()=>{ const b = import.meta.env.BASE_URL || '/'; return b === '/' ? '/' : b.replace(/\/$/, '') })()
 
-export default function App(){
-  const [sideOpen, setSideOpen] = useState(false)
+function AppLayout({ sideOpen, setSideOpen }){
+  const { pathname } = useLocation()
+  const dashboard = pathname === '/'
+  const closeSidebar = ()=>setSideOpen(false)
   return (
-    <LanguageProvider>
-    <AuthProvider>
-      <CartProvider>
-        <BrowserRouter basename={basename}>
-          <CircuitBackground/>
-          <div className="relative z-[1] min-h-screen">
-            <CursorGlow/>
-            <Navbar onBurger={()=>setSideOpen(true)}/>
-            <div className="max-w-[1800px] mx-auto lg:flex lg:gap-6 lg:px-4">
-              <Sidebar mobileOpen={sideOpen} onClose={()=>setSideOpen(false)}/>
-              <div className="flex-1 min-w-0">
+    <>
+      {!dashboard && <CircuitBackground/>}
+      <div className={dashboard ? 'relative z-[1] min-h-screen bg-[#f5f6f8] text-[#17191d]' : 'relative z-[1] min-h-screen'}>
+        {!dashboard && <CursorGlow/>}
+        <Navbar onBurger={()=>setSideOpen(true)}/>
+        <div className={dashboard ? 'mx-auto lg:flex lg:max-w-[1900px]' : 'mx-auto max-w-[1800px] lg:flex lg:gap-6 lg:px-4'}>
+          <Sidebar mobileOpen={sideOpen} onClose={closeSidebar}/>
+          <div className="min-w-0 flex-1">
             <Routes>
               <Route path="/" element={<Home/>}/>
               <Route path="/catalog" element={<Catalog/>}/>
@@ -58,7 +57,6 @@ export default function App(){
               <Route path="/checkout" element={<Checkout/>}/>
               <Route path="/profile" element={<MemberDashboard/>}/>
               <Route path="/profile/:section" element={<MemberSection/>}/>
-
               <Route path="/orders" element={<Orders/>}/>
               <Route path="/orders/:id" element={<OrderDetail/>}/>
               <Route path="/login" element={<Login/>}/>
@@ -74,27 +72,38 @@ export default function App(){
               <Route path="/player/:id" element={<PlayerProfile/>}/>
               <Route path="/leaderboard" element={<Leaderboard/>}/>
               <Route path="/lfg" element={<LFG/>}/>
-
             </Routes>
-            <footer className="border-t border-white/10 mt-8 py-6 text-center text-xs text-white/40">
-              <img src={`${import.meta.env.BASE_URL}ztc-gaming-logo.jpg`} alt="ZTC-GAMING" className="w-12 h-12 mx-auto mb-2 rounded-2xl object-cover"/>
-              <div className="flex items-center justify-center gap-5 mb-3 text-sm">
-                <Link to="/catalog" className="text-white/60 hover:text-lime-400 font-semibold">Catalogue</Link>
-                <Link to="/about" className="text-white/60 hover:text-lime-400 font-semibold">À propos</Link>
-                <Link to="/support" className="text-white/60 hover:text-lime-400 font-semibold">Support</Link>
+            <footer className={`mt-8 border-t py-6 text-center text-xs ${dashboard ? 'border-[#e7e9ed] bg-white text-[#737983]' : 'border-white/10 text-white/40'}`}>
+              <img src={`${import.meta.env.BASE_URL}ztc-gaming-logo.jpg`} alt="ZTC-GAMING" className="mx-auto mb-2 h-12 w-12 rounded-2xl object-cover"/>
+              <div className="mb-3 flex items-center justify-center gap-5 text-sm">
+                <Link to="/catalog" className={dashboard ? 'font-semibold text-[#555b64] hover:text-[#bd882b]' : 'font-semibold text-white/60 hover:text-lime-400'}>Catalogue</Link>
+                <Link to="/about" className={dashboard ? 'font-semibold text-[#555b64] hover:text-[#bd882b]' : 'font-semibold text-white/60 hover:text-lime-400'}>À propos</Link>
+                <Link to="/support" className={dashboard ? 'font-semibold text-[#555b64] hover:text-[#bd882b]' : 'font-semibold text-white/60 hover:text-lime-400'}>Support</Link>
               </div>
               <SocialIcons className="mb-3" />
               © 2026 ZTC-GAMING • FR / EN / AR • TND
             </footer>
-              </div>
-            </div>
           </div>
-          <ChatWidget/>
-          <InstallPWA/>
-          <MusicPlayer/>
-        </BrowserRouter>
-      </CartProvider>
-    </AuthProvider>
+        </div>
+      </div>
+      <ChatWidget/>
+      <InstallPWA/>
+      <MusicPlayer/>
+    </>
+  )
+}
+
+export default function App(){
+  const [sideOpen, setSideOpen] = useState(false)
+  return (
+    <LanguageProvider>
+      <AuthProvider>
+        <CartProvider>
+          <BrowserRouter basename={basename}>
+            <AppLayout sideOpen={sideOpen} setSideOpen={setSideOpen}/>
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </LanguageProvider>
   )
 }

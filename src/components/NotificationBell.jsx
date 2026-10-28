@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Bell, Crown, Gift, Package, Shield, Trophy, Wallet } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { notifAllowed } from '../lib/prefs'
@@ -29,6 +29,8 @@ export default function NotificationBell(){
   const { user, cloud, notifications, unreadNotifications, markNotifRead, refreshNotifications, notifReady } = useAuth()
   const [open, setOpen] = useState(false)
   const nav = useNavigate()
+  const { pathname } = useLocation()
+  const dashboard = pathname === '/'
   const ref = useRef(null)
 
   useEffect(()=>{
@@ -50,10 +52,10 @@ export default function NotificationBell(){
   return (
     <div className="relative" ref={ref}>
       <button onClick={()=>{ setOpen(o=>!o); refreshNotifications() }} aria-label="Notifications"
-        className="relative p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10">
+        className={`relative rounded-xl border p-2.5 ${dashboard ? 'border-[#e6e8ec] bg-white text-[#343840] hover:bg-[#f6f7f8]' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
         <Bell size={18}/>
         {unreadNotifications > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-amber-400 text-black text-[10px] font-black flex items-center justify-center border-2 border-[#0a0a0c]">
+          <span className={`absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 px-1 text-[10px] font-black text-black ${dashboard ? 'border-white bg-[#c89535]' : 'border-[#0a0a0c] bg-amber-400'}`}>
             {unreadNotifications > 9 ? '9+' : unreadNotifications}
           </span>
         )}

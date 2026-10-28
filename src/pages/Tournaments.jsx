@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Trophy, Calendar, Users, Gift, ArrowRight, Plus, Check, Zap } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
@@ -17,11 +17,12 @@ const statusStyle = {
 export default function Tournaments(){
   const { tournaments, regsFor, saveTournament, user } = useAuth()
   const { t } = useLang()
-  const [game, setGame] = useState('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const game = searchParams.get('game') || 'all'
   const [countdownNow, setCountdownNow] = useState(()=> Date.now())
   const [form, setForm] = useState({ title:'', game:'valorant', date:'', prize:'', max_teams:16, rules:'', video:'' })
   const [sent, setSent] = useState(false)
-  const games = ['all', ...new Set(tournaments.map(x=> x.game))]
+  const games = ['all', ...new Set([...tournaments.map(x=> x.game), ...(game==='all' ? [] : [game])])]
   const list = sortTournaments(game==='all' ? tournaments : tournaments.filter(x=> x.game===game))
     .filter(x=> x.status!=='pending')
   const mine = user ? tournaments.filter(x=> x.createdBy===user.id && x.status==='pending') : []
@@ -38,7 +39,6 @@ export default function Tournaments(){
     const interval = window.setInterval(()=> setCountdownNow(Date.now()), 1000)
     return ()=> window.clearInterval(interval)
   }, [])
-
   const propose = async (e)=>{
     e.preventDefault()
     if(!form.title.trim()) return
@@ -70,6 +70,12 @@ export default function Tournaments(){
       </div>
     )
   }
+  const selectGame = (nextGame)=> setSearchParams(previous=>{
+    const updated = new URLSearchParams(previous)
+    if(nextGame==='all') updated.delete('game')
+    else updated.set('game', nextGame)
+    return updated
+  })
 
   return (
     <div className="max-w-[1760px] mx-auto px-4 py-8">
@@ -124,7 +130,7 @@ export default function Tournaments(){
 
       <div className="mt-6 flex gap-2 overflow-auto pb-2 justify-start md:justify-center">
         {games.map(g=>(
-          <button key={g} onClick={()=>setGame(g)} className={`cat-pill px-4 py-2 rounded-full text-sm font-bold border whitespace-nowrap ${game===g?'bg-amber-500 border-amber-500 text-black':'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}`}>
+          <button key={g} onClick={()=>selectGame(g)} className={`cat-pill px-4 py-2 rounded-full text-sm font-bold border whitespace-nowrap ${game===g?'bg-amber-500 border-amber-500 text-black':'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'}`}>
             {g==='all' ? t('all') : g}
           </button>
         ))}

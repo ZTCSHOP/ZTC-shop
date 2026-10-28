@@ -1,151 +1,235 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { ArrowRight, Zap, ShieldCheck, Truck, Clock } from 'lucide-react'
-import { initialProducts, minPrice } from '../data/products'
+import {
+  ArrowRight, Bell, CalendarDays, ChevronRight, Clock3, Crown, Gamepad2, Gift,
+  MapPin, Medal, ShoppingBag, Trophy, Users, Wallet,
+} from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LanguageContext'
-import { getHeroVideoId } from '../lib/site'
+import { GAMES, gameMeta } from '../lib/games'
+import { levelProgress, xpForActivity } from '../lib/level'
+
+const featuredGames = ['valorant', 'lol', 'cs2', 'r6', 'fc27', 'tekken8']
+
+const dateLabel = (date, lang) => {
+  if (!date) return lang === 'ar' ? 'قريباً' : 'À confirmer'
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return lang === 'ar' ? 'قريباً' : 'À confirmer'
+  return parsed.toLocaleString(lang === 'en' ? 'en-GB' : lang === 'ar' ? 'ar-TN' : 'fr-TN', {
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+  })
+}
 
 export default function Home(){
-  const { t } = useLang()
-  const [HERO_VIDEO_ID, setHeroId] = useState(()=> getHeroVideoId())
-  useEffect(()=>{
-    const h = ()=> setHeroId(getHeroVideoId())
-    window.addEventListener('ztc:hero-video', h)
-    window.addEventListener('storage', h)
-    return ()=> { window.removeEventListener('ztc:hero-video', h); window.removeEventListener('storage', h) }
-  }, [])
-  const trust = [
-    {title: t('trust1t'), desc: t('trust1d')},
-    {title: t('trust2t'), desc: t('trust2d')},
-    {title: t('trust3t'), desc: t('trust3d')},
-  ]
-  const reviews = [
-    { name: 'Neyla B.', rating: 4, text: t('rev1'), tag: 'Netflix' },
-    { name: 'Mehrez T.', rating: 5, text: t('rev2'), tag: 'Valorant' },
-    { name: 'Steel', rating: 5, text: t('rev3'), tag: 'FC 26' },
-  ]
+  const { lang } = useLang()
+  const { user, tournaments, regsFor, myOrders, myRegs, myTeams, isVipActive, unreadNotifications } = useAuth()
+  const labels = lang === 'ar'
+    ? { home:'الرئيسية', tournaments:'البطولات', teams:'الفرق', players:'اللاعبون', store:'المتجر', wallet:'المحفظة', rewards:'المكافآت', games:'ألعابنا', ongoing:'البطولات الحالية', seeAll:'عرض الكل', nextEvents:'البطولات القادمة', activity:'آخر نشاط', profile:'ملفي الشخصي', level:'المستوى', xp:'نقاط الخبرة', signIn:'سجّل الدخول', join:'اكتشف البطولة', free:'مجاني', online:'أونلاين', empty:'لا توجد بطولات قادمة حالياً', noActivity:'ستظهر طلباتك الأخيرة هنا.', community:'مجتمع ZTC', play:'العب. نافس. اربح.' }
+    : lang === 'en'
+      ? { home:'Home', tournaments:'Tournaments', teams:'Teams', players:'Players', store:'Store', wallet:'Wallet', rewards:'Rewards', games:'Our games', ongoing:'Live tournaments', seeAll:'See all', nextEvents:'Upcoming events', activity:'Recent activity', profile:'My profile', level:'Level', xp:'XP', signIn:'Sign in', join:'View tournament', free:'Free', online:'Online', empty:'No upcoming tournaments right now', noActivity:'Your recent orders will appear here.', community:'ZTC COMMUNITY', play:'Play. Compete. Win.' }
+      : { home:'Accueil', tournaments:'Tournois', teams:'Équipes', players:'Joueurs', store:'Boutique', wallet:'Portefeuille', rewards:'Récompenses', games:'Nos jeux', ongoing:'Tournois en cours', seeAll:'Voir tout', nextEvents:'Prochains événements', activity:'Activité récente', profile:'Mon profil', level:'Niveau', xp:'XP', signIn:'Connexion', join:'Voir le tournoi', free:'Gratuit', online:'En ligne', empty:'Aucun tournoi à venir pour le moment', noActivity:'Tes dernières commandes apparaîtront ici.', community:'COMMUNAUTÉ ZTC', play:'Joue. Compétitionne. Gagne.' }
+
+  const allTournaments = [...(tournaments || [])].filter(item => item.status !== 'pending' && item.status !== 'done')
+  const upcoming = allTournaments
+    .sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime())
+    .slice(0, 4)
+  const featured = upcoming[0]
+  const userOrders = user ? myOrders() : []
+  const registrations = user ? myRegs() : []
+  const teams = user ? myTeams() : []
+  const teamCount = new Set([...teams.map(team => team.name), ...registrations.map(reg => reg.team)].filter(Boolean)).size
+  const xp = user ? (user.xp != null ? Number(user.xp) : xpForActivity({ orders: userOrders.length, regs: registrations.length, teams: teams.length })) : 0
+  const { level, cur, need } = levelProgress(xp)
+  const progress = need > 0 ? Math.min(100, Math.round(cur / need * 100)) : 0
+  const activeOrders = userOrders.slice(0, 3)
+  const games = featuredGames.map(id => GAMES.find(game => game.id === id)).filter(Boolean)
+
   return (
-    <div>
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(92,116,255,.09)_1px,transparent_1px),linear-gradient(to_bottom,rgba(92,116,255,.09)_1px,transparent_1px)] bg-[size:44px_44px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#060509]" />
-        <div className="relative max-w-[1760px] mx-auto px-4 py-14 md:py-20 grid md:grid-cols-2 gap-8 items-center">
-          <div className="reveal">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-lime-400/10 border border-lime-400/30 text-xs text-lime-300 mb-4 font-bold uppercase tracking-widest">
-              <Zap size={14}/> {t('home_badge')}
+    <main className="ztc-dashboard min-h-[calc(100vh-64px)] bg-[#f5f6f8] px-4 py-5 text-[#17191d] sm:px-6 lg:px-7">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_286px]">
+        <div className="min-w-0 space-y-5">
+          <section className="ztc-hero relative isolate min-h-[250px] overflow-hidden rounded-2xl border border-[#e4e6ea] bg-[#eceef1] sm:min-h-[282px]">
+            <img
+              src={featured?.image || gameMeta(featured?.game || 'valorant').image}
+              alt=""
+              className="absolute inset-0 -z-20 h-full w-full object-cover object-[center_30%]"
+              onError={event => { event.currentTarget.style.display = 'none' }}
+            />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white via-white/95 to-white/15 sm:via-white/85"/>
+            <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,transparent_72%,rgba(198,151,60,.2)_72%,transparent_73%)]"/>
+            <div className="relative max-w-[610px] p-5 sm:p-8 lg:p-9">
+              <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[.18em] text-[#bd8521]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#c89535]"/>{featured ? gameMeta(featured.game).label : 'ZTC ESPORTS'}
+              </span>
+              <h1 className="mt-1 font-display text-4xl font-extrabold uppercase leading-[.94] tracking-tight text-[#111318] sm:text-5xl">
+                {featured?.title || 'TUNISIA'}<br/>
+                <span className="text-[#bd9147]">{featured ? 'CHAMPIONSHIP' : 'GAMING ARENA'}</span>
+              </h1>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-semibold text-[#41454d] sm:text-xs">
+                <span className="inline-flex items-center gap-1.5"><Users size={14}/>{featured?.max_teams || 16} {lang === 'en' ? 'Teams' : lang === 'ar' ? 'فريق' : 'Équipes'}</span>
+                <span className="inline-flex items-center gap-1.5"><Gift size={14}/>{featured?.prize || 'ZTC Rewards'}</span>
+                <span className="inline-flex items-center gap-1.5"><CalendarDays size={14}/>{dateLabel(featured?.date, lang)}</span>
+                <span className="inline-flex items-center gap-1.5"><MapPin size={14}/>{labels.online}</span>
+              </div>
+              <Link to={featured ? `/tournaments/${featured.id}` : '/tournaments'} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#c7932c] to-[#d4a84e] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:brightness-105">
+                {labels.join}<ArrowRight size={15}/>
+              </Link>
             </div>
-            <h1 className="font-display text-6xl md:text-8xl font-bold leading-[0.85] tracking-tight uppercase">
-              ZTC-GAMING<br/>
-              <span className="bg-gradient-to-r from-[#b9c7ff] via-[#6f8bff] to-[#3f56e8] bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(76,104,255,.35)]">gift cards</span><br/>
-              gaming & streaming
-            </h1>
-            <p className="text-white/60 mt-4 text-base max-w-lg">{t('home_sub')}</p>
-            <div className="flex flex-wrap gap-3 mt-6">
-              <Link to="/catalog" className="px-6 py-3 rounded-lg bg-lime-400 hover:bg-lime-300 text-black font-black flex items-center gap-2 uppercase tracking-wide text-sm">{t('browse')} <ArrowRight size={18}/></Link>
-              <Link to="/catalog?cat=valorant" className="px-6 py-3 rounded-lg bg-white/5 border border-white/15 hover:bg-white/10 font-bold uppercase tracking-wide text-sm">{t('view_vp')}</Link>
+            <div className="absolute bottom-3 right-4 flex items-center gap-1.5" aria-hidden="true">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#cbd0d7]"/><span className="h-1.5 w-1.5 rounded-full bg-[#c89535]"/>
             </div>
-            <div className="flex gap-6 mt-6 text-sm">
-              <span className="flex items-center gap-2 text-white/70"><ShieldCheck size={16} className="text-lime-400"/> {t('secure')}</span>
-              <span className="flex items-center gap-2 text-white/70"><Truck size={16} className="text-lime-400"/> {t('cod_short')}</span>
-              <span className="flex items-center gap-2 text-white/70"><Clock size={16} className="text-lime-400"/> {t('fast')}</span>
-            </div>
-          </div>
-          <div className="reveal">
-            <div className="relative rounded-2xl overflow-hidden border border-royal-400/40 bg-black aspect-video shadow-[0_0_60px_-15px_rgba(76,104,255,0.5)]">
-              <iframe src={`https://www.youtube.com/embed/${HERO_VIDEO_ID}?rel=0&autoplay=1&mute=1&playsinline=1`} title="ZTC Presentation" className="w-full h-full" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-            </div>
-            <div className="mt-2 flex items-center justify-center gap-3 text-xs text-white/50">🎬 {t('home_video')} <a href={`https://www.youtube.com/watch?v=${HERO_VIDEO_ID}`} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-500">▶ YouTube</a></div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Affiche FC27 PC Steam */}
-      <section className="max-w-[1760px] mx-auto px-4 -mt-2 mb-2">
-        <div className="reveal rounded-3xl overflow-hidden border border-royal-500/35 bg-gradient-to-r from-royal-700/35 via-[#141417] to-[#141417] grid md:grid-cols-[220px_1fr] items-stretch">
-          <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhc6Hl7O2D2ZMM5mGE1Ou40bK_4_xPxWdJW8VsQ7faUHqHInv68ByFjCMH&s=10" alt="EA FC 27 PC" className="w-full h-44 md:h-full object-cover"/>
-          <div className="p-5 md:p-6 flex flex-col justify-center gap-2">
-            <span className="w-fit text-[11px] font-black px-2.5 py-1 rounded-full bg-lime-500 text-black">{t('promo27_badge')}</span>
-            <h2 className="text-2xl md:text-3xl font-black">{t('promo27_title')}</h2>
-            <p className="text-sm text-white/60">{t('promo27_sub')}</p>
-            <div className="flex flex-wrap gap-2.5 mt-2">
-              <Link to="/product/fc27-pc" className="px-5 py-3 rounded-xl bg-lime-500 hover:bg-lime-400 text-black font-black text-sm">{t('promo27_std')} • 130 TND</Link>
-              <Link to="/product/fc27-pc" className="px-5 py-3 rounded-xl bg-lime-400 text-black hover:bg-lime-300 font-black text-sm">{t('promo27_ult')} • 240 TND</Link>
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-extrabold"><Gamepad2 size={18}/>{labels.games}</h2>
+              <Link to="/catalog" className="flex items-center gap-1 text-[11px] font-bold text-[#5b6069] hover:text-[#b17c1c]">{labels.seeAll}<ChevronRight size={14}/></Link>
             </div>
-          </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+              {games.map(game=>(
+                <Link key={game.id} to={`/tournaments?game=${game.id}`} className="group relative flex h-[92px] items-center justify-center overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(27,31,38,.035)] transition hover:-translate-y-0.5 hover:border-[#d3b36c] hover:shadow-md sm:h-[102px]">
+                  {game.image && <img src={game.image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-[.14] transition group-hover:opacity-25"/>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/55 to-white/35"/>
+                  <div className="relative flex flex-col items-center gap-1.5 px-2 text-center">
+                    <span className="text-2xl" aria-hidden="true">{game.icon}</span>
+                    <span className="text-[9px] font-black uppercase leading-tight tracking-wide text-[#30343b] sm:text-[10px]">{game.short}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-extrabold"><Trophy size={18}/>{labels.ongoing}</h2>
+              <Link to="/tournaments" className="flex items-center gap-1 text-[11px] font-bold text-[#5b6069] hover:text-[#b17c1c]">{labels.seeAll}<ChevronRight size={14}/></Link>
+            </div>
+            {upcoming.length ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {upcoming.map((tournament, index)=>{
+                  const game = gameMeta(tournament.game)
+                  const spots = regsFor(tournament.id).length
+                  return (
+                    <Link key={tournament.id} to={`/tournaments/${tournament.id}`} className="group overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(27,31,38,.035)] transition hover:-translate-y-0.5 hover:border-[#d3b36c] hover:shadow-md">
+                      <div className="relative h-[112px] overflow-hidden bg-[#181a1e]">
+                        {tournament.image
+                          ? <img src={tournament.image} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105"/>
+                          : <img src={game.image} alt="" loading="lazy" className="h-full w-full object-cover opacity-70 transition duration-300 group-hover:scale-105"/>}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent"/>
+                        <span className={`absolute left-2 top-2 rounded-full px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide ${tournament.status === 'open' ? 'bg-emerald-500 text-white' : 'bg-white/85 text-[#34373d]'}`}>
+                          {tournament.status === 'open' ? (lang === 'en' ? 'OPEN' : lang === 'ar' ? 'مفتوح' : 'EN COURS') : (lang === 'en' ? 'SOON' : lang === 'ar' ? 'قريباً' : 'À VENIR')}
+                        </span>
+                        {index === 0 && <span className="absolute right-2 top-2 rounded-md bg-[#c89535] px-2 py-1 text-[9px] font-black text-white">À LA UNE</span>}
+                      </div>
+                      <div className="p-3">
+                        <div className="truncate text-[12px] font-extrabold text-[#202329]">{tournament.title}</div>
+                        <div className="mt-1 text-[10px] font-semibold text-[#777d87]">{game.label}</div>
+                        <div className="mt-2 space-y-1.5 border-t border-[#f0f1f3] pt-2 text-[10px] text-[#626873]">
+                          <div className="flex items-center gap-1.5"><CalendarDays size={12}/>{dateLabel(tournament.date, lang)}</div>
+                          <div className="flex items-center gap-1.5"><Users size={12}/>{spots} / {tournament.max_teams || 16} {lang === 'en' ? 'teams' : lang === 'ar' ? 'فريق' : 'équipes'}</div>
+                          <div className="flex items-center gap-1.5 font-bold text-[#a9791e]"><Gift size={12}/>{tournament.prize || labels.free}</div>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[#d9dce1] bg-white px-4 py-8 text-center text-xs text-[#767b84]">{labels.empty}</div>
+            )}
+          </section>
         </div>
-      </section>
-      {/* Bande marques */}
-      <div className="overflow-hidden border-y border-white/10 bg-black/40 py-3 select-none" dir="ltr">
-        <div className="max-w-[1760px] mx-auto px-4 flex gap-8 items-center overflow-x-auto text-xs font-black tracking-widest text-white/50 whitespace-nowrap">
-          {['VALORANT','LEAGUE OF LEGENDS','FC 27','PUBG','WARZONE','RAINBOW SIX','ROBLOX','STEAM','NETFLIX'].map((s,i)=>(
-            <span key={i} className="flex items-center gap-8 whitespace-nowrap">{s}<span className="text-royal-400">/</span></span>
-          ))}
-        </div>
+
+        <aside className="space-y-4">
+          <section className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(27,31,38,.035)]">
+            <div className="relative bg-[#11151b] px-4 py-4 text-white">
+              <div className="absolute inset-0 bg-[linear-gradient(125deg,transparent_60%,rgba(202,157,70,.24)_60%,transparent_61%)]"/>
+              <div className="relative flex items-center gap-3">
+                {user?.avatar
+                  ? <img src={user.avatar} alt="" className="h-12 w-12 rounded-full border border-white/20 object-cover"/>
+                  : <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-[#292d34] text-lg font-black">{user ? (user.name || 'J')[0].toUpperCase() : <Trophy size={20}/>}</div>}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-xs font-extrabold">{user?.name || 'ZTC Player'}</div>
+                  <div className="mt-1 text-[10px] text-white/55">{user ? `${labels.level} ${level}` : labels.profile}</div>
+                </div>
+                {user && isVipActive() && <Crown size={16} className="text-[#e7be68]"/>}
+              </div>
+              {user && <div className="relative mt-3">
+                <div className="mb-1 flex justify-between text-[9px] text-white/65"><span>{labels.xp}</span><span>{cur} / {need}</span></div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-[#b8801e] to-[#e6bd67]" style={{ width:`${progress}%` }}/></div>
+              </div>}
+            </div>
+            {user ? (
+              <div className="p-3">
+                <Link to="/profile/wallet" className="flex items-center gap-2.5 rounded-lg px-1 py-1.5 hover:bg-[#faf8f3]">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e7ddc7] bg-[#fbf7ed] text-[#aa7b25]"><Wallet size={16}/></span>
+                  <span className="min-w-0 flex-1"><span className="block text-[10px] text-[#747982]">{labels.wallet}</span><span className="block text-xs font-extrabold">{Number(user.balance || 0)} TND</span></span>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#c89535] text-white"><ArrowRight size={15}/></span>
+                </Link>
+                <div className="mt-2 grid grid-cols-3 divide-x divide-[#eceef1] border-t border-[#eceef1] pt-3 text-center">
+                  <div><div className="text-xs font-black">{registrations.length}</div><div className="mt-1 text-[9px] text-[#777d87]">{labels.tournaments}</div></div>
+                  <div><div className="text-xs font-black">{teamCount}</div><div className="mt-1 text-[9px] text-[#777d87]">{labels.teams}</div></div>
+                  <div><div className="text-xs font-black">#{level}</div><div className="mt-1 text-[9px] text-[#777d87]">{labels.level}</div></div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3">
+                <p className="text-[11px] leading-relaxed text-[#6e737c]">Connecte-toi pour suivre tes tournois, ton portefeuille et tes récompenses.</p>
+                <Link to="/login" className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-[#c89535] px-3 py-2 text-xs font-extrabold text-white">{labels.signIn}<ArrowRight size={14}/></Link>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_2px_8px_rgba(27,31,38,.035)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-xs font-extrabold"><CalendarDays size={16}/>{labels.nextEvents}</h2>
+              <Link to="/tournaments" className="text-[9px] font-semibold text-[#858a93]">{labels.seeAll}</Link>
+            </div>
+            {upcoming.slice(0, 3).length ? <div className="space-y-3">
+              {upcoming.slice(0, 3).map(tournament=>(
+                <Link key={tournament.id} to={`/tournaments/${tournament.id}`} className="flex items-center gap-2.5">
+                  <div className="h-11 w-12 shrink-0 overflow-hidden rounded-md bg-[#17191d]">
+                    {(tournament.image || gameMeta(tournament.game).image) && <img src={tournament.image || gameMeta(tournament.game).image} alt="" loading="lazy" className="h-full w-full object-cover"/>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[10px] font-extrabold">{tournament.title}</div>
+                    <div className="mt-1 flex items-center gap-1 text-[9px] text-[#7b8089]"><Clock3 size={10}/>{dateLabel(tournament.date, lang)}</div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#edf8f1] px-2 py-1 text-[9px] font-bold text-[#34845a]">{Number(tournament.entry_fee) > 0 ? `${tournament.entry_fee} TND` : labels.free}</span>
+                </Link>
+              ))}
+            </div> : <p className="py-2 text-[10px] text-[#858a93]">{labels.empty}</p>}
+          </section>
+
+          <section className="rounded-xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_2px_8px_rgba(27,31,38,.035)]">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-xs font-extrabold"><Bell size={16}/>{labels.activity}</h2>
+              <Link to="/orders" className="text-[9px] font-semibold text-[#858a93]">{labels.seeAll}</Link>
+            </div>
+            {activeOrders.length ? <div className="space-y-3">
+              {activeOrders.map(order=>(
+                <Link key={order.id} to={`/orders/${order.id}`} className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f8f3e8] text-[#ad7c22]"><ShoppingBag size={15}/></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[10px] font-extrabold">{order.productName || order.product || order.items?.[0]?.name || `Commande #${String(order.id).slice(-6)}`}</span>
+                    <span className="mt-1 block text-[9px] text-[#7b8089]">{dateLabel(order.date, lang)}</span>
+                  </span>
+                  <ChevronRight size={14} className="text-[#a5a9af]"/>
+                </Link>
+              ))}
+            </div> : <p className="py-2 text-[10px] text-[#858a93]">{labels.noActivity}</p>}
+            {user && unreadNotifications > 0 && <Link to="/profile/notifications" className="mt-3 flex items-center gap-2 border-t border-[#eceef1] pt-3 text-[10px] font-bold text-[#a9791e]"><Medal size={13}/>{unreadNotifications} notifications non lues</Link>}
+          </section>
+
+          <Link to="/lfg" className="group relative block overflow-hidden rounded-xl bg-[#11151b] p-4 text-white">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_68%,rgba(201,151,55,.46)_68%,transparent_69%)]"/>
+            <div className="relative">
+              <div className="text-[10px] font-black uppercase tracking-[.16em] text-[#d9b364]">{labels.community}</div>
+              <div className="mt-1 text-sm font-extrabold">{labels.play}</div>
+              <div className="mt-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#c89535] transition group-hover:translate-x-1"><ArrowRight size={14}/></div>
+            </div>
+          </Link>
+        </aside>
       </div>
-
-      <section className="max-w-[1760px] mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-6 reveal">
-          <h2 className="font-display text-4xl font-bold uppercase tracking-wide">{t('popular')}</h2>
-          <Link to="/catalog" className="text-sm text-lime-400 hover:text-lime-300 font-bold">{t('see_all')}</Link>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {initialProducts.slice(0,8).map((p,i)=>(
-            <div key={p.id} className="anim-glow reveal" style={{animationDelay:`${(i%8)*70}ms`}}>
-            <Link to={`/product/${p.id}`} className="rounded-xl overflow-hidden bg-[#101310] border border-white/10 hover:border-lime-400/60 transition group block">
-              <div className="relative h-36 overflow-hidden">
-                <img src={p.image || `${import.meta.env.BASE_URL}favicon.svg`} className="w-full h-full object-cover group-hover:scale-105 transition" alt={p.name}/>
-                {p.badge && <span className="absolute top-2 left-2 text-[10px] font-black px-2 py-1 rounded bg-lime-400 text-black">{p.badge}</span>}
-                <span className="absolute top-2 right-2 text-[11px] bg-black/60 backdrop-blur px-2 py-1 rounded-full">⭐ {p.rating}</span>
-              </div>
-              <div className="p-4">
-                <div className="text-[11px] text-lime-500/80 uppercase tracking-widest font-bold">{p.category}</div>
-                <div className="font-bold leading-tight">{p.name}</div>
-                <div className="text-xs text-white/50">{p.subtitle}</div>
-                <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-                  <span className="text-sm text-white/50">{t('from')}</span>
-                  <span className="font-display text-2xl font-bold text-lime-400">{minPrice(p).toFixed(2)} TND</span>
-                </div>
-              </div>
-            </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Avis clients */}
-      <section className="max-w-[1760px] mx-auto px-4 pb-4">
-        <div className="text-center mb-6 reveal">
-          <h2 className="text-2xl font-black">{t('reviews_t')}</h2>
-          <p className="text-sm text-white/50 mt-1">{t('reviews_sub')} • <span className="text-amber-400 font-black">★ 4.7/5</span></p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          {reviews.map((r,i)=>(
-            <div key={r.name} className="reveal rounded-2xl p-5 bg-white/[0.04] border border-white/10" style={{animationDelay:`${i*80}ms`}}>
-              <div className="text-lg tracking-wider">
-                {[1,2,3,4,5].map(s=> <span key={s} className={s<=r.rating?'text-amber-400':'text-white/20'}>★</span>)}
-                <span className="text-xs text-white/50 ml-2">{r.rating}/5</span>
-              </div>
-              <p className="text-sm text-white/70 mt-2 leading-relaxed">“{r.text}”</p>
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-lime-400 to-emerald-600 text-black flex items-center justify-center font-black text-sm">{r.name[0]}</div>
-                  <span className="font-bold text-sm">{r.name}</span>
-                </div>
-                <span className="text-[11px] px-2 py-1 rounded bg-lime-400/15 border border-lime-400/25 text-lime-300">{r.tag}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="max-w-[1760px] mx-auto px-4 pb-12 grid md:grid-cols-3 gap-4">
-        {trust.map(f=>(
-          <div key={f.title} className="rounded-2xl p-5 bg-white/[0.04] border border-white/10">
-            <div className="font-bold">{f.title}</div>
-            <div className="text-sm text-white/60 mt-1">{f.desc}</div>
-          </div>
-        ))}
-      </section>
-    </div>
+    </main>
   )
 }
